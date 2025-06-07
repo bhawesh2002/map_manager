@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
@@ -27,6 +28,13 @@ class MapManager extends ChangeNotifier {
     AnimationController animController, {
     MapMode? mode,
   }) async {
+    if (kDebugMode) {
+      Logger.root.onRecord.listen((log) {
+        debugPrint(
+            "${log.loggerName} : ${log.level} : ${log.message} : ${log.time} ");
+      });
+    }
+
     mode = mode ?? MapMode.basic();
     final manager = MapManager._(mapboxMap, mode, animController);
     await manager.changeMode(mode);
@@ -90,10 +98,7 @@ class MapManager extends ChangeNotifier {
 
   Future<void> _handleBasicMode(BasicMapMode basic) async {
     _mode.ensureMode<BasicMapMode>();
-    _basicModeClass = await BasicModeClass.initialize();
-    basic.trackUserLoc
-        ? _basicModeClass!.enableLocTracking(_mapboxMap)
-        : _basicModeClass!.disableLocTracking(_mapboxMap);
+    _basicModeClass = await BasicModeClass.initialize(_mapboxMap, basic);
     _logger.info('Mode changed to Basic Map Mode');
   }
 
