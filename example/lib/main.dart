@@ -3,6 +3,8 @@ import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MapboxOptions.setAccessToken(const String.fromEnvironment("MAPBOX_API_KEY"));
   runApp(const MainApp());
 }
 
@@ -40,7 +42,7 @@ class _MapDemoHomeState extends State<MapDemoHome>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 600),
     );
   }
 
