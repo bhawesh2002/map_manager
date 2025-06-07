@@ -1,3 +1,4 @@
+import 'package:example/app_map.dart';
 import 'package:flutter/material.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -31,96 +32,98 @@ class MapDemoHome extends StatefulWidget {
   State<MapDemoHome> createState() => _MapDemoHomeState();
 }
 
-class _MapDemoHomeState extends State<MapDemoHome>
-    with SingleTickerProviderStateMixin {
+class _MapDemoHomeState extends State<MapDemoHome> {
   MapManager? _mapManager;
-  late AnimationController _animationController;
   MapMode _currentMode = MapMode.basic();
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _onMapCreated(MapboxMap mapboxMap) async {
-    // Initialize map manager when map is created
-    _mapManager = await MapManager.init(
-      mapboxMap,
-      _animationController,
-      mode: _currentMode,
-    );
-
-    setState(() {});
+  void _onMapCreated(manager) {
+    _mapManager = manager;
   }
 
   void _changeMode(MapMode mode) async {
     if (_mapManager != null) {
       await _mapManager!.changeMode(mode);
-      setState(() {
-        _currentMode = mode;
-      });
     }
   }
 
+  final _mapModesMap = <Map<String, dynamic>>[
+    {'name': 'Basic Mode', 'config': BasicMapMode(trackUserLoc: true)},
+    {'name': "Location Selection", 'config': LocationSelectionMode()},
+    {'name': "Route Mode", 'config': RouteMode()},
+    {
+      'name': "Tracking Mode",
+      'config': RideTrackingMode(route: LineString(coordinates: []))
+    }
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Map Manager Demo'),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: MapWidget(
-              key: const ValueKey('mapWidget'),
-              onMapCreated: _onMapCreated,
-              cameraOptions: CameraOptions(
-                center: Point(coordinates: Position(37.7749, -122.4194)),
-                zoom: 9.0,
-              ),
-            ),
+          AppMap(
+            initialMode: _mapModesMap.first['config'],
+            onMapCreated: _onMapCreated,
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () =>
-                        _changeMode(MapMode.basic(trackUserLoc: true)),
-                    child: const Text('Basic Mode'),
+          Positioned(
+            top: 50,
+            left: 16,
+            right: 16,
+            child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Text(
+                    'Map Manager Testing Suite',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: () =>
-                        _changeMode(MapMode.locationSel(maxSelections: 3)),
-                    child: const Text('Location Mode'),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 6,
+                    children: _mapModesMap.map((preset) {
+                      final isSelected = preset['config'] == _currentMode;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentMode = preset['config'];
+                          });
+                          _changeMode(_currentMode);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.blue : Colors.white24,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            preset['name'],
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white70,
+                              fontSize: 10,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Example route - replace with actual route data
-                      final lineString = LineString(coordinates: [
-                        Position(-122.4194, 37.7749), // San Francisco
-                        Position(-122.2711, 37.8043), // Berkeley
-                      ]);
-                      _changeMode(MapMode.routeMode(route: lineString));
-                    },
-                    child: const Text('Route Mode'),
-                  ),
-                ],
-              ),
-            ),
-          ),
+                  const SizedBox(height: 8),
+                ])),
+          )
         ],
       ),
     );
