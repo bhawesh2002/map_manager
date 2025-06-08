@@ -23,7 +23,7 @@ mixin _$MapMode {
         locationSel,
     required TResult Function(LineString? route) routeMode,
     required TResult Function(LineString route, List<Point>? waypoints)
-        rideTracking,
+        tracking,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -32,7 +32,7 @@ mixin _$MapMode {
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult? Function(LineString? route)? routeMode,
-    TResult? Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -41,7 +41,7 @@ mixin _$MapMode {
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult Function(LineString? route)? routeMode,
-    TResult Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -50,7 +50,7 @@ mixin _$MapMode {
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
     required TResult Function(RouteMode value) routeMode,
-    required TResult Function(RideTrackingMode value) rideTracking,
+    required TResult Function(TrackingMode value) tracking,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -58,7 +58,7 @@ mixin _$MapMode {
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
     TResult? Function(RouteMode value)? routeMode,
-    TResult? Function(RideTrackingMode value)? rideTracking,
+    TResult? Function(TrackingMode value)? tracking,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -66,7 +66,7 @@ mixin _$MapMode {
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
     TResult Function(RouteMode value)? routeMode,
-    TResult Function(RideTrackingMode value)? rideTracking,
+    TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -167,7 +167,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
         locationSel,
     required TResult Function(LineString? route) routeMode,
     required TResult Function(LineString route, List<Point>? waypoints)
-        rideTracking,
+        tracking,
   }) {
     return basic(trackUserLoc);
   }
@@ -179,7 +179,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult? Function(LineString? route)? routeMode,
-    TResult? Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return basic?.call(trackUserLoc);
   }
@@ -191,7 +191,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult Function(LineString? route)? routeMode,
-    TResult Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
     if (basic != null) {
@@ -206,7 +206,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
     required TResult Function(RouteMode value) routeMode,
-    required TResult Function(RideTrackingMode value) rideTracking,
+    required TResult Function(TrackingMode value) tracking,
   }) {
     return basic(this);
   }
@@ -217,7 +217,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
     TResult? Function(RouteMode value)? routeMode,
-    TResult? Function(RideTrackingMode value)? rideTracking,
+    TResult? Function(TrackingMode value)? tracking,
   }) {
     return basic?.call(this);
   }
@@ -228,7 +228,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
     TResult Function(RouteMode value)? routeMode,
-    TResult Function(RideTrackingMode value)? rideTracking,
+    TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
     if (basic != null) {
@@ -351,7 +351,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
         locationSel,
     required TResult Function(LineString? route) routeMode,
     required TResult Function(LineString route, List<Point>? waypoints)
-        rideTracking,
+        tracking,
   }) {
     return locationSel(maxSelections, preSelectedLocs);
   }
@@ -363,7 +363,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult? Function(LineString? route)? routeMode,
-    TResult? Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return locationSel?.call(maxSelections, preSelectedLocs);
   }
@@ -375,7 +375,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult Function(LineString? route)? routeMode,
-    TResult Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
     if (locationSel != null) {
@@ -390,7 +390,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
     required TResult Function(RouteMode value) routeMode,
-    required TResult Function(RideTrackingMode value) rideTracking,
+    required TResult Function(TrackingMode value) tracking,
   }) {
     return locationSel(this);
   }
@@ -401,7 +401,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
     TResult? Function(RouteMode value)? routeMode,
-    TResult? Function(RideTrackingMode value)? rideTracking,
+    TResult? Function(TrackingMode value)? tracking,
   }) {
     return locationSel?.call(this);
   }
@@ -412,7 +412,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
     TResult Function(RouteMode value)? routeMode,
-    TResult Function(RideTrackingMode value)? rideTracking,
+    TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
     if (locationSel != null) {
@@ -511,7 +511,7 @@ class _$RouteModeImpl extends RouteMode {
         locationSel,
     required TResult Function(LineString? route) routeMode,
     required TResult Function(LineString route, List<Point>? waypoints)
-        rideTracking,
+        tracking,
   }) {
     return routeMode(route);
   }
@@ -523,7 +523,7 @@ class _$RouteModeImpl extends RouteMode {
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult? Function(LineString? route)? routeMode,
-    TResult? Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return routeMode?.call(route);
   }
@@ -535,7 +535,7 @@ class _$RouteModeImpl extends RouteMode {
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult Function(LineString? route)? routeMode,
-    TResult Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
     if (routeMode != null) {
@@ -550,7 +550,7 @@ class _$RouteModeImpl extends RouteMode {
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
     required TResult Function(RouteMode value) routeMode,
-    required TResult Function(RideTrackingMode value) rideTracking,
+    required TResult Function(TrackingMode value) tracking,
   }) {
     return routeMode(this);
   }
@@ -561,7 +561,7 @@ class _$RouteModeImpl extends RouteMode {
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
     TResult? Function(RouteMode value)? routeMode,
-    TResult? Function(RideTrackingMode value)? rideTracking,
+    TResult? Function(TrackingMode value)? tracking,
   }) {
     return routeMode?.call(this);
   }
@@ -572,7 +572,7 @@ class _$RouteModeImpl extends RouteMode {
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
     TResult Function(RouteMode value)? routeMode,
-    TResult Function(RideTrackingMode value)? rideTracking,
+    TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
     if (routeMode != null) {
@@ -596,20 +596,20 @@ abstract class RouteMode extends MapMode {
 }
 
 /// @nodoc
-abstract class _$$RideTrackingModeImplCopyWith<$Res> {
-  factory _$$RideTrackingModeImplCopyWith(_$RideTrackingModeImpl value,
-          $Res Function(_$RideTrackingModeImpl) then) =
-      __$$RideTrackingModeImplCopyWithImpl<$Res>;
+abstract class _$$TrackingModeImplCopyWith<$Res> {
+  factory _$$TrackingModeImplCopyWith(
+          _$TrackingModeImpl value, $Res Function(_$TrackingModeImpl) then) =
+      __$$TrackingModeImplCopyWithImpl<$Res>;
   @useResult
   $Res call({LineString route, List<Point>? waypoints});
 }
 
 /// @nodoc
-class __$$RideTrackingModeImplCopyWithImpl<$Res>
-    extends _$MapModeCopyWithImpl<$Res, _$RideTrackingModeImpl>
-    implements _$$RideTrackingModeImplCopyWith<$Res> {
-  __$$RideTrackingModeImplCopyWithImpl(_$RideTrackingModeImpl _value,
-      $Res Function(_$RideTrackingModeImpl) _then)
+class __$$TrackingModeImplCopyWithImpl<$Res>
+    extends _$MapModeCopyWithImpl<$Res, _$TrackingModeImpl>
+    implements _$$TrackingModeImplCopyWith<$Res> {
+  __$$TrackingModeImplCopyWithImpl(
+      _$TrackingModeImpl _value, $Res Function(_$TrackingModeImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of MapMode
@@ -620,7 +620,7 @@ class __$$RideTrackingModeImplCopyWithImpl<$Res>
     Object? route = null,
     Object? waypoints = freezed,
   }) {
-    return _then(_$RideTrackingModeImpl(
+    return _then(_$TrackingModeImpl(
       route: null == route
           ? _value.route
           : route // ignore: cast_nullable_to_non_nullable
@@ -635,8 +635,8 @@ class __$$RideTrackingModeImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$RideTrackingModeImpl extends RideTrackingMode {
-  _$RideTrackingModeImpl({required this.route, final List<Point>? waypoints})
+class _$TrackingModeImpl extends TrackingMode {
+  _$TrackingModeImpl({required this.route, final List<Point>? waypoints})
       : _waypoints = waypoints,
         super._();
 
@@ -654,14 +654,14 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
 
   @override
   String toString() {
-    return 'MapMode.rideTracking(route: $route, waypoints: $waypoints)';
+    return 'MapMode.tracking(route: $route, waypoints: $waypoints)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$RideTrackingModeImpl &&
+            other is _$TrackingModeImpl &&
             (identical(other.route, route) || other.route == route) &&
             const DeepCollectionEquality()
                 .equals(other._waypoints, _waypoints));
@@ -676,9 +676,8 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$RideTrackingModeImplCopyWith<_$RideTrackingModeImpl> get copyWith =>
-      __$$RideTrackingModeImplCopyWithImpl<_$RideTrackingModeImpl>(
-          this, _$identity);
+  _$$TrackingModeImplCopyWith<_$TrackingModeImpl> get copyWith =>
+      __$$TrackingModeImplCopyWithImpl<_$TrackingModeImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -688,9 +687,9 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
         locationSel,
     required TResult Function(LineString? route) routeMode,
     required TResult Function(LineString route, List<Point>? waypoints)
-        rideTracking,
+        tracking,
   }) {
-    return rideTracking(route, waypoints);
+    return tracking(route, waypoints);
   }
 
   @override
@@ -700,9 +699,9 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult? Function(LineString? route)? routeMode,
-    TResult? Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
-    return rideTracking?.call(route, waypoints);
+    return tracking?.call(route, waypoints);
   }
 
   @override
@@ -712,11 +711,11 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
     TResult Function(LineString? route)? routeMode,
-    TResult Function(LineString route, List<Point>? waypoints)? rideTracking,
+    TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
-    if (rideTracking != null) {
-      return rideTracking(route, waypoints);
+    if (tracking != null) {
+      return tracking(route, waypoints);
     }
     return orElse();
   }
@@ -727,9 +726,9 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
     required TResult Function(RouteMode value) routeMode,
-    required TResult Function(RideTrackingMode value) rideTracking,
+    required TResult Function(TrackingMode value) tracking,
   }) {
-    return rideTracking(this);
+    return tracking(this);
   }
 
   @override
@@ -738,9 +737,9 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
     TResult? Function(RouteMode value)? routeMode,
-    TResult? Function(RideTrackingMode value)? rideTracking,
+    TResult? Function(TrackingMode value)? tracking,
   }) {
-    return rideTracking?.call(this);
+    return tracking?.call(this);
   }
 
   @override
@@ -749,21 +748,21 @@ class _$RideTrackingModeImpl extends RideTrackingMode {
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
     TResult Function(RouteMode value)? routeMode,
-    TResult Function(RideTrackingMode value)? rideTracking,
+    TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
-    if (rideTracking != null) {
-      return rideTracking(this);
+    if (tracking != null) {
+      return tracking(this);
     }
     return orElse();
   }
 }
 
-abstract class RideTrackingMode extends MapMode {
-  factory RideTrackingMode(
+abstract class TrackingMode extends MapMode {
+  factory TrackingMode(
       {required final LineString route,
-      final List<Point>? waypoints}) = _$RideTrackingModeImpl;
-  RideTrackingMode._() : super._();
+      final List<Point>? waypoints}) = _$TrackingModeImpl;
+  TrackingMode._() : super._();
 
   LineString get route;
   List<Point>? get waypoints;
@@ -771,6 +770,6 @@ abstract class RideTrackingMode extends MapMode {
   /// Create a copy of MapMode
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$RideTrackingModeImplCopyWith<_$RideTrackingModeImpl> get copyWith =>
+  _$$TrackingModeImplCopyWith<_$TrackingModeImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

@@ -13,8 +13,8 @@ class MapMode with _$MapMode {
       {@Default(1) int maxSelections,
       @Default([]) List<Point>? preSelectedLocs}) = LocationSelectionMode;
   factory MapMode.routeMode({LineString? route}) = RouteMode;
-  factory MapMode.rideTracking(
-      {required LineString route, List<Point>? waypoints}) = RideTrackingMode;
+  factory MapMode.tracking(
+      {required LineString route, List<Point>? waypoints}) = TrackingMode;
 
   const MapMode._();
 }

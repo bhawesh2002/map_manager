@@ -31,7 +31,7 @@ class _MapTestingPageState extends State<MapTestingPage> {
     {'name': "Route Mode", 'config': RouteMode()},
     {
       'name': "Tracking Mode",
-      'config': RideTrackingMode(route: LineString(coordinates: []))
+      'config': TrackingMode(route: LineString(coordinates: []))
     }
   ];
   @override

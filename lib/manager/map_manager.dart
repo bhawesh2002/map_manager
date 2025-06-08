@@ -54,7 +54,7 @@ class MapManager extends ChangeNotifier {
       await _handleLocSelMode(locationSel);
     }, routeMode: (routeMode) async {
       await _handleRouteMode(routeMode);
-    }, rideTracking: (RideTrackingMode value) async {
+    }, tracking: (TrackingMode value) async {
       await _handleRideTrackingMode(value);
     });
   }
@@ -69,7 +69,7 @@ class MapManager extends ChangeNotifier {
     }, routeMode: (routeMode) async {
       await _routeModeClass?.cleanRouteModeDat(_mapboxMap);
       _routeModeClass = null;
-    }, rideTracking: (RideTrackingMode value) async {
+    }, tracking: (TrackingMode value) async {
       await _trackingModeClass?.cleanRideTrackingData(_mapboxMap);
       _trackingModeClass = null;
     });
@@ -82,14 +82,14 @@ class MapManager extends ChangeNotifier {
 
   Future<void> startTracking(
       ValueNotifier<LocationUpdate?> personLocation) async {
-    _mode.ensureMode<RideTrackingMode>();
+    _mode.ensureMode<TrackingMode>();
     await _trackingModeClass?.startTracking(personLocation);
   }
 
   LineString get routeTraversed => _trackingModeClass!.routeTraversed;
 
-  Future<void> _handleRideTrackingMode(RideTrackingMode tracking) async {
-    _mode.ensureMode<RideTrackingMode>();
+  Future<void> _handleRideTrackingMode(TrackingMode tracking) async {
+    _mode.ensureMode<TrackingMode>();
     _trackingModeClass = await RideTrackingModeClass.initialize(
         _mapboxMap, tracking.route, _animationController,
         waypoints: tracking.waypoints);
