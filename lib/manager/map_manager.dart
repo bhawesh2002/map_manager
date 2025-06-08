@@ -61,7 +61,7 @@ class MapManager extends ChangeNotifier {
 
   Future<void> _cleanExistingModeData() async {
     await _mode.map(basic: (basic) async {
-      await _basicModeClass?.clearBasicModeDat(_mapboxMap);
+      await _basicModeClass?.clearBasicModeData(_mapboxMap);
       _basicModeClass = null;
     }, locationSel: (locationSel) async {
       await _locationModeClass?.cleanLocModeDat(_mapboxMap);
