@@ -12,7 +12,7 @@ class MapMode with _$MapMode {
   factory MapMode.locationSel(
       {@Default(1) int maxSelections,
       @Default([]) List<Point>? preSelectedLocs}) = LocationSelectionMode;
-  factory MapMode.routeMode({LineString? route}) = RouteMode;
+  factory MapMode.route({LineString? route}) = RouteMode;
   factory MapMode.tracking(
       {required LineString route, List<Point>? waypoints}) = TrackingMode;
 
@@ -25,11 +25,7 @@ extension EnsureMapModeExt on MapMode {
     throw MapModeException(
       message: 'Operation not allwoed in $this mode',
       currentMode: this,
-      expectedMode: T is LocationSelectionMode
-          ? MapMode.locationSel()
-          : T is RouteMode
-              ? MapMode.routeMode()
-              : MapMode.basic(),
+      expectedMode: this,
     );
   }
 

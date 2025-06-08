@@ -52,7 +52,7 @@ class MapManager extends ChangeNotifier {
       await _handleBasicMode(basic);
     }, locationSel: (locationSel) async {
       await _handleLocSelMode(locationSel);
-    }, routeMode: (routeMode) async {
+    }, route: (routeMode) async {
       await _handleRouteMode(routeMode);
     }, tracking: (TrackingMode value) async {
       await _handleRideTrackingMode(value);
@@ -66,7 +66,7 @@ class MapManager extends ChangeNotifier {
     }, locationSel: (locationSel) async {
       await _locationModeClass?.cleanLocModeDat(_mapboxMap);
       _locationModeClass = null;
-    }, routeMode: (routeMode) async {
+    }, route: (routeMode) async {
       await _routeModeClass?.cleanRouteModeDat(_mapboxMap);
       _routeModeClass = null;
     }, tracking: (TrackingMode value) async {

@@ -21,7 +21,7 @@ mixin _$MapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) routeMode,
+    required TResult Function(LineString? route) route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) =>
@@ -31,7 +31,7 @@ mixin _$MapMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? routeMode,
+    TResult? Function(LineString? route)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) =>
       throw _privateConstructorUsedError;
@@ -40,7 +40,7 @@ mixin _$MapMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? routeMode,
+    TResult Function(LineString? route)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) =>
@@ -49,7 +49,7 @@ mixin _$MapMode {
   TResult map<TResult extends Object?>({
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
-    required TResult Function(RouteMode value) routeMode,
+    required TResult Function(RouteMode value) route,
     required TResult Function(TrackingMode value) tracking,
   }) =>
       throw _privateConstructorUsedError;
@@ -57,7 +57,7 @@ mixin _$MapMode {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
-    TResult? Function(RouteMode value)? routeMode,
+    TResult? Function(RouteMode value)? route,
     TResult? Function(TrackingMode value)? tracking,
   }) =>
       throw _privateConstructorUsedError;
@@ -65,7 +65,7 @@ mixin _$MapMode {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
-    TResult Function(RouteMode value)? routeMode,
+    TResult Function(RouteMode value)? route,
     TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) =>
@@ -165,7 +165,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) routeMode,
+    required TResult Function(LineString? route) route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
@@ -178,7 +178,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? routeMode,
+    TResult? Function(LineString? route)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return basic?.call(trackUserLoc);
@@ -190,7 +190,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? routeMode,
+    TResult Function(LineString? route)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
@@ -205,7 +205,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
   TResult map<TResult extends Object?>({
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
-    required TResult Function(RouteMode value) routeMode,
+    required TResult Function(RouteMode value) route,
     required TResult Function(TrackingMode value) tracking,
   }) {
     return basic(this);
@@ -216,7 +216,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
-    TResult? Function(RouteMode value)? routeMode,
+    TResult? Function(RouteMode value)? route,
     TResult? Function(TrackingMode value)? tracking,
   }) {
     return basic?.call(this);
@@ -227,7 +227,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
-    TResult Function(RouteMode value)? routeMode,
+    TResult Function(RouteMode value)? route,
     TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
@@ -349,7 +349,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) routeMode,
+    required TResult Function(LineString? route) route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
@@ -362,7 +362,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? routeMode,
+    TResult? Function(LineString? route)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return locationSel?.call(maxSelections, preSelectedLocs);
@@ -374,7 +374,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? routeMode,
+    TResult Function(LineString? route)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
@@ -389,7 +389,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
   TResult map<TResult extends Object?>({
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
-    required TResult Function(RouteMode value) routeMode,
+    required TResult Function(RouteMode value) route,
     required TResult Function(TrackingMode value) tracking,
   }) {
     return locationSel(this);
@@ -400,7 +400,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
-    TResult? Function(RouteMode value)? routeMode,
+    TResult? Function(RouteMode value)? route,
     TResult? Function(TrackingMode value)? tracking,
   }) {
     return locationSel?.call(this);
@@ -411,7 +411,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
-    TResult Function(RouteMode value)? routeMode,
+    TResult Function(RouteMode value)? route,
     TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
@@ -481,7 +481,7 @@ class _$RouteModeImpl extends RouteMode {
 
   @override
   String toString() {
-    return 'MapMode.routeMode(route: $route)';
+    return 'MapMode.route(route: $route)';
   }
 
   @override
@@ -509,11 +509,11 @@ class _$RouteModeImpl extends RouteMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) routeMode,
+    required TResult Function(LineString? route) route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
-    return routeMode(route);
+    return route(this.route);
   }
 
   @override
@@ -522,10 +522,10 @@ class _$RouteModeImpl extends RouteMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? routeMode,
+    TResult? Function(LineString? route)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
-    return routeMode?.call(route);
+    return route?.call(this.route);
   }
 
   @override
@@ -534,12 +534,12 @@ class _$RouteModeImpl extends RouteMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? routeMode,
+    TResult Function(LineString? route)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
-    if (routeMode != null) {
-      return routeMode(route);
+    if (route != null) {
+      return route(this.route);
     }
     return orElse();
   }
@@ -549,10 +549,10 @@ class _$RouteModeImpl extends RouteMode {
   TResult map<TResult extends Object?>({
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
-    required TResult Function(RouteMode value) routeMode,
+    required TResult Function(RouteMode value) route,
     required TResult Function(TrackingMode value) tracking,
   }) {
-    return routeMode(this);
+    return route(this);
   }
 
   @override
@@ -560,10 +560,10 @@ class _$RouteModeImpl extends RouteMode {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
-    TResult? Function(RouteMode value)? routeMode,
+    TResult? Function(RouteMode value)? route,
     TResult? Function(TrackingMode value)? tracking,
   }) {
-    return routeMode?.call(this);
+    return route?.call(this);
   }
 
   @override
@@ -571,12 +571,12 @@ class _$RouteModeImpl extends RouteMode {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
-    TResult Function(RouteMode value)? routeMode,
+    TResult Function(RouteMode value)? route,
     TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
-    if (routeMode != null) {
-      return routeMode(this);
+    if (route != null) {
+      return route(this);
     }
     return orElse();
   }
@@ -685,11 +685,11 @@ class _$TrackingModeImpl extends TrackingMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) routeMode,
+    required TResult Function(LineString? route) route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
-    return tracking(route, waypoints);
+    return tracking(this.route, waypoints);
   }
 
   @override
@@ -698,10 +698,10 @@ class _$TrackingModeImpl extends TrackingMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? routeMode,
+    TResult? Function(LineString? route)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
-    return tracking?.call(route, waypoints);
+    return tracking?.call(this.route, waypoints);
   }
 
   @override
@@ -710,12 +710,12 @@ class _$TrackingModeImpl extends TrackingMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? routeMode,
+    TResult Function(LineString? route)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
     if (tracking != null) {
-      return tracking(route, waypoints);
+      return tracking(this.route, waypoints);
     }
     return orElse();
   }
@@ -725,7 +725,7 @@ class _$TrackingModeImpl extends TrackingMode {
   TResult map<TResult extends Object?>({
     required TResult Function(BasicMapMode value) basic,
     required TResult Function(LocationSelectionMode value) locationSel,
-    required TResult Function(RouteMode value) routeMode,
+    required TResult Function(RouteMode value) route,
     required TResult Function(TrackingMode value) tracking,
   }) {
     return tracking(this);
@@ -736,7 +736,7 @@ class _$TrackingModeImpl extends TrackingMode {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(BasicMapMode value)? basic,
     TResult? Function(LocationSelectionMode value)? locationSel,
-    TResult? Function(RouteMode value)? routeMode,
+    TResult? Function(RouteMode value)? route,
     TResult? Function(TrackingMode value)? tracking,
   }) {
     return tracking?.call(this);
@@ -747,7 +747,7 @@ class _$TrackingModeImpl extends TrackingMode {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(BasicMapMode value)? basic,
     TResult Function(LocationSelectionMode value)? locationSel,
-    TResult Function(RouteMode value)? routeMode,
+    TResult Function(RouteMode value)? route,
     TResult Function(TrackingMode value)? tracking,
     required TResult orElse(),
   }) {
