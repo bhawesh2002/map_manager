@@ -49,7 +49,7 @@ class _MapTestingPageState extends State<MapTestingPage> {
           child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -61,9 +61,10 @@ class _MapTestingPageState extends State<MapTestingPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 6,
+                  runSpacing: 6,
                   children: _mapModesMap.map((preset) {
                     final isSelected = preset['config'] == _currentMode;
                     return GestureDetector(
