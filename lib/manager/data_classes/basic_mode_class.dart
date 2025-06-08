@@ -72,6 +72,7 @@ class BasicModeClass {
     map.setOnMapMoveListener((gestureContext) {
       mapMoved.value = true;
     });
+    followUserLocation(map);
   }
 
   /// Disables location tracking on the map.
