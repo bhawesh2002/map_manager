@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../location_update.dart';
@@ -114,16 +116,18 @@ class RideTrackingModeClass {
     _route = await _routeManager!.create(PolylineAnnotationOptions(
       geometry: route,
       lineWidth: 8,
-      lineColor: AppColors.routeColor.value,
+      lineColor: Colors.purple.toARGB32(),
     ));
   }
 
-  Future<void> _addWaypoints({required List<Point?> waypoints}) async {
+  Future<void> _addWaypoints(
+      {required List<Point?> waypoints, List<ByteData>? asset}) async {
     final waypts1 = await _waypointManager!.createMulti([
       PointAnnotationOptions(
-          image: MapAssets.navArrow, geometry: waypoints.removeAt(0)!),
+          image: asset != null ? addImageFromAsset(asset.first) : null,
+          geometry: waypoints.removeAt(0)!),
       PointAnnotationOptions(
-        image: MapAssets.selectedLoc,
+        image: asset != null ? addImageFromAsset(asset.last) : null,
         iconOffset: [0, -28],
         geometry: waypoints.removeAt(waypoints.length - 1)!,
       ),
@@ -132,10 +136,7 @@ class RideTrackingModeClass {
     final wayPts2 = await _waypointManager!
         .createMulti(List.generate(waypoints.length, (index) {
       return PointAnnotationOptions(
-          image: MapAssets.selectedLoc,
-          iconOffset: [0, -12],
-          iconSize: 1.45,
-          geometry: waypoints[index]!);
+          iconOffset: [0, -12], iconSize: 1.45, geometry: waypoints[index]!);
     }));
     _waypoints = [...waypts1, ...wayPts2];
   }
@@ -143,8 +144,7 @@ class RideTrackingModeClass {
   Future<void> _updatePersonAnno(Point point) async {
     if (_personAnno == null) {
       _personAnno = await _personAnnoManager!.create(
-        PointAnnotationOptions(
-            geometry: point, iconOffset: [0, -28], image: MapAssets.pickup),
+        PointAnnotationOptions(geometry: point, iconOffset: [0, -28]),
       );
     } else {
       await _personAnnoManager!.update(
