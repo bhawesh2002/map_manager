@@ -8,7 +8,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'data_classes/basic_mode_class.dart';
 import 'data_classes/loc_mode_class.dart';
-import 'data_classes/ride_tracking_mode_class.dart';
+import 'data_classes/tracking_mode_class.dart';
 import 'data_classes/route_mode_class.dart';
 import 'location_update.dart';
 
