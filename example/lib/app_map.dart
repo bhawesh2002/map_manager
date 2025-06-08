@@ -13,6 +13,7 @@ class AppMap extends StatefulWidget {
 
 class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
   MapManager? manager;
+  MapboxMap? mapboxMap;
   late AnimationController _animController;
   @override
   void initState() {
@@ -25,6 +26,7 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return MapWidget(
       onMapCreated: (controller) async {
+        mapboxMap = controller;
         manager = await MapManager.init(controller, _animController,
             mode: widget.initialMode);
         await controller.scaleBar
