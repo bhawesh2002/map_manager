@@ -42,63 +42,64 @@ class _MapTestingPageState extends State<MapTestingPage> {
           initialMode: _mapModesMap.first['config'],
           onMapCreated: _onMapCreated,
         ),
-        Positioned(
+        Positioned.fill(
           top: MediaQuery.viewPaddingOf(context).top + 20,
-          left: 16,
-          right: 16,
-          child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text(
-                  'Map Manager Testing Suite',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: _mapModesMap.map((preset) {
-                    final isSelected = preset['config'] == _currentMode;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _currentMode = preset['config'];
-                        });
-                        _changeMode(_currentMode);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.blue : Colors.white24,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          preset['name'],
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontSize: 10,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Text(
+                    'Map Manager Testing Suite',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _mapModesMap.map((preset) {
+                      final isSelected = preset['config'] == _currentMode;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentMode = preset['config'];
+                          });
+                          _changeMode(_currentMode);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.blue : Colors.white24,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            preset['name'],
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white70,
+                              fontSize: 10,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 8),
-              ])),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                ])),
+          ),
         )
       ],
     );
