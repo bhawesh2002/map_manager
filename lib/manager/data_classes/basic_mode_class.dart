@@ -178,7 +178,7 @@ class BasicModeClass {
   ///
   /// Parameters:
   /// - [map]: The MapboxMap instance to clean up
-  Future<void> clearBasicModeData(MapboxMap map) async {
+  Future<void> dispose(MapboxMap map) async {
     await disableLocTracking(map);
     stopFollowingUserLocation();
     map.setOnMapMoveListener(null);

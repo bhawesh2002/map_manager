@@ -83,7 +83,7 @@ class LocationModeClass {
     pointsNotifier.clear();
   }
 
-  Future<void> cleanLocModeData(MapboxMap map) async {
+  Future<void> dispose(MapboxMap map) async {
     _logger.info("Cleaning Location Mode Data");
     map.setOnMapTapListener(null);
     await clearAllAnnotations(map);
