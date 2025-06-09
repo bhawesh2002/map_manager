@@ -27,8 +27,6 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
     return MapWidget(
       onMapCreated: (controller) async {
         mapboxMap = controller;
-        manager = await MapManager.init(controller, _animController,
-            mode: widget.initialMode);
         await controller.scaleBar
             .updateSettings(ScaleBarSettings(enabled: false));
         await controller.compass
@@ -37,13 +35,15 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
             .updateSettings(LogoSettings(position: OrnamentPosition.TOP_RIGHT));
         await controller.attribution.updateSettings(
             AttributionSettings(position: OrnamentPosition.BOTTOM_LEFT));
+
+        manager = await MapManager.init(controller, _animController,
+            mode: widget.initialMode);
+
         if (widget.onMapCreated != null) {
           widget.onMapCreated!(manager!);
         }
       },
-      onStyleLoadedListener: (context) {
-        manager?.onStyleLoaded(context);
-      },
+      onStyleLoadedListener: manager?.onStyleLoaded,
       styleUri: "mapbox://styles/mapbox/navigation-day-v1",
       cameraOptions: CameraOptions(zoom: 4),
     );
