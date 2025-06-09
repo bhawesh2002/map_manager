@@ -65,14 +65,20 @@ class BasicModeClass {
     PuckBearing puckBearing = PuckBearing.COURSE,
   }) async {
     await map.location.updateSettings(LocationComponentSettings(
-      enabled: true,
-      puckBearingEnabled: enableBearing,
-      puckBearing: puckBearing,
-    ));
+        enabled: true,
+        puckBearingEnabled: enableBearing,
+        puckBearing: puckBearing,
+        locationPuck: LocationPuck(
+            locationPuck3D: LocationPuck3D(
+                modelUri:
+                    "https://github.com/bhawesh2002/map_manager_mapbox/raw/refs/heads/main/assets/3d_models/sportcar.glb",
+                position: [0.0, 0.0, 0.0],
+                modelRotation: [0.0, 0.0, 0.0],
+                modelScale: [10, 10, 10])))); // Adjusted 3D model settings
     map.setOnMapMoveListener((gestureContext) {
       mapMoved.value = true;
     });
-    followUserLocation(map);
+    await followUserLocation(map);
   }
 
   /// Disables location tracking on the map.
