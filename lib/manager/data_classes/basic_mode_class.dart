@@ -17,9 +17,20 @@ import 'package:logging/logging.dart';
 ///
 /// It's designed to be used with the [MapMode.basic] mode and provides
 /// core map functionality that other mode classes can build upon.
+///
+/// Recent architectural improvements:
+/// * The MapboxMap instance is now encapsulated within the class
+/// * Methods no longer require passing the map as a parameter
+/// * Added reactive state tracking with [followingUserLoc] ValueNotifier
 class BasicModeClass implements ModeHandler {
   /// The current map mode configuration.
   final BasicMapMode mode;
+
+  /// The MapboxMap instance encapsulated within this class.
+  ///
+  /// This encapsulation simplifies the API by eliminating the need to pass
+  /// the map instance to each method call. All map operations are performed
+  /// through this instance.
   final MapboxMap _map;
 
   /// Private constructor to enforce factory pattern via [initialize].
@@ -55,7 +66,6 @@ class BasicModeClass implements ModeHandler {
   /// and sets up a map move listener to detect when the user manually interacts with the map.
   ///
   /// Parameters:
-  /// - [map]: The MapboxMap instance to configure
   /// - [enableBearing]: Whether to show the direction the user is facing
   /// - [puckBearing]: The type of bearing to display (COURSE is typically the direction of travel)
   Future<void> enableLocTracking({
@@ -87,9 +97,6 @@ class BasicModeClass implements ModeHandler {
   /// Disables location tracking on the map.
   ///
   /// Updates the Mapbox location component settings to hide the user's location.
-  ///
-  /// Parameters:
-  /// - [map]: The MapboxMap instance to configure
   Future<void> disableLocTracking() async {
     await _map.location
         .updateSettings(LocationComponentSettings(enabled: false));
@@ -113,6 +120,21 @@ class BasicModeClass implements ModeHandler {
   /// When true, automatic camera following is disabled.
   ValueNotifier<bool> mapMoved = ValueNotifier(false);
 
+  /// Tracks whether the map is currently following the user's location.
+  ///
+  /// This ValueNotifier allows reactive UI updates when location tracking status changes:
+  /// - Set to true when location updates are being actively followed
+  /// - Set to false when location tracking is stopped
+  ///
+  /// Example usage:
+  /// ```dart
+  /// ValueListenableBuilder<bool>(
+  ///   valueListenable: basicMode.followingUserLoc,
+  ///   builder: (context, isFollowing, child) {
+  ///     return Icon(isFollowing ? Icons.gps_fixed : Icons.gps_not_fixed);
+  ///   },
+  /// )
+  /// ```
   ValueNotifier<bool> followingUserLoc = ValueNotifier(false);
 
   /// Starts following the user's location with the map camera.
@@ -126,10 +148,8 @@ class BasicModeClass implements ModeHandler {
   /// When a location update is received, it:
   /// - Updates the [_lastKnownLoc]
   /// - Broadcasts the location via the stream
+  /// - Updates [followingUserLoc] to true for reactive UI updates
   /// - Moves the map camera to center on the user's location
-  ///
-  /// Parameters:
-  /// - [map]: The MapboxMap instance to control
   Future<void> followUserLocation() async {
     final perm = await geolocator.Geolocator.checkPermission();
     if (perm == geolocator.LocationPermission.deniedForever) {
@@ -159,7 +179,7 @@ class BasicModeClass implements ModeHandler {
   /// This method:
   /// 1. Cancels the location stream subscription
   /// 2. Closes the stream controller
-  /// 3. Clears the last known location
+  /// 3. Sets [followingUserLoc] to false for reactive UI updates
   ///
   /// Call this method when you no longer need to track the user's location
   /// or when switching to another map mode.
@@ -182,8 +202,8 @@ class BasicModeClass implements ModeHandler {
   /// Call this method when switching to a different map mode or
   /// when the map is being disposed.
   ///
-  /// Parameters:
-  /// - [map]: The MapboxMap instance to clean up
+  /// This implementation fulfills the [ModeHandler.dispose] contract.
+  /// The map instance is already available as a class field, so no parameter is needed.
   @override
   Future<void> dispose() async {
     await disableLocTracking();
