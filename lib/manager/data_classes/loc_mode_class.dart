@@ -24,7 +24,7 @@ class LocationModeClass {
     LocationModeClass cls = LocationModeClass(mode);
     await cls._initializePointAnnoManager(map);
     map.setOnMapTapListener((context) => cls._onMapTapCallback(context, map));
-    cls._addInitialPointAnnotations();
+    await cls._addInitialPointAnnotations();
     return cls;
   }
 
@@ -42,7 +42,7 @@ class LocationModeClass {
         await map.annotations.createPointAnnotationManager(id: 'pam');
   }
 
-  void _addInitialPointAnnotations() async {
+  Future<void> _addInitialPointAnnotations() async {
     if (mode.preSelectedLocs != null && mode.preSelectedLocs!.isNotEmpty) {
       for (var pt in mode.preSelectedLocs!.take(mode.maxSelections).toList()) {
         await addPoint(pt);
