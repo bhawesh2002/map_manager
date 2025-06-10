@@ -6,9 +6,10 @@ import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../location_update.dart';
+import '../mode_handler.dart';
 import '../tweens/point_tween.dart';
 
-class TrackingModeClass {
+class TrackingModeClass implements ModeHandler {
   static late final AnimationController _controller;
   static bool _controllerSet = false;
 
@@ -162,6 +163,7 @@ class TrackingModeClass {
         await map.annotations.createPointAnnotationManager(id: 'personManager');
   }
 
+  @override
   Future<void> dispose(MapboxMap map) async {
     //remove route
     await _routeManager?.delete(_route!);

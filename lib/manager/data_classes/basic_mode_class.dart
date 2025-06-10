@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
 import 'package:map_manager_mapbox/manager/map_mode.dart';
 import 'package:map_manager_mapbox/manager/map_utils.dart';
+import 'package:map_manager_mapbox/manager/mode_handler.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:logging/logging.dart';
 
@@ -16,7 +17,7 @@ import 'package:logging/logging.dart';
 ///
 /// It's designed to be used with the [MapMode.basic] mode and provides
 /// core map functionality that other mode classes can build upon.
-class BasicModeClass {
+class BasicModeClass implements ModeHandler {
   /// The current map mode configuration.
   BasicMapMode mode;
 
@@ -34,12 +35,9 @@ class BasicModeClass {
   ///
   /// Returns a fully initialized [BasicModeClass] instance.
   static Future<BasicModeClass> initialize(
-    MapboxMap map,
-    BasicMapMode basicMode,
-  ) async {
-    final cls = BasicModeClass._(basicMode);
-
-    if (basicMode.trackUserLoc) {
+      MapboxMap map, BasicMapMode mode) async {
+    final cls = BasicModeClass._(mode);
+    if (mode.trackUserLoc) {
       await cls.enableLocTracking(map);
     } else {
       await cls.disableLocTracking(map);
@@ -189,6 +187,7 @@ class BasicModeClass {
   ///
   /// Parameters:
   /// - [map]: The MapboxMap instance to clean up
+  @override
   Future<void> dispose(MapboxMap map) async {
     await disableLocTracking(map);
     stopFollowingUserLocation();

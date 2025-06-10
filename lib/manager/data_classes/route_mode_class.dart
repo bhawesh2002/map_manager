@@ -4,8 +4,9 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../map_mode.dart';
 import '../map_utils.dart';
+import '../mode_handler.dart';
 
-class RouteModeClass {
+class RouteModeClass implements ModeHandler {
   final RouteMode _routeMode;
 
   RouteModeClass._(this._routeMode);
@@ -69,6 +70,7 @@ class RouteModeClass {
     // }
   }
 
+  @override
   Future<void> dispose(MapboxMap map) async {
     _logger.info("Cleaning Route Mode Data");
     await removeAllRoutes();

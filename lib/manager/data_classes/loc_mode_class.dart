@@ -4,7 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-class LocationModeClass {
+class LocationModeClass implements ModeHandler {
   final LocationSelectionMode mode;
   LocationModeClass(this.mode);
 
@@ -83,6 +83,7 @@ class LocationModeClass {
     pointsNotifier.clear();
   }
 
+  @override
   Future<void> dispose(MapboxMap map) async {
     _logger.info("Cleaning Location Mode Data");
     map.setOnMapTapListener(null);
