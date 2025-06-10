@@ -19,10 +19,11 @@ import 'package:logging/logging.dart';
 /// core map functionality that other mode classes can build upon.
 class BasicModeClass implements ModeHandler {
   /// The current map mode configuration.
-  BasicMapMode mode;
+  final BasicMapMode mode;
+  final MapboxMap map;
 
   /// Private constructor to enforce factory pattern via [initialize].
-  BasicModeClass._(this.mode);
+  BasicModeClass._(this.mode, this.map);
 
   /// Factory method to create and initialize a [BasicModeClass] instance.
   ///
@@ -36,11 +37,11 @@ class BasicModeClass implements ModeHandler {
   /// Returns a fully initialized [BasicModeClass] instance.
   static Future<BasicModeClass> initialize(
       MapboxMap map, BasicMapMode mode) async {
-    final cls = BasicModeClass._(mode);
+    final cls = BasicModeClass._(mode, map);
     if (mode.trackUserLoc) {
-      await cls.enableLocTracking(map);
+      await cls.enableLocTracking();
     } else {
-      await cls.disableLocTracking(map);
+      await cls.disableLocTracking();
     }
     return cls;
   }
@@ -57,8 +58,7 @@ class BasicModeClass implements ModeHandler {
   /// - [map]: The MapboxMap instance to configure
   /// - [enableBearing]: Whether to show the direction the user is facing
   /// - [puckBearing]: The type of bearing to display (COURSE is typically the direction of travel)
-  Future<void> enableLocTracking(
-    MapboxMap map, {
+  Future<void> enableLocTracking({
     bool enableBearing = true,
     PuckBearing puckBearing = PuckBearing.COURSE,
   }) async {
@@ -81,7 +81,7 @@ class BasicModeClass implements ModeHandler {
     map.setOnMapMoveListener((gestureContext) {
       mapMoved.value = true;
     });
-    await followUserLocation(map);
+    await followUserLocation();
   }
 
   /// Disables location tracking on the map.
@@ -90,9 +90,7 @@ class BasicModeClass implements ModeHandler {
   ///
   /// Parameters:
   /// - [map]: The MapboxMap instance to configure
-  Future<void> disableLocTracking(
-    MapboxMap map,
-  ) async {
+  Future<void> disableLocTracking() async {
     await map.location
         .updateSettings(LocationComponentSettings(enabled: false));
     stopFollowingUserLocation();
@@ -115,6 +113,8 @@ class BasicModeClass implements ModeHandler {
   /// When true, automatic camera following is disabled.
   ValueNotifier<bool> mapMoved = ValueNotifier(false);
 
+  ValueNotifier<bool> followingUserLoc = ValueNotifier(false);
+
   /// Starts following the user's location with the map camera.
   ///
   /// This method:
@@ -130,30 +130,27 @@ class BasicModeClass implements ModeHandler {
   ///
   /// Parameters:
   /// - [map]: The MapboxMap instance to control
-  Future<void> followUserLocation(MapboxMap map) async {
-    if (!mapMoved.value) {
-      final perm = await geolocator.Geolocator.checkPermission();
-      if (perm == geolocator.LocationPermission.deniedForever) {
-        await geolocator.Geolocator.openAppSettings();
-        followUserLocation(map);
-      }
-      if (perm == geolocator.LocationPermission.whileInUse ||
-          perm == geolocator.LocationPermission.always) {
-        _locStreamSub =
-            geolocator.Geolocator.getPositionStream().listen((position) async {
-          _streamController = StreamController.broadcast();
-          final point = Point(
-              coordinates: Position(position.longitude, position.latitude));
-          _lastKnownLoc = point;
-          _streamController!.sink.add(point);
-          await moveMapCamTo(map, point);
-        });
-      } else {
-        geolocator.Geolocator.requestPermission();
-        followUserLocation(map);
-      }
+  Future<void> followUserLocation() async {
+    final perm = await geolocator.Geolocator.checkPermission();
+    if (perm == geolocator.LocationPermission.deniedForever) {
+      await geolocator.Geolocator.openAppSettings();
+      followUserLocation();
+    }
+    if (perm == geolocator.LocationPermission.whileInUse ||
+        perm == geolocator.LocationPermission.always) {
+      _locStreamSub =
+          geolocator.Geolocator.getPositionStream().listen((position) async {
+        _streamController = StreamController.broadcast();
+        final point =
+            Point(coordinates: Position(position.longitude, position.latitude));
+        _lastKnownLoc = point;
+        _streamController!.sink.add(point);
+        followingUserLoc.value = true;
+        await moveMapCamTo(map, point);
+      });
     } else {
-      stopFollowingUserLocation();
+      geolocator.Geolocator.requestPermission();
+      followUserLocation();
     }
   }
 
@@ -171,7 +168,7 @@ class BasicModeClass implements ModeHandler {
     _locStreamSub = null;
     _streamController?.close();
     _streamController = null;
-    _lastKnownLoc = null;
+    followingUserLoc.value = false;
   }
 
   /// Cleans up all resources used by the basic mode.
@@ -189,7 +186,7 @@ class BasicModeClass implements ModeHandler {
   /// - [map]: The MapboxMap instance to clean up
   @override
   Future<void> dispose(MapboxMap map) async {
-    await disableLocTracking(map);
+    await disableLocTracking();
     stopFollowingUserLocation();
     map.setOnMapMoveListener(null);
     _logger.info("Basic Mode data cleared");
