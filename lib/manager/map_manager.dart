@@ -1,10 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:map_manager_mapbox/manager/location_update.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
-import 'package:map_manager_mapbox/manager/map_utils.dart';
-import 'package:map_manager_mapbox/utils/list_value_notifier.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'data_classes/basic_mode_class.dart';
@@ -101,26 +98,7 @@ class MapManager extends ChangeNotifier {
     _logger.info('Mode changed to Tracking Mode');
   }
 
-  Future<void> addRoute(LineString route) async {
-    _mode.ensureMode<RouteMode>();
-    await _routeModeClass!.addLineString(route, _mapboxMap);
-  }
-
-  Future<void> startTracking(
-      ValueNotifier<LocationUpdate?> personLocation) async {
-    _mode.ensureMode<TrackingMode>();
-    await _trackingModeClass?.startTracking(personLocation);
-  }
-
-  LineString get routeTraversed => _trackingModeClass!.routeTraversed;
-
-  ListValueNotifier? get pointsNotifier => _locationModeClass?.pointsNotifier;
-  Point? get lastTapped => _locationModeClass?.lastTapped;
-
-  Future<void> moveCamTo(Point point) async =>
-      await moveMapCamTo(_mapboxMap, point);
-  Future<void> moveBy(double x, double y) async =>
-      await moveMapBy(_mapboxMap, x, y);
-
   Future<void> onStyleLoaded(StyleLoadedEventData context) async {}
+
+  dynamic get currentMode => _mode;
 }
