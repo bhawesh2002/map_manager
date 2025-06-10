@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -40,16 +41,14 @@ class RouteModeClass {
     _route = await _polylineAnnotationManager!.create(PolylineAnnotationOptions(
       geometry: lineString,
       lineWidth: 8,
-      lineColor: AppColors.routeColor.value,
+      lineColor: Colors.purple.toARGB32(),
     ));
     await _pointAnnotationManager!.createMulti(
       [
         PointAnnotationOptions(
-            image: MapAssets.pickup,
             iconOffset: [0, -28],
             geometry: Point(coordinates: lineString.coordinates.first)),
         PointAnnotationOptions(
-            image: MapAssets.selectedLoc,
             iconOffset: [0, -28],
             geometry: Point(coordinates: lineString.coordinates.last)),
       ],
@@ -70,7 +69,7 @@ class RouteModeClass {
     // }
   }
 
-  Future<void> cleanRouteModeDat(MapboxMap map) async {
+  Future<void> dispose(MapboxMap map) async {
     _logger.info("Cleaning Route Mode Data");
     await removeAllRoutes();
     _route = null;
