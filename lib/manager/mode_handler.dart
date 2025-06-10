@@ -17,5 +17,5 @@ abstract class ModeHandler {
   ///
   /// Parameters:
   /// - [map]: The MapboxMap instance to clean up
-  Future<void> dispose(MapboxMap map);
+  Future<void> dispose();
 }
