@@ -39,6 +39,7 @@ class MapManager extends ChangeNotifier {
   final Logger _logger = Logger("MapManager");
 
   MapMode get mapMode => _mode;
+  MapboxMap get mapboxMap => _mapboxMap;
 
   Future<void> changeMode(MapMode mode) async {
     await _cleanExistingModeData();
