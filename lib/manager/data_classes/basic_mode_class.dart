@@ -20,10 +20,10 @@ import 'package:logging/logging.dart';
 class BasicModeClass implements ModeHandler {
   /// The current map mode configuration.
   final BasicMapMode mode;
-  final MapboxMap map;
+  final MapboxMap _map;
 
   /// Private constructor to enforce factory pattern via [initialize].
-  BasicModeClass._(this.mode, this.map);
+  BasicModeClass._(this.mode, this._map);
 
   /// Factory method to create and initialize a [BasicModeClass] instance.
   ///
@@ -62,7 +62,7 @@ class BasicModeClass implements ModeHandler {
     bool enableBearing = true,
     PuckBearing puckBearing = PuckBearing.COURSE,
   }) async {
-    await map.location.updateSettings(
+    await _map.location.updateSettings(
       LocationComponentSettings(
         enabled: true,
         puckBearingEnabled: enableBearing,
@@ -78,7 +78,7 @@ class BasicModeClass implements ModeHandler {
         ),
       ),
     );
-    map.setOnMapMoveListener((gestureContext) {
+    _map.setOnMapMoveListener((gestureContext) {
       mapMoved.value = true;
     });
     await followUserLocation();
@@ -91,7 +91,7 @@ class BasicModeClass implements ModeHandler {
   /// Parameters:
   /// - [map]: The MapboxMap instance to configure
   Future<void> disableLocTracking() async {
-    await map.location
+    await _map.location
         .updateSettings(LocationComponentSettings(enabled: false));
     stopFollowingUserLocation();
   }
@@ -146,7 +146,7 @@ class BasicModeClass implements ModeHandler {
         _lastKnownLoc = point;
         _streamController!.sink.add(point);
         followingUserLoc.value = true;
-        await moveMapCamTo(map, point);
+        await moveMapCamTo(_map, point);
       });
     } else {
       geolocator.Geolocator.requestPermission();
@@ -185,10 +185,10 @@ class BasicModeClass implements ModeHandler {
   /// Parameters:
   /// - [map]: The MapboxMap instance to clean up
   @override
-  Future<void> dispose(MapboxMap map) async {
+  Future<void> dispose() async {
     await disableLocTracking();
     stopFollowingUserLocation();
-    map.setOnMapMoveListener(null);
+    _map.setOnMapMoveListener(null);
     _logger.info("Basic Mode data cleared");
   }
 }
