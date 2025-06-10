@@ -162,7 +162,7 @@ class RideTrackingModeClass {
         await map.annotations.createPointAnnotationManager(id: 'personManager');
   }
 
-  Future<void> cleanRideTrackingData(MapboxMap map) async {
+  Future<void> dispose(MapboxMap map) async {
     //remove route
     await _routeManager?.delete(_route!);
     _route = null;

@@ -67,10 +67,10 @@ class MapManager extends ChangeNotifier {
       await _locationModeClass?.dispose(_mapboxMap);
       _locationModeClass = null;
     }, route: (routeMode) async {
-      await _routeModeClass?.cleanRouteModeDat(_mapboxMap);
+      await _routeModeClass?.dispose(_mapboxMap);
       _routeModeClass = null;
     }, tracking: (TrackingMode value) async {
-      await _trackingModeClass?.cleanRideTrackingData(_mapboxMap);
+      await _trackingModeClass?.dispose(_mapboxMap);
       _trackingModeClass = null;
     });
   }
