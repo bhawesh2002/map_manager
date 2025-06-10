@@ -8,7 +8,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../location_update.dart';
 import '../tweens/point_tween.dart';
 
-class RideTrackingModeClass {
+class TrackingModeClass {
   static late final AnimationController _controller;
   static bool _controllerSet = false;
 
@@ -39,10 +39,10 @@ class RideTrackingModeClass {
     }
   }
 
-  static Future<RideTrackingModeClass> initialize(
+  static Future<TrackingModeClass> initialize(
       MapboxMap map, LineString route, AnimationController animController,
       {List<Point>? waypoints}) async {
-    RideTrackingModeClass cls = RideTrackingModeClass();
+    TrackingModeClass cls = TrackingModeClass();
     cls.setAnimController(animController);
     await map.location.updateSettings(LocationComponentSettings(enabled: true));
     await cls._createAnnotationManagers(map);
