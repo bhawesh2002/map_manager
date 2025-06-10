@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
+import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -50,11 +51,9 @@ class LocationModeClass implements ModeHandler {
   }
 
   Future<void> addPoint(Point pt, {ByteData? asset}) async {
-    final img = await rootBundle
-        .load('packages/map_manager_mapbox/assets/selected-loc.png');
     final anno = await _pointAnnotationManager.create(PointAnnotationOptions(
       geometry: pt,
-      image: asset != null ? addImageFromAsset(asset) : addImageFromAsset(img),
+      image: asset != null ? addImageFromAsset(asset) : MapAssets.selectedLoc,
       iconOffset: [
         0,
         -28 //calculated value. Only compatible with selectedLoc MapAsset. DO NOT MODIFY!
