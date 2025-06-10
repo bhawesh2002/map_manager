@@ -56,7 +56,7 @@ class MapManager extends ChangeNotifier {
   }
 
   Future<void> _cleanExistingModeData() async {
-    await _currentModeHandler?.dispose(_mapboxMap);
+    await _currentModeHandler?.dispose();
   }
 
   Future<void> _handleBasicMode(BasicMapMode basic) async {
@@ -82,7 +82,7 @@ class MapManager extends ChangeNotifier {
   Future<void> _handleTrackingMode(TrackingMode tracking) async {
     _mode.ensureMode<TrackingMode>();
     _currentModeHandler = await TrackingModeClass.initialize(
-        _mapboxMap, tracking.route, _animationController,
+        tracking, _mapboxMap, tracking.route, _animationController,
         waypoints: tracking.waypoints);
     _logger.info('Mode changed to Tracking Mode');
   }
