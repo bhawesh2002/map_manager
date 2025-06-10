@@ -1,11 +1,13 @@
 import 'package:example/map_testing_page.dart';
 import 'package:flutter/material.dart';
+import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MapboxOptions.setAccessToken(const String.fromEnvironment("MAPBOX_API_KEY"));
+  await MapAssets.init();
   runApp(const MainApp());
 }
 
