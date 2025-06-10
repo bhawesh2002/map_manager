@@ -26,3 +26,4 @@ flutter:
   assets:
     - ../assets/
     - ../assets/3d_models/
+    - ../assets/3d_models/sportcar.glb
