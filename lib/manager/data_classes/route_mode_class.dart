@@ -8,8 +8,9 @@ import '../mode_handler.dart';
 
 class RouteModeClass implements ModeHandler {
   final RouteMode _routeMode;
+  final MapboxMap _map;
 
-  RouteModeClass._(this._routeMode);
+  RouteModeClass._(this._routeMode, this._map);
   PolylineAnnotationManager? _polylineAnnotationManager;
   PointAnnotationManager? _pointAnnotationManager;
 
@@ -21,23 +22,23 @@ class RouteModeClass implements ModeHandler {
 
   static Future<RouteModeClass> initialize(
       RouteMode mode, MapboxMap map) async {
-    final cls = RouteModeClass._(mode);
-    await cls.createAnnotationManagers(map);
+    final cls = RouteModeClass._(mode, map);
+    await cls.createAnnotationManagers();
     if (cls._routeMode.route != null) {
-      await cls.addLineString(cls._routeMode.route!, map);
+      await cls.addLineString(cls._routeMode.route!);
     }
     return cls;
   }
 
-  Future<void> createAnnotationManagers(MapboxMap map) async {
+  Future<void> createAnnotationManagers() async {
     _polylineAnnotationManager ??=
-        await map.annotations.createPolylineAnnotationManager(id: 'route');
+        await _map.annotations.createPolylineAnnotationManager(id: 'route');
     _pointAnnotationManager ??=
-        await map.annotations.createPointAnnotationManager(id: 'waypoint');
+        await _map.annotations.createPointAnnotationManager(id: 'waypoint');
   }
 
   /// pass the geometry key of the geojson. For ex routeDat['geometry']
-  Future<void> addLineString(LineString lineString, MapboxMap map) async {
+  Future<void> addLineString(LineString lineString) async {
     _logger.info(lineString.bbox);
     _route = await _polylineAnnotationManager!.create(PolylineAnnotationOptions(
       geometry: lineString,
@@ -54,7 +55,7 @@ class RouteModeClass implements ModeHandler {
             geometry: Point(coordinates: lineString.coordinates.last)),
       ],
     );
-    moveMapCamTo(map, Point(coordinates: route!.coordinates.first));
+    moveMapCamTo(_map, Point(coordinates: route!.coordinates.first));
   }
 
   Future<void> removeRoute() async {
@@ -71,12 +72,12 @@ class RouteModeClass implements ModeHandler {
   }
 
   @override
-  Future<void> dispose(MapboxMap map) async {
+  Future<void> dispose() async {
     _logger.info("Cleaning Route Mode Data");
     await removeAllRoutes();
     _route = null;
-    await map.annotations.removeAnnotationManagerById('route');
-    await map.annotations.removeAnnotationManagerById('waypoint');
+    await _map.annotations.removeAnnotationManagerById('route');
+    await _map.annotations.removeAnnotationManagerById('waypoint');
     _polylineAnnotationManager = null;
     _pointAnnotationManager = null;
     _logger.info('Route Mode Data Cleared');

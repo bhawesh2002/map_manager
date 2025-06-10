@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:map_manager_mapbox/manager/map_mode.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -10,6 +11,10 @@ import '../mode_handler.dart';
 import '../tweens/point_tween.dart';
 
 class TrackingModeClass implements ModeHandler {
+  final TrackingMode mode;
+  final MapboxMap _map;
+  TrackingModeClass(this.mode, this._map);
+
   static late final AnimationController _controller;
   static bool _controllerSet = false;
 
@@ -40,14 +45,14 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  static Future<TrackingModeClass> initialize(
-      MapboxMap map, LineString route, AnimationController animController,
+  static Future<TrackingModeClass> initialize(TrackingMode mode, MapboxMap map,
+      LineString route, AnimationController animController,
       {List<Point>? waypoints}) async {
-    TrackingModeClass cls = TrackingModeClass();
+    TrackingModeClass cls = TrackingModeClass(mode, map);
     cls.setAnimController(animController);
     await map.location.updateSettings(LocationComponentSettings(enabled: true));
-    await cls._createAnnotationManagers(map);
-    await cls._addRideRoute(map, route);
+    await cls._createAnnotationManagers();
+    await cls._addRideRoute(route);
     return cls;
   }
 
@@ -100,15 +105,14 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  Future<void> _addRideRoute(MapboxMap map, LineString route,
-      {List<Point>? waypoints}) async {
+  Future<void> _addRideRoute(LineString route, {List<Point>? waypoints}) async {
     await _addLineString(route);
     await _addWaypoints(waypoints: [
       Point(coordinates: route.coordinates.first),
       ...(waypoints ?? []),
       Point(coordinates: route.coordinates.last)
     ]);
-    await map.flyTo(
+    await _map.flyTo(
         CameraOptions(center: Point(coordinates: route.coordinates.first)),
         MapAnimationOptions());
   }
@@ -154,17 +158,17 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  Future<void> _createAnnotationManagers(MapboxMap map) async {
-    _routeManager = await map.annotations
+  Future<void> _createAnnotationManagers() async {
+    _routeManager = await _map.annotations
         .createPolylineAnnotationManager(id: 'routeManager');
-    _waypointManager = await map.annotations
+    _waypointManager = await _map.annotations
         .createPointAnnotationManager(id: 'waypointManager');
-    _personAnnoManager =
-        await map.annotations.createPointAnnotationManager(id: 'personManager');
+    _personAnnoManager = await _map.annotations
+        .createPointAnnotationManager(id: 'personManager');
   }
 
   @override
-  Future<void> dispose(MapboxMap map) async {
+  Future<void> dispose() async {
     //remove route
     await _routeManager?.delete(_route!);
     _route = null;
@@ -185,7 +189,7 @@ class TrackingModeClass implements ModeHandler {
     lastKnownLoc = null;
     _queue.clear();
     _isAnimating = false;
-    await map.location.updateSettings(
+    await _map.location.updateSettings(
       LocationComponentSettings(
         enabled: false,
       ),

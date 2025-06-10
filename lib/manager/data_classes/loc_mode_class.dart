@@ -6,7 +6,8 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class LocationModeClass implements ModeHandler {
   final LocationSelectionMode mode;
-  LocationModeClass(this.mode);
+  final MapboxMap _map;
+  LocationModeClass(this.mode, this._map);
 
   final Logger _logger = Logger('LocationModeClass');
 
@@ -21,25 +22,24 @@ class LocationModeClass implements ModeHandler {
 
   static Future<LocationModeClass> initialize(
       LocationSelectionMode mode, MapboxMap map) async {
-    LocationModeClass cls = LocationModeClass(mode);
-    await cls._initializePointAnnoManager(map);
-    map.setOnMapTapListener((context) => cls._onMapTapCallback(context, map));
+    LocationModeClass cls = LocationModeClass(mode, map);
+    await cls._initializePointAnnoManager();
+    cls._map.setOnMapTapListener(cls._onMapTapCallback);
     await cls._addInitialPointAnnotations();
     return cls;
   }
 
-  void _onMapTapCallback(
-      MapContentGestureContext context, MapboxMap map) async {
+  void _onMapTapCallback(MapContentGestureContext context) async {
     if (pointAnnotations.length >= mode.maxSelections) {
-      await removeOldestAnnotation(map);
+      await removeOldestAnnotation();
     }
     await addPoint(context.point);
-    await moveMapCamTo(map, pointAnnotations.last.geometry);
+    await moveMapCamTo(_map, pointAnnotations.last.geometry);
   }
 
-  Future<void> _initializePointAnnoManager(MapboxMap map) async {
+  Future<void> _initializePointAnnoManager() async {
     _pointAnnotationManager =
-        await map.annotations.createPointAnnotationManager(id: 'pam');
+        await _map.annotations.createPointAnnotationManager(id: 'pam');
   }
 
   Future<void> _addInitialPointAnnotations() async {
@@ -63,7 +63,7 @@ class LocationModeClass implements ModeHandler {
     pointsNotifier.add(anno.geometry);
   }
 
-  Future<void> removeOldestAnnotation(MapboxMap map) async {
+  Future<void> removeOldestAnnotation() async {
     final anno = _annotations.removeAt(0);
     await _pointAnnotationManager.delete(anno);
     pointsNotifier.remove(anno.geometry);
@@ -77,19 +77,19 @@ class LocationModeClass implements ModeHandler {
     }
   }
 
-  Future<void> clearAllAnnotations(MapboxMap map) async {
+  Future<void> clearAllAnnotations() async {
     await _pointAnnotationManager.deleteAll();
     _annotations.clear();
     pointsNotifier.clear();
   }
 
   @override
-  Future<void> dispose(MapboxMap map) async {
+  Future<void> dispose() async {
     _logger.info("Cleaning Location Mode Data");
-    map.setOnMapTapListener(null);
-    await clearAllAnnotations(map);
+    _map.setOnMapTapListener(null);
+    await clearAllAnnotations();
     //Remove any existing Point Annotation Managers if exists
-    await map.annotations.removeAnnotationManagerById('pam');
+    await _map.annotations.removeAnnotationManagerById('pam');
     _logger.info("Location Mode Data Cleared");
   }
 }
