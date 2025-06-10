@@ -9,6 +9,7 @@ export 'manager/map_manager.dart';
 
 // Export map modes
 export 'manager/map_mode.dart';
+export 'manager/mode_handler.dart';
 
 // Export data classes
 export 'manager/data_classes/basic_mode_class.dart';
