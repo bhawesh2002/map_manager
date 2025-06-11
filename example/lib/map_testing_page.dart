@@ -31,7 +31,25 @@ class _MapTestingPageState extends State<MapTestingPage> {
       'name': "Location Selection",
       'config': LocationSelectionMode(maxSelections: 4)
     },
-    {'name': "Route Mode", 'config': RouteMode()},
+    {
+      'name': "Route Mode",
+      'config': RouteMode(
+          route: LineString.fromJson({
+        "type": "LineString",
+        "coordinates": [
+          [-122.420679, 37.772537],
+          [-122.420247, 37.773245],
+          [-122.419198, 37.773662],
+          [-122.418640, 37.774097],
+          [-122.417961, 37.774357],
+          [-122.417297, 37.774674],
+          [-122.416289, 37.775180],
+          [-122.415389, 37.775596],
+          [-122.414331, 37.776005],
+          [-122.413467, 37.776335]
+        ]
+      }))
+    },
     {
       'name': "Tracking Mode",
       'config': TrackingMode(route: LineString(coordinates: []))
