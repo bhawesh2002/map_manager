@@ -94,8 +94,7 @@ class MapManager extends ChangeNotifier {
   Future<void> _handleTrackingMode(TrackingMode tracking) async {
     _mode.ensureMode<TrackingMode>();
     _currentModeHandler = await TrackingModeClass.initialize(
-        tracking, _mapboxMap, tracking.route, _animationController,
-        waypoints: tracking.waypoints);
+        tracking, _mapboxMap, _animationController);
     _logger.info('Mode changed to Tracking Mode');
   }
 
