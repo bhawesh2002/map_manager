@@ -32,14 +32,24 @@ class RouteModeClass implements ModeHandler {
 
     // Set up tap listener to prevent issues with residual handlers
     cls._map.setOnMapTapListener((context) {});
-
-    if (cls._routeMode.route != null) {
+    if (cls._routeMode.route != null || cls._routeMode.geojson != null) {
       try {
-        await cls.addLineString(cls._routeMode.route!);
+        if (cls._routeMode.route != null) {
+          cls._logger.info(
+              "Adding route from LineString with ${cls._routeMode.route!.coordinates.length} coordinates");
+        } else {
+          cls._logger.info("Adding route from GeoJSON data");
+        }
+        await cls.addLineString(
+            route: cls._routeMode.route, geojson: cls._routeMode.geojson);
       } catch (e) {
         cls._logger.warning("Error adding route: $e");
       }
+    } else {
+      cls._logger.info(
+          "No route or geojson data provided - route mode initialized without route");
     }
+
     return cls;
   }
 
@@ -54,61 +64,98 @@ class RouteModeClass implements ModeHandler {
   }
 
   /// Creates a route using LineLayer and GeoJsonSource
-  /// pass the geometry key of the geojson. For ex routeDat['geometry']
-  Future<void> addLineString(LineString lineString) async {
-    _logger.info(lineString.bbox);
-    _route = lineString;
-
+  /// Either provide a LineString route OR a GeoJSON map, but not both
+  Future<void> addLineString(
+      {LineString? route, Map<String, dynamic>? geojson}) async {
+    assert(!(route == null && geojson == null),
+        "Either route or geojson must be provided");
+    assert(!(route != null && geojson != null),
+        "Both route and geojson cannot be provided");
     try {
-      // Create GeoJSON source for the route
-      final geoJsonSource = GeoJsonSource(
-        id: _routeSourceId,
-      );
-
-      // Set the data for the source
-      await _map.style.addSource(geoJsonSource);
-      await _map.style.setStyleSourceProperty(
-        _routeSourceId,
-        'data',
-        {"type": "Feature", "geometry": lineString.toJson(), "properties": {}},
-      );
+      GeoJsonSource? geoJsonSource;
+      if (route != null) {
+        _route = route; // Store the route
+        final data = {
+          "type": "Feature",
+          "geometry": route.toJson(),
+          "properties": {}
+        };
+        geoJsonSource = GeoJsonSource(id: _routeSourceId);
+        await _map.style.addSource(geoJsonSource);
+        await _map.style.setStyleSourceProperty(
+          _routeSourceId,
+          'data',
+          data,
+        );
+      } else {
+        // For geojson input, try to extract LineString if possible
+        if (geojson!['type'] == 'Feature' &&
+            geojson['geometry']?['type'] == 'LineString') {
+          _route = LineString.fromJson(geojson['geometry']);
+        }
+        geoJsonSource = GeoJsonSource(id: _routeSourceId);
+        await _map.style.addSource(geoJsonSource);
+        await _map.style.setStyleSourceProperty(
+          _routeSourceId,
+          'data',
+          geojson,
+        );
+      }
 
       // Create and add the line layer
       final lineLayer = LineLayer(
         id: _routeLayerId,
         sourceId: _routeSourceId,
+        // Geometry Styling (Uber's characteristics)
+        lineWidth: 12.0,
+        lineCap: LineCap.ROUND,
+        lineJoin: LineJoin.ROUND,
+        lineOpacity: 0.95,
+
+        // Lyft-style vibrant gradient (using lineGradientExpression)
+        lineGradientExpression: [
+          'interpolate',
+          ['linear'],
+          ['line-progress'],
+          0.0, '#4CAF50', // Lyft Pink
+          1.0, '#B620E0', // Lyft Purple
+        ],
+
+        // Subtle Glow (simulated using blur or a second layer behind)
+        lineBlur: 0.0, // set >0 for softening; needs testing
+        lineBorderColor: 0xFFFFFFFF, // white glow
+        lineBorderWidth: 2.0, // adjust as needed
+
+        // Translation / Z offset if needed to lift it above other elements
+        lineZOffset: 0.0,
       );
 
       // Set line layer properties
-      await _map.style.addLayer(lineLayer);
-      await _map.style.setStyleLayerProperty(
-        _routeLayerId,
-        'line-color',
-        '#9C27B0', // Purple color in hex
-      );
-      await _map.style.setStyleLayerProperty(
-        _routeLayerId,
-        'line-width',
-        8.0,
-      );
-
-      // Add waypoint markers at start and end (only if annotation manager exists)
-      if (_pointAnnotationManager != null) {
+      await _map.style.addLayer(
+          lineLayer); // Add waypoint markers at start and end (only if annotation manager exists and route is available)
+      if (_pointAnnotationManager != null && _route != null) {
         await _pointAnnotationManager!.createMulti(
           [
             PointAnnotationOptions(
                 iconOffset: [0, -28],
-                geometry: Point(coordinates: lineString.coordinates.first)),
+                geometry: Point(coordinates: _route!.coordinates.first)),
             PointAnnotationOptions(
                 iconOffset: [0, -28],
-                geometry: Point(coordinates: lineString.coordinates.last)),
+                geometry: Point(coordinates: _route!.coordinates.last)),
           ],
         );
-      } else {
-        _logger.warning("Point annotation manager not available for waypoints");
-      }
 
-      moveMapCamTo(_map, Point(coordinates: route!.coordinates.first));
+        moveMapCamTo(_map, Point(coordinates: _route!.coordinates.first));
+      } else {
+        if (_pointAnnotationManager == null) {
+          _logger
+              .warning("Point annotation manager not available for waypoints");
+        }
+        if (_route == null) {
+          _logger
+              .warning("No route coordinates available for camera positioning");
+        }
+      }
     } catch (e) {
       _logger.warning("Error adding line string: $e");
       rethrow;
