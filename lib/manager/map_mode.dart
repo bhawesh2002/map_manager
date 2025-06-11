@@ -7,12 +7,18 @@ part 'map_mode.freezed.dart';
 @freezed
 class MapMode with _$MapMode {
   factory MapMode.basic({@Default(true) bool trackUserLoc}) = BasicMapMode;
+
   @Assert('(preSelectedLocs?.length ?? 0)<= maxSelections',
       'pre selection loctations must not exceed maxSelections')
   factory MapMode.locationSel(
       {@Default(1) int maxSelections,
       @Default([]) List<Point>? preSelectedLocs}) = LocationSelectionMode;
-  factory MapMode.route({LineString? route}) = RouteMode;
+
+  @Assert('route != null && geojson != null',
+      "Both route and geojson cannot be provided")
+  factory MapMode.route({LineString? route, Map<String, dynamic>? geojson}) =
+      RouteMode;
+
   factory MapMode.tracking(
       {required LineString route, List<Point>? waypoints}) = TrackingMode;
 

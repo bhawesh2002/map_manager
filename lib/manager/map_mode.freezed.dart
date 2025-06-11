@@ -21,7 +21,8 @@ mixin _$MapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) route,
+    required TResult Function(LineString? route, Map<String, dynamic>? geojson)
+        route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) =>
@@ -31,7 +32,7 @@ mixin _$MapMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? route,
+    TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) =>
       throw _privateConstructorUsedError;
@@ -40,7 +41,7 @@ mixin _$MapMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? route,
+    TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) =>
@@ -165,7 +166,8 @@ class _$BasicMapModeImpl extends BasicMapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) route,
+    required TResult Function(LineString? route, Map<String, dynamic>? geojson)
+        route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
@@ -178,7 +180,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? route,
+    TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return basic?.call(trackUserLoc);
@@ -190,7 +192,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? route,
+    TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
@@ -349,7 +351,8 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) route,
+    required TResult Function(LineString? route, Map<String, dynamic>? geojson)
+        route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
@@ -362,7 +365,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? route,
+    TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return locationSel?.call(maxSelections, preSelectedLocs);
@@ -374,7 +377,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? route,
+    TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
@@ -444,7 +447,7 @@ abstract class _$$RouteModeImplCopyWith<$Res> {
           _$RouteModeImpl value, $Res Function(_$RouteModeImpl) then) =
       __$$RouteModeImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({LineString? route});
+  $Res call({LineString? route, Map<String, dynamic>? geojson});
 }
 
 /// @nodoc
@@ -461,12 +464,17 @@ class __$$RouteModeImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? route = freezed,
+    Object? geojson = freezed,
   }) {
     return _then(_$RouteModeImpl(
       route: freezed == route
           ? _value.route
           : route // ignore: cast_nullable_to_non_nullable
               as LineString?,
+      geojson: freezed == geojson
+          ? _value._geojson
+          : geojson // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ));
   }
 }
@@ -474,14 +482,27 @@ class __$$RouteModeImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$RouteModeImpl extends RouteMode {
-  _$RouteModeImpl({this.route}) : super._();
+  _$RouteModeImpl({this.route, final Map<String, dynamic>? geojson})
+      : assert(route != null && geojson != null,
+            'Both route and geojson cannot be provided'),
+        _geojson = geojson,
+        super._();
 
   @override
   final LineString? route;
+  final Map<String, dynamic>? _geojson;
+  @override
+  Map<String, dynamic>? get geojson {
+    final value = _geojson;
+    if (value == null) return null;
+    if (_geojson is EqualUnmodifiableMapView) return _geojson;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
 
   @override
   String toString() {
-    return 'MapMode.route(route: $route)';
+    return 'MapMode.route(route: $route, geojson: $geojson)';
   }
 
   @override
@@ -489,11 +510,13 @@ class _$RouteModeImpl extends RouteMode {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$RouteModeImpl &&
-            (identical(other.route, route) || other.route == route));
+            (identical(other.route, route) || other.route == route) &&
+            const DeepCollectionEquality().equals(other._geojson, _geojson));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, route);
+  int get hashCode => Object.hash(
+      runtimeType, route, const DeepCollectionEquality().hash(_geojson));
 
   /// Create a copy of MapMode
   /// with the given fields replaced by the non-null parameter values.
@@ -509,11 +532,12 @@ class _$RouteModeImpl extends RouteMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) route,
+    required TResult Function(LineString? route, Map<String, dynamic>? geojson)
+        route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
-    return route(this.route);
+    return route(this.route, geojson);
   }
 
   @override
@@ -522,10 +546,10 @@ class _$RouteModeImpl extends RouteMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? route,
+    TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
-    return route?.call(this.route);
+    return route?.call(this.route, geojson);
   }
 
   @override
@@ -534,12 +558,12 @@ class _$RouteModeImpl extends RouteMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? route,
+    TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
     if (route != null) {
-      return route(this.route);
+      return route(this.route, geojson);
     }
     return orElse();
   }
@@ -583,10 +607,13 @@ class _$RouteModeImpl extends RouteMode {
 }
 
 abstract class RouteMode extends MapMode {
-  factory RouteMode({final LineString? route}) = _$RouteModeImpl;
+  factory RouteMode(
+      {final LineString? route,
+      final Map<String, dynamic>? geojson}) = _$RouteModeImpl;
   RouteMode._() : super._();
 
   LineString? get route;
+  Map<String, dynamic>? get geojson;
 
   /// Create a copy of MapMode
   /// with the given fields replaced by the non-null parameter values.
@@ -685,7 +712,8 @@ class _$TrackingModeImpl extends TrackingMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(int maxSelections, List<Point>? preSelectedLocs)
         locationSel,
-    required TResult Function(LineString? route) route,
+    required TResult Function(LineString? route, Map<String, dynamic>? geojson)
+        route,
     required TResult Function(LineString route, List<Point>? waypoints)
         tracking,
   }) {
@@ -698,7 +726,7 @@ class _$TrackingModeImpl extends TrackingMode {
     TResult? Function(bool trackUserLoc)? basic,
     TResult? Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult? Function(LineString? route)? route,
+    TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(LineString route, List<Point>? waypoints)? tracking,
   }) {
     return tracking?.call(this.route, waypoints);
@@ -710,7 +738,7 @@ class _$TrackingModeImpl extends TrackingMode {
     TResult Function(bool trackUserLoc)? basic,
     TResult Function(int maxSelections, List<Point>? preSelectedLocs)?
         locationSel,
-    TResult Function(LineString? route)? route,
+    TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(LineString route, List<Point>? waypoints)? tracking,
     required TResult orElse(),
   }) {
