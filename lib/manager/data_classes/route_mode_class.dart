@@ -5,6 +5,24 @@ import '../map_mode.dart';
 import '../map_utils.dart';
 import '../mode_handler.dart';
 
+/// Different styling profiles for route lines
+enum RouteStyle {
+  /// Uber + Lyft hybrid: Uber geometry with Lyft gradient
+  uberLyftHybrid,
+
+  /// Classic Uber style: Clean black line
+  uber,
+
+  /// Classic Lyft style: Pink to purple gradient
+  lyft,
+
+  /// Navigation apps style: Blue gradient
+  navigation,
+
+  /// Custom style: Customizable colors
+  custom,
+}
+
 class RouteModeClass implements ModeHandler {
   final RouteMode _routeMode;
   final MapboxMap _map;
@@ -100,14 +118,13 @@ class RouteModeClass implements ModeHandler {
           'data',
           geojson,
         );
-      }
-
-      // Create and add the line layer
+      } // Create and add the line layer with Uber + Lyft styling
+      // This combines Uber's clean geometry with Lyft's vibrant gradient colors
       final lineLayer = LineLayer(
         id: _routeLayerId,
         sourceId: _routeSourceId,
         // Geometry Styling (Uber's characteristics)
-        lineWidth: 14.0,
+        lineWidth: 8.0,
         lineCap: LineCap.ROUND,
         lineJoin: LineJoin.ROUND,
         lineOpacity: 0.95,
@@ -117,10 +134,8 @@ class RouteModeClass implements ModeHandler {
           'interpolate',
           ['linear'],
           ['line-progress'],
-          0.0,
-          '#4CAF50',
-          1.0,
-          '#B620E0',
+          0.0, '#FF00BF', // Lyft Pink
+          1.0, '#B620E0', // Lyft Purple
         ],
 
         // Subtle Glow (simulated using blur or a second layer behind)
