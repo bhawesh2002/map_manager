@@ -100,7 +100,7 @@ class BasicModeClass implements ModeHandler {
   Future<void> disableLocTracking() async {
     await _map.location
         .updateSettings(LocationComponentSettings(enabled: false));
-    stopFollowingUserLocation();
+    await stopFollowingUserLocation();
   }
 
   /// Subscription to the location updates stream.
@@ -183,10 +183,10 @@ class BasicModeClass implements ModeHandler {
   ///
   /// Call this method when you no longer need to track the user's location
   /// or when switching to another map mode.
-  void stopFollowingUserLocation() async {
-    _locStreamSub?.cancel();
+  Future<void> stopFollowingUserLocation() async {
+    await _locStreamSub?.cancel();
     _locStreamSub = null;
-    _streamController?.close();
+    await _streamController?.close();
     _streamController = null;
     followingUserLoc.value = false;
   }
@@ -207,7 +207,6 @@ class BasicModeClass implements ModeHandler {
   @override
   Future<void> dispose() async {
     await disableLocTracking();
-    stopFollowingUserLocation();
     _map.setOnMapMoveListener(null);
     _logger.info("Basic Mode data cleared");
   }
