@@ -13,8 +13,7 @@ class MapMode with _$MapMode {
   factory MapMode.locationSel(
       {@Default(1) int maxSelections,
       @Default([]) List<Point>? preSelectedLocs}) = LocationSelectionMode;
-
-  @Assert('route != null && geojson != null',
+  @Assert('!(route != null && geojson != null)',
       "Both route and geojson cannot be provided")
   factory MapMode.route({LineString? route, Map<String, dynamic>? geojson}) =
       RouteMode;

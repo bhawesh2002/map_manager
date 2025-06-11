@@ -483,7 +483,7 @@ class __$$RouteModeImplCopyWithImpl<$Res>
 
 class _$RouteModeImpl extends RouteMode {
   _$RouteModeImpl({this.route, final Map<String, dynamic>? geojson})
-      : assert(route != null && geojson != null,
+      : assert(!(route != null && geojson != null),
             'Both route and geojson cannot be provided'),
         _geojson = geojson,
         super._();
