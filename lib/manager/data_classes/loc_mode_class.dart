@@ -115,8 +115,14 @@ class LocationModeClass implements ModeHandler {
     _logger.info("Cleaning Location Mode Data");
     _map.setOnMapTapListener(null);
     await clearAllAnnotations();
-    //Remove any existing Point Annotation Managers if exists
-    await _map.annotations.removeAnnotationManagerById('pam');
+
+    // Remove any existing Point Annotation Managers if exists
+    try {
+      await _map.annotations.removeAnnotationManagerById('pam');
+    } catch (e) {
+      _logger.warning("Error removing point annotation manager: $e");
+    }
+
     _logger.info("Location Mode Data Cleared");
   }
 }
