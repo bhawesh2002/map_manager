@@ -27,7 +27,10 @@ class _MapTestingPageState extends State<MapTestingPage> {
 
   final _mapModesMap = <Map<String, dynamic>>[
     {'name': 'Basic Mode', 'config': BasicMapMode(trackUserLoc: true)},
-    {'name': "Location Selection", 'config': LocationSelectionMode()},
+    {
+      'name': "Location Selection",
+      'config': LocationSelectionMode(maxSelections: 4)
+    },
     {'name': "Route Mode", 'config': RouteMode()},
     {
       'name': "Tracking Mode",
