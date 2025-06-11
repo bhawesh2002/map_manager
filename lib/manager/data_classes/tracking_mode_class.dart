@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -247,7 +248,7 @@ class TrackingModeClass implements ModeHandler {
         sourceId: _routeSourceId,
 
         // Planned route styling - Blue/gray for intended path
-        lineWidth: 6.0, // Slightly thinner than traversed route
+        lineWidth: 12.0, // Slightly thinner than traversed route
         lineCap: LineCap.ROUND, // Smooth rounded ends
         lineJoin: LineJoin.ROUND, // Smooth rounded corners
         lineOpacity: 0.7, // More transparent to show it's planned
@@ -300,10 +301,14 @@ class TrackingModeClass implements ModeHandler {
       {required List<Point?> waypoints, List<ByteData>? asset}) async {
     final waypts1 = await _waypointManager!.createMulti([
       PointAnnotationOptions(
-          image: asset != null ? addImageFromAsset(asset.first) : null,
+          image: asset != null
+              ? addImageFromAsset(asset.first)
+              : MapAssets.selectedLoc,
           geometry: waypoints.removeAt(0)!),
       PointAnnotationOptions(
-        image: asset != null ? addImageFromAsset(asset.last) : null,
+        image: asset != null
+            ? addImageFromAsset(asset.last)
+            : MapAssets.selectedLoc,
         iconOffset: [0, -28],
         geometry: waypoints.removeAt(waypoints.length - 1)!,
       ),
