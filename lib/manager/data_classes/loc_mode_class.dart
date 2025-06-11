@@ -81,6 +81,7 @@ class LocationModeClass implements ModeHandler {
       pointsNotifier.remove(annotation.geometry);
     }
   }
+
   Future<void> clearAllAnnotations() async {
     await _pointAnnotationManager.deleteAll();
     _annotations.clear();
@@ -140,8 +141,6 @@ class LocationModeClass implements ModeHandler {
         ),
         zoom: calculateZoomLevel(minLng, minLat, maxLng, maxLat, paddingPixels),
       );
-      final camState = await (_map.getCameraState());
-      print(camState.zoom);
 
       // Animate camera to the bounds
       await _map.flyTo(
@@ -161,24 +160,27 @@ class LocationModeClass implements ModeHandler {
     double maxLat,
     double padding,
   ) {
-    // Simple heuristic for zoom level calculation
-    // Higher values = closer zoom
-    const double baseZoom = 15.0;
+    // Calculate the span of coordinates
     final double latDiff = (maxLat - minLat).abs();
     final double lngDiff = (maxLng - minLng).abs();
 
-    // The larger the difference, the more we need to zoom out
+    // Use the larger span to determine zoom level
     final double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
 
-    // Logarithmic scale for zoom level
-    // This is a simplified approach - for more precise control,
-    // you might need to consider the viewport size and aspect ratio
-    if (maxDiff < 0.001) return baseZoom; // Very close points
-    if (maxDiff < 0.01) return baseZoom - 2;
-    if (maxDiff < 0.1) return baseZoom - 4;
-    if (maxDiff < 1.0) return baseZoom - 6;
+    // More refined zoom level calculation for better visual results
+    // These values are empirically determined for good map viewing
+    if (maxDiff < 0.0001) return 18.0; // Very close points (within ~10 meters)
+    if (maxDiff < 0.0005) return 17.0; // Close points (within ~50 meters)
+    if (maxDiff < 0.001) return 16.0; // Nearby points (within ~100 meters)
+    if (maxDiff < 0.005) return 15.0; // Local area (within ~500 meters)
+    if (maxDiff < 0.01) return 14.0; // Neighborhood (within ~1 km)
+    if (maxDiff < 0.05) return 13.0; // District (within ~5 km)
+    if (maxDiff < 0.1) return 12.0; // City area (within ~10 km)
+    if (maxDiff < 0.5) return 11.0; // Metropolitan area
+    if (maxDiff < 1.0) return 10.0; // Large city/region
+    if (maxDiff < 5.0) return 9.0; // State/province level
 
-    return baseZoom - 8; // Very distant points
+    return 8.0; // Country/continent level
   }
 
   @override
