@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -11,40 +10,70 @@ class RouteModeClass implements ModeHandler {
   final MapboxMap _map;
 
   RouteModeClass._(this._routeMode, this._map);
-  PolylineAnnotationManager? _polylineAnnotationManager;
   PointAnnotationManager? _pointAnnotationManager;
 
-  PolylineAnnotation? _route;
+  LineString? _route;
+  static const String _routeSourceId = 'route-source';
+  static const String _routeLayerId = 'route-layer';
 
-  LineString? get route => _route?.geometry;
+  LineString? get route => _route;
 
   final Logger _logger = Logger('RouteModeClass');
 
   static Future<RouteModeClass> initialize(
       RouteMode mode, MapboxMap map) async {
     final cls = RouteModeClass._(mode, map);
-    await cls.createAnnotationManagers();
+    await cls._createPointAnnotationManager();
     if (cls._routeMode.route != null) {
       await cls.addLineString(cls._routeMode.route!);
     }
     return cls;
   }
 
-  Future<void> createAnnotationManagers() async {
-    _polylineAnnotationManager ??=
-        await _map.annotations.createPolylineAnnotationManager(id: 'route');
+  Future<void> _createPointAnnotationManager() async {
     _pointAnnotationManager ??=
         await _map.annotations.createPointAnnotationManager(id: 'waypoint');
   }
 
+  /// Creates a route using LineLayer and GeoJsonSource
   /// pass the geometry key of the geojson. For ex routeDat['geometry']
   Future<void> addLineString(LineString lineString) async {
     _logger.info(lineString.bbox);
-    _route = await _polylineAnnotationManager!.create(PolylineAnnotationOptions(
-      geometry: lineString,
-      lineWidth: 8,
-      lineColor: Colors.purple.toARGB32(),
-    ));
+    _route = lineString;
+
+    // Create GeoJSON source for the route
+    final geoJsonSource = GeoJsonSource(
+      id: _routeSourceId,
+    );
+
+    // Set the data for the source
+    await _map.style.addSource(geoJsonSource);
+    await _map.style.setStyleSourceProperty(
+      _routeSourceId,
+      'data',
+      {"type": "Feature", "geometry": lineString.toJson(), "properties": {}},
+    );
+
+    // Create and add the line layer
+    final lineLayer = LineLayer(
+      id: _routeLayerId,
+      sourceId: _routeSourceId,
+    );
+
+    // Set line layer properties
+    await _map.style.addLayer(lineLayer);
+    await _map.style.setStyleLayerProperty(
+      _routeLayerId,
+      'line-color',
+      '#9C27B0', // Purple color in hex
+    );
+    await _map.style.setStyleLayerProperty(
+      _routeLayerId,
+      'line-width',
+      8.0,
+    );
+
+    // Add waypoint markers at start and end
     await _pointAnnotationManager!.createMulti(
       [
         PointAnnotationOptions(
@@ -55,20 +84,24 @@ class RouteModeClass implements ModeHandler {
             geometry: Point(coordinates: lineString.coordinates.last)),
       ],
     );
+
     moveMapCamTo(_map, Point(coordinates: route!.coordinates.first));
   }
 
   Future<void> removeRoute() async {
     if (_route != null) {
-      await _polylineAnnotationManager!.delete(_route!);
+      // Remove the line layer and source
+      try {
+        await _map.style.removeStyleLayer(_routeLayerId);
+        await _map.style.removeStyleSource(_routeSourceId);
+      } catch (e) {
+        _logger.warning("Error removing route layer/source: $e");
+      }
     }
   }
 
   Future<void> removeAllRoutes() async {
-    //Causes runtime exception `Caused by: java.lang.Throwable: No manager found with id: route`
-    // if (_polylineAnnotationManager != null) {
-    //   await _polylineAnnotationManager?.deleteAll();
-    // }
+    await removeRoute();
   }
 
   /// Zooms the map camera to fit the entire route within the viewport.
@@ -112,9 +145,14 @@ class RouteModeClass implements ModeHandler {
     _logger.info("Cleaning Route Mode Data");
     await removeAllRoutes();
     _route = null;
-    await _map.annotations.removeAnnotationManagerById('route');
-    await _map.annotations.removeAnnotationManagerById('waypoint');
-    _polylineAnnotationManager = null;
+
+    // Remove annotation manager for waypoints
+    try {
+      await _map.annotations.removeAnnotationManagerById('waypoint');
+    } catch (e) {
+      _logger.warning("Error removing waypoint annotation manager: $e");
+    }
+
     _pointAnnotationManager = null;
     _logger.info('Route Mode Data Cleared');
   }
