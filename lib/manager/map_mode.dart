@@ -17,9 +17,10 @@ class MapMode with _$MapMode {
       "Both route and geojson cannot be provided")
   factory MapMode.route({LineString? route, Map<String, dynamic>? geojson}) =
       RouteMode;
-
+  @Assert('!(route != null && geojson != null)',
+      "Both route and geojson cannot be provided")
   factory MapMode.tracking(
-      {required LineString route, List<Point>? waypoints}) = TrackingMode;
+      {LineString? route, Map<String, dynamic>? geojson, List<Point>? waypoints}) = TrackingMode;
 
   const MapMode._();
 }
