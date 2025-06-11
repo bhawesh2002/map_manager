@@ -90,97 +90,24 @@ class LocationModeClass implements ModeHandler {
 
   /// Zooms the map camera to fit all selected points within the viewport.
   ///
-  /// This method creates a bounding box that encompasses all currently selected points
-  /// and adjusts the camera to show this entire area. If there are no points selected,
-  /// this method does nothing.
+  /// This method uses the shared utility function to create a bounding box
+  /// that encompasses all currently selected points and adjusts the camera
+  /// to show this entire area. If there are no points selected, this method does nothing.
   ///
   /// Parameters:
   /// - [paddingPixels]: Padding around the bounds in screen pixels
-  /// - [minZoom]: Minimum zoom level to enforce (prevents zooming out too far)
-  /// - [maxZoom]: Maximum zoom level to enforce (prevents zooming in too close)
   /// - [animationDuration]: Duration for the camera animation in milliseconds
-  /// - [includeUserLocation]: Whether to include user's current location in bounds calculation
-  /// - [preserveCameraBearing]: Whether to preserve the current camera bearing (direction)
-  /// - [preserveCameraPitch]: Whether to preserve the current camera pitch (tilt)
   Future<void> zoomToBounds({
     double paddingPixels = 50.0,
     int animationDuration = 1000,
   }) async {
-    if (selectedPoints.isEmpty) return;
-
-    // If there's only one point, zoom to that point
-    if (selectedPoints.length == 1) {
-      await moveMapCamTo(_map, selectedPoints.first);
-      return;
-    }
-
-    // Calculate the bounds of all points
-    double minLng = double.infinity;
-    double maxLng = -double.infinity;
-    double minLat = double.infinity;
-    double maxLat = -double.infinity;
-
-    for (final point in selectedPoints) {
-      final lng = point.coordinates.lng as double;
-      final lat = point.coordinates.lat as double;
-
-      minLng = lng < minLng ? lng : minLng;
-      maxLng = lng > maxLng ? lng : maxLng;
-      minLat = lat < minLat ? lat : minLat;
-      maxLat = lat > maxLat ? lat : maxLat;
-    }
-
-    try {
-      // Create camera options with the bounds
-      final cameraOptions = CameraOptions(
-        center: Point(
-          coordinates: Position(
-            (minLng + maxLng) / 2,
-            (minLat + maxLat) / 2,
-          ),
-        ),
-        zoom: calculateZoomLevel(minLng, minLat, maxLng, maxLat, paddingPixels),
-      );
-
-      // Animate camera to the bounds
-      await _map.flyTo(
-        cameraOptions,
-        MapAnimationOptions(duration: animationDuration),
-      );
-    } catch (e) {
-      _logger.warning("Failed to zoom to bounds: $e");
-    }
-  }
-
-  /// Calculates an appropriate zoom level to fit the given bounds
-  double calculateZoomLevel(
-    double minLng,
-    double minLat,
-    double maxLng,
-    double maxLat,
-    double padding,
-  ) {
-    // Calculate the span of coordinates
-    final double latDiff = (maxLat - minLat).abs();
-    final double lngDiff = (maxLng - minLng).abs();
-
-    // Use the larger span to determine zoom level
-    final double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
-
-    // More refined zoom level calculation for better visual results
-    // These values are empirically determined for good map viewing
-    if (maxDiff < 0.0001) return 19.0; // Very close points (within ~10 meters)
-    if (maxDiff < 0.0005) return 18.0; // Close points (within ~50 meters)
-    if (maxDiff < 0.001) return 17.0; // Nearby points (within ~100 meters)
-    if (maxDiff < 0.005) return 16.0; // Local area (within ~500 meters)
-    if (maxDiff < 0.01) return 15.0; // Neighborhood (within ~1 km)
-    if (maxDiff < 0.05) return 14.0; // District (within ~5 km)
-    if (maxDiff < 0.1) return 13.0; // City area (within ~10 km)
-    if (maxDiff < 0.5) return 12.0; // Metropolitan area
-    if (maxDiff < 1.0) return 11.0; // Large city/region
-    if (maxDiff < 5.0) return 10.0; // State/province level
-
-    return 8.0; // Country/continent level
+    await zoomToFitPoints(
+      _map,
+      selectedPoints,
+      paddingPixels: paddingPixels,
+      animationDuration: animationDuration,
+      logger: _logger,
+    );
   }
 
   @override
@@ -191,21 +118,5 @@ class LocationModeClass implements ModeHandler {
     //Remove any existing Point Annotation Managers if exists
     await _map.annotations.removeAnnotationManagerById('pam');
     _logger.info("Location Mode Data Cleared");
-  }
-
-  /// Zooms to fit all selected points in the viewport.
-  ///
-  /// This is a convenience method that can be called by client code
-  /// to manually trigger zooming to the bounds of all selected points.
-  ///
-  /// Example usage:
-  /// ```dart
-  /// // Access through the MapManager
-  /// mapManager.whenLocationMode((locationMode) {
-  ///   locationMode.zoomToSelectedPoints();
-  /// });
-  /// ```
-  Future<void> zoomToSelectedPoints() async {
-    await zoomToBounds();
   }
 }
