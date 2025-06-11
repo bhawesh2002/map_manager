@@ -98,7 +98,7 @@ class RouteModeClass implements ModeHandler {
           "geometry": route.toJson(),
           "properties": {}
         };
-        geoJsonSource = GeoJsonSource(id: _routeSourceId);
+        geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
         await _map.style.addSource(geoJsonSource);
         await _map.style.setStyleSourceProperty(
           _routeSourceId,
@@ -111,7 +111,7 @@ class RouteModeClass implements ModeHandler {
             geojson['geometry']?['type'] == 'LineString') {
           _route = LineString.fromJson(geojson['geometry']);
         }
-        geoJsonSource = GeoJsonSource(id: _routeSourceId);
+        geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
         await _map.style.addSource(geoJsonSource);
         await _map.style.setStyleSourceProperty(
           _routeSourceId,
@@ -124,18 +124,21 @@ class RouteModeClass implements ModeHandler {
         id: _routeLayerId,
         sourceId: _routeSourceId,
         // Geometry Styling (Uber's characteristics)
-        lineWidth: 8.0,
+        lineWidth: 14.0,
         lineCap: LineCap.ROUND,
         lineJoin: LineJoin.ROUND,
         lineOpacity: 0.95,
-
         // Lyft-style vibrant gradient (using lineGradientExpression)
         lineGradientExpression: [
           'interpolate',
           ['linear'],
           ['line-progress'],
-          0.0, '#FF00BF', // Lyft Pink
-          1.0, '#B620E0', // Lyft Purple
+          0.0, "#FF1493", // Deep pink at start
+          0.2, "#FF69B4", // Hot pink
+          0.4, "#DA70D6", // Orchid
+          0.6, "#BA55D3", // Medium orchid
+          0.8, "#9932CC", // Dark orchid
+          1.0, "#6A5ACD", // Slate blue at end
         ],
 
         // Subtle Glow (simulated using blur or a second layer behind)
