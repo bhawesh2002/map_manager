@@ -19,20 +19,38 @@ class RouteModeClass implements ModeHandler {
   LineString? get route => _route;
 
   final Logger _logger = Logger('RouteModeClass');
-
   static Future<RouteModeClass> initialize(
       RouteMode mode, MapboxMap map) async {
     final cls = RouteModeClass._(mode, map);
-    await cls._createPointAnnotationManager();
+
+    // Create point annotation manager with error handling
+    try {
+      await cls._createPointAnnotationManager();
+    } catch (e) {
+      cls._logger.warning("Error creating point annotation manager: $e");
+    }
+
+    // Set up tap listener to prevent issues with residual handlers
+    cls._map.setOnMapTapListener((context) {});
+
     if (cls._routeMode.route != null) {
-      await cls.addLineString(cls._routeMode.route!);
+      try {
+        await cls.addLineString(cls._routeMode.route!);
+      } catch (e) {
+        cls._logger.warning("Error adding route: $e");
+      }
     }
     return cls;
   }
 
   Future<void> _createPointAnnotationManager() async {
-    _pointAnnotationManager ??=
-        await _map.annotations.createPointAnnotationManager(id: 'waypoint');
+    try {
+      _pointAnnotationManager ??=
+          await _map.annotations.createPointAnnotationManager(id: 'waypoint');
+    } catch (e) {
+      _logger.warning("Failed to create point annotation manager: $e");
+      _pointAnnotationManager = null;
+    }
   }
 
   /// Creates a route using LineLayer and GeoJsonSource
@@ -41,51 +59,60 @@ class RouteModeClass implements ModeHandler {
     _logger.info(lineString.bbox);
     _route = lineString;
 
-    // Create GeoJSON source for the route
-    final geoJsonSource = GeoJsonSource(
-      id: _routeSourceId,
-    );
+    try {
+      // Create GeoJSON source for the route
+      final geoJsonSource = GeoJsonSource(
+        id: _routeSourceId,
+      );
 
-    // Set the data for the source
-    await _map.style.addSource(geoJsonSource);
-    await _map.style.setStyleSourceProperty(
-      _routeSourceId,
-      'data',
-      {"type": "Feature", "geometry": lineString.toJson(), "properties": {}},
-    );
+      // Set the data for the source
+      await _map.style.addSource(geoJsonSource);
+      await _map.style.setStyleSourceProperty(
+        _routeSourceId,
+        'data',
+        {"type": "Feature", "geometry": lineString.toJson(), "properties": {}},
+      );
 
-    // Create and add the line layer
-    final lineLayer = LineLayer(
-      id: _routeLayerId,
-      sourceId: _routeSourceId,
-    );
+      // Create and add the line layer
+      final lineLayer = LineLayer(
+        id: _routeLayerId,
+        sourceId: _routeSourceId,
+      );
 
-    // Set line layer properties
-    await _map.style.addLayer(lineLayer);
-    await _map.style.setStyleLayerProperty(
-      _routeLayerId,
-      'line-color',
-      '#9C27B0', // Purple color in hex
-    );
-    await _map.style.setStyleLayerProperty(
-      _routeLayerId,
-      'line-width',
-      8.0,
-    );
+      // Set line layer properties
+      await _map.style.addLayer(lineLayer);
+      await _map.style.setStyleLayerProperty(
+        _routeLayerId,
+        'line-color',
+        '#9C27B0', // Purple color in hex
+      );
+      await _map.style.setStyleLayerProperty(
+        _routeLayerId,
+        'line-width',
+        8.0,
+      );
 
-    // Add waypoint markers at start and end
-    await _pointAnnotationManager!.createMulti(
-      [
-        PointAnnotationOptions(
-            iconOffset: [0, -28],
-            geometry: Point(coordinates: lineString.coordinates.first)),
-        PointAnnotationOptions(
-            iconOffset: [0, -28],
-            geometry: Point(coordinates: lineString.coordinates.last)),
-      ],
-    );
+      // Add waypoint markers at start and end (only if annotation manager exists)
+      if (_pointAnnotationManager != null) {
+        await _pointAnnotationManager!.createMulti(
+          [
+            PointAnnotationOptions(
+                iconOffset: [0, -28],
+                geometry: Point(coordinates: lineString.coordinates.first)),
+            PointAnnotationOptions(
+                iconOffset: [0, -28],
+                geometry: Point(coordinates: lineString.coordinates.last)),
+          ],
+        );
+      } else {
+        _logger.warning("Point annotation manager not available for waypoints");
+      }
 
-    moveMapCamTo(_map, Point(coordinates: route!.coordinates.first));
+      moveMapCamTo(_map, Point(coordinates: route!.coordinates.first));
+    } catch (e) {
+      _logger.warning("Error adding line string: $e");
+      rethrow;
+    }
   }
 
   Future<void> removeRoute() async {
@@ -143,6 +170,10 @@ class RouteModeClass implements ModeHandler {
   @override
   Future<void> dispose() async {
     _logger.info("Cleaning Route Mode Data");
+
+    // Clear tap listener
+    _map.setOnMapTapListener(null);
+
     await removeAllRoutes();
     _route = null;
 
