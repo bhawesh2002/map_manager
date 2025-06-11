@@ -107,7 +107,7 @@ class RouteModeClass implements ModeHandler {
         id: _routeLayerId,
         sourceId: _routeSourceId,
         // Geometry Styling (Uber's characteristics)
-        lineWidth: 12.0,
+        lineWidth: 14.0,
         lineCap: LineCap.ROUND,
         lineJoin: LineJoin.ROUND,
         lineOpacity: 0.95,
@@ -117,8 +117,10 @@ class RouteModeClass implements ModeHandler {
           'interpolate',
           ['linear'],
           ['line-progress'],
-          0.0, '#4CAF50', // Lyft Pink
-          1.0, '#B620E0', // Lyft Purple
+          0.0,
+          '#4CAF50',
+          1.0,
+          '#B620E0',
         ],
 
         // Subtle Glow (simulated using blur or a second layer behind)
