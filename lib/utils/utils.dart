@@ -28,7 +28,7 @@ Future<Uint8List> fetchImageFromNetworkImage(String imageUrl) async {
       throw Exception('Failed to convert image to bytes');
     }
   } catch (e) {
-    print('Error fetching image with NetworkImage: $e');
+    debugPrint('Error fetching image with NetworkImage: $e');
     rethrow;
   }
 }
