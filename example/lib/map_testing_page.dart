@@ -56,8 +56,46 @@ class _MapTestingPageState extends State<MapTestingPage> {
       )
     },
     {
-      'name': "Tracking Mode",
-      'config': TrackingMode(route: LineString(coordinates: []))
+      'name': "Tracking Mode (LineString)",
+      'config': TrackingMode(
+          route: LineString(coordinates: [
+            Position(-122.420679, 37.772537),
+            Position(-122.420247, 37.773245),
+            Position(-122.419198, 37.773662),
+            Position(-122.418640, 37.774097),
+            Position(-122.417961, 37.774357),
+            Position(-122.417297, 37.774674),
+            Position(-122.416289, 37.775180),
+            Position(-122.415389, 37.775596),
+          ]),
+          waypoints: [
+            Point(coordinates: Position(-122.420679, 37.772537)),
+            Point(coordinates: Position(-122.415389, 37.775596)),
+          ])
+    },
+    {
+      'name': "Tracking Mode (GeoJSON)",
+      'config': TrackingMode(geojson: {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-122.425, 37.775],
+            [-122.424, 37.776],
+            [-122.423, 37.777],
+            [-122.422, 37.778],
+            [-122.421, 37.779],
+            [-122.420, 37.780],
+          ]
+        },
+        "properties": {
+          "name": "Test Tracking Route",
+          "description": "Example GeoJSON route for tracking"
+        }
+      }, waypoints: [
+        Point(coordinates: Position(-122.425, 37.775)),
+        Point(coordinates: Position(-122.420, 37.780)),
+      ])
     }
   ];
   @override
