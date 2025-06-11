@@ -71,6 +71,42 @@ class RouteModeClass implements ModeHandler {
     // }
   }
 
+  /// Zooms the map camera to fit the entire route within the viewport.
+  ///
+  /// This method uses the shared utility function to create a bounding box
+  /// that encompasses all route coordinates and adjusts the camera to show
+  /// the entire route. If no route is set, this method does nothing.
+  ///
+  /// Parameters:
+  /// - [paddingPixels]: Padding around the bounds in screen pixels
+  /// - [animationDuration]: Duration for the camera animation in milliseconds
+  ///
+  /// Example usage:
+  /// ```dart
+  /// mapManager.whenRouteMode((routeMode) {
+  ///   routeMode.zoomToRoute();
+  /// });
+  /// ```
+  Future<void> zoomToRoute({
+    double paddingPixels = 50.0,
+    int animationDuration = 1000,
+  }) async {
+    if (route == null || route!.coordinates.isEmpty) return;
+
+    // Convert route coordinates to Points
+    final List<Point> routePoints = route!.coordinates
+        .map((coordinate) => Point(coordinates: coordinate))
+        .toList();
+
+    await zoomToFitPoints(
+      _map,
+      routePoints,
+      paddingPixels: paddingPixels,
+      animationDuration: animationDuration,
+      logger: _logger,
+    );
+  }
+
   @override
   Future<void> dispose() async {
     _logger.info("Cleaning Route Mode Data");
