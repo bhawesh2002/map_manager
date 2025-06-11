@@ -57,7 +57,18 @@ class MapManager extends ChangeNotifier {
   }
 
   Future<void> _cleanExistingModeData() async {
-    await _currentModeHandler?.dispose();
+    if (_currentModeHandler != null) {
+      try {
+        await _currentModeHandler!.dispose();
+        _currentModeHandler = null;
+
+        // Small delay to ensure cleanup is complete
+        await Future.delayed(const Duration(milliseconds: 100));
+      } catch (e) {
+        _logger.warning("Error disposing current mode handler: $e");
+        _currentModeHandler = null;
+      }
+    }
   }
 
   Future<void> _handleBasicMode(BasicMapMode basic) async {
