@@ -23,3 +23,6 @@ export 'manager/map_utils.dart';
 export 'manager/map_exceptions.dart';
 export 'utils/list_value_notifier.dart';
 export 'utils/utils.dart';
+
+//Data classes
+export 'package:map_manager_mapbox/models/mapbox_route.dart';
