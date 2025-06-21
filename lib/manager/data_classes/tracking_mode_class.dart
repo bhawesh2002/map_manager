@@ -122,12 +122,10 @@ class TrackingModeClass implements ModeHandler {
         final traversedLineLayer = LineLayer(
           id: _traversedRouteLayerId,
           sourceId: _traversedRouteSourceId,
-
           lineWidth: 7.0,
           lineCap: LineCap.ROUND,
           lineJoin: LineJoin.ROUND,
           lineOpacity: 0.9,
-
           lineGradientExpression: [
             'interpolate',
             ['linear'],
@@ -141,13 +139,10 @@ class TrackingModeClass implements ModeHandler {
             1.0,
             "#0BE3CA",
           ],
-          // Border effects for better visibility
-          lineBlur: 0.0, // Sharp edges
-          lineBorderColor: 0xFFFFFFFF, // White border for contrast
-          lineBorderWidth: 1.5, // Medium border
-
-          // Z-positioning (above planned route)
-          lineZOffset: 1.0, // Place above planned route
+          lineBlur: 0.0,
+          lineBorderColor: 0xFFFFFFFF,
+          lineBorderWidth: 1.5,
+          lineZOffset: 1.0,
         );
 
         await _map.style.addLayer(traversedLineLayer);
