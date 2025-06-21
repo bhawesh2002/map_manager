@@ -1,4 +1,6 @@
+// ignore: unused_import
 import 'package:example/map_testing_page.dart';
+import 'package:example/tracking_test_page.dart';
 import 'package:flutter/material.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -73,7 +75,7 @@ class _MapDemoHomeState extends State<MapDemoHome> {
                 ],
               );
             }
-            return const MapTestingPage();
+            return const TrackingTestPage();
           }),
     );
   }
