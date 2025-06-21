@@ -123,22 +123,24 @@ class TrackingModeClass implements ModeHandler {
           id: _traversedRouteLayerId,
           sourceId: _traversedRouteSourceId,
 
-          // Traversed route styling - Green gradient for success/completion
-          lineWidth: 8.0, // Thicker than planned route to show prominence
-          lineCap: LineCap.ROUND, // Smooth rounded ends
-          lineJoin: LineJoin.ROUND, // Smooth rounded corners
-          lineOpacity: 0.9, // High opacity to show actual path
+          lineWidth: 7.0,
+          lineCap: LineCap.ROUND,
+          lineJoin: LineJoin.ROUND,
+          lineOpacity: 0.9,
 
-          // Green gradient for traversed route (success/completion)
           lineGradientExpression: [
-            'interpolate', // Smooth color interpolation
-            ['linear'], // Linear interpolation method
-            ['line-progress'], // Use line progress (0.0 to 1.0)
-            0.0, "#00C851", // Success green at start
-            0.5, "#007E33", // Forest green
-            1.0, "#2E7D32", // Dark green at end
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0.0,
+            "#0BE3E3",
+            0.3,
+            "#0BE389",
+            0.7,
+            "#0BE328",
+            1.0,
+            "#0BE3CA",
           ],
-
           // Border effects for better visibility
           lineBlur: 0.0, // Sharp edges
           lineBorderColor: 0xFFFFFFFF, // White border for contrast
