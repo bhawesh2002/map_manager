@@ -1,4 +1,5 @@
 import 'package:example/app_map.dart';
+import 'package:example/sample_data.dart';
 import 'package:flutter/material.dart';
 import 'package:map_manager_mapbox/manager/map_manager.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
@@ -58,36 +59,17 @@ class _MapTestingPageState extends State<MapTestingPage> {
     {
       'name': "Tracking Mode (LineString)",
       'config': TrackingMode(
-          route: LineString(coordinates: [
-            Position(-122.420679, 37.772537),
-            Position(-122.420247, 37.773245),
-            Position(-122.419198, 37.773662),
-            Position(-122.418640, 37.774097),
-            Position(-122.417961, 37.774357),
-            Position(-122.417297, 37.774674),
-            Position(-122.416289, 37.775180),
-            Position(-122.415389, 37.775596),
-          ]),
+          route: LineString(coordinates: routePositionList),
           waypoints: [
-            Point(coordinates: Position(-122.420679, 37.772537)),
-            Point(coordinates: Position(-122.415389, 37.775596)),
+            Point(coordinates: routePositionList.first),
+            Point(coordinates: routePositionList.last),
           ])
     },
     {
       'name': "Tracking Mode (GeoJSON)",
       'config': TrackingMode(geojson: {
         "type": "Feature",
-        "geometry": {
-          "type": "LineString",
-          "coordinates": [
-            [-122.425, 37.775],
-            [-122.424, 37.776],
-            [-122.423, 37.777],
-            [-122.422, 37.778],
-            [-122.421, 37.779],
-            [-122.420, 37.780],
-          ]
-        },
+        "geometry": {"type": "LineString", "coordinates": routeCoordinates},
         "properties": {
           "name": "Test Tracking Route",
           "description": "Example GeoJSON route for tracking"
