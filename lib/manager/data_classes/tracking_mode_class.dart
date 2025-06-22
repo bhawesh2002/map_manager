@@ -77,28 +77,14 @@ class TrackingModeClass implements ModeHandler {
     _logger.info("Tracking Ride Route");
   }
 
-  // This is the async implementation that can be properly awaited
-  void _addToUpdateQueue() async {
+  void _addToUpdateQueue() {
     final update = _locNotifier?.value;
     if (update == null) return;
-
-    _logger.info(
-        "Adding location update to queue: ${update.location.coordinates.toJson()}");
-
-    // Add to queue
     _queue.add(update);
-
-    // Update the traversed route coordinates
     _routeTraversed = LineString(coordinates: [
       ...routeTraversed.coordinates,
       update.location.coordinates
     ]);
-
-    // Uncomment if needed
-    // await _updateTraversedRoute();
-
-    // Process the queue (this will also have a lock inside)
-    _processQueue();
   }
 
   /// Updates the traversed route visualization using LineLayer
@@ -183,45 +169,38 @@ class TrackingModeClass implements ModeHandler {
 
   Future<void> _processQueue() async {
     if (_isAnimating || _isUpdatingPersonAnno || _queue.isEmpty) return;
-    // Use lock to ensure only one queue processing can happen at a time
-    await _queueLock.synchronized(() async {
-      if (_isAnimating || _isUpdatingPersonAnno || _queue.isEmpty) return;
 
-      _logger.info("Processing queue with ${_queue.length} items");
-      _isAnimating = true;
+    _logger.info("Processing queue with ${_queue.length} items");
+    _isAnimating = true;
+    try {
+      final current = _queue.removeAt(0);
+      final tween = PointTween(
+        begin: lastKnownLoc?.location ?? current.location,
+        end: current.location,
+      );
+
+      final animation = tween.animate(
+        CurvedAnimation(parent: _controller, curve: Curves.ease),
+      );
+
+      void listener() => _updatePersonAnno(animation.value);
+
+      animation.addListener(listener);
 
       try {
-        final current = _queue.removeAt(0);
-
-        final tween = PointTween(
-          begin: lastKnownLoc?.location ?? current.location,
-          end: current.location,
-        );
-
-        final animation = tween.animate(
-          CurvedAnimation(parent: _controller, curve: Curves.ease),
-        );
-
-        void listener() => _updatePersonAnno(animation.value);
-
-        animation.addListener(listener);
-
-        try {
-          await _controller.forward(from: 0);
-          lastKnownLoc = current;
-        } finally {
-          animation.removeListener(listener);
-        }
-      } catch (e) {
-        _logger.severe("Error processing location queue: $e");
+        await _controller.forward(from: 0);
+        lastKnownLoc = current;
       } finally {
-        _isAnimating = false;
-        // Recursively process the next item if there are more in the queue
-        if (_queue.isNotEmpty) {
-          await _processQueue();
-        }
+        animation.removeListener(listener);
       }
-    });
+    } catch (e) {
+      _logger.severe("Error processing location queue: $e");
+    } finally {
+      _isAnimating = false;
+      if (_queue.isNotEmpty) {
+        _processQueue();
+      }
+    }
   }
 
   /// Creates a route using LineLayer and GeoJsonSource for the planned route
