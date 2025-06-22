@@ -88,9 +88,7 @@ class TrackingModeClass implements ModeHandler {
       update.location.coordinates
     ]);
     // No longer calling _processQueue here as it's started once in startTracking
-  }
-
-  void _processQueue() async {
+  }  void _processQueue() async {
     bool noItems = true;
     while (noItems) {
       noItems = _queue.isEmpty;
@@ -105,32 +103,62 @@ class TrackingModeClass implements ModeHandler {
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
 
-        final tween = PointTween(
-          begin: lastKnownLoc?.location ?? current.location,
-          end: current.location,
-        );
-
-        final animation = tween.animate(
-          CurvedAnimation(parent: _controller, curve: Curves.ease),
-        );
-
-        void listener() => _updatePersonAnno(animation.value);
-
-        animation.addListener(listener);
-
-        try {
-          await _controller.forward(from: 0);
-          lastKnownLoc = current;
-        } finally {
-          animation.removeListener(listener);
-          _isAnimating = false;
+        // Animate the person annotation
+        await _animatePersonMarker(current);
+        
+        // Calculate route updates based on the new location
+        if (_plannedRoute != null) {
+          _logger.info("Calculating route updates");
+          final routeData = _calculateUpdatedRoute(current);
+          
+          // Update the route visualization if needed
+          if (routeData != null) {
+            await _updateRouteVisualization(routeData);
+          }
         }
+        
+        // Update lastKnownLoc after successful processing
+        lastKnownLoc = current;
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
+      } finally {
+        _isAnimating = false;
       }
     }).then((val) {
       _processQueue();
     });
+  }
+  
+  /// Animates the person marker from its current position to the new location
+  /// 
+  /// Creates a smooth animation using a tween and the animation controller
+  Future<void> _animatePersonMarker(LocationUpdate update) async {
+    try {
+      final tween = PointTween(
+        begin: lastKnownLoc?.location ?? update.location,
+        end: update.location,
+      );
+
+      final animation = tween.animate(
+        CurvedAnimation(parent: _controller, curve: Curves.ease),
+      );
+
+      void listener() => _updatePersonAnno(animation.value);
+
+      animation.addListener(listener);
+
+      try {
+        await _controller.forward(from: 0);
+      } finally {
+        animation.removeListener(listener);
+      }
+      
+      _logger.info("Person marker animation completed");
+    } catch (e) {
+      _logger.warning("Error animating person marker: $e");
+      // Still update the marker to the final position even if animation fails
+      await _updatePersonAnno(update.location);
+    }
   }
 
   /// Creates a route using LineLayer and GeoJsonSource for the planned route
