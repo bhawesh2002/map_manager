@@ -93,8 +93,7 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
 
     // Initialize simulator with the route
     _simulator = LocationSimulator(
-      route: route,
-    );
+        route: route, updateInterval: const Duration(seconds: 1));
 
     // Set the map to tracking mode
     _mapManager!.changeMode(MapMode.tracking(route: route));
