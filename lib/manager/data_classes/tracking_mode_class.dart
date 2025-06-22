@@ -74,18 +74,26 @@ class TrackingModeClass implements ModeHandler {
     _locNotifier = personLoc;
     _locNotifier!.addListener(_addToUpdateQueue);
     _logger.info("Tracking Ride Route");
+
+    // Start the queue processing loop - this will self-perpetuate as long as items are in the queue
+    _processQueue();
   }
 
   // This method handles the location updates from the ValueNotifier
   void _addToUpdateQueue() {
     final update = _locNotifier?.value;
     if (update == null) return;
-    _queue.add(update);
-    _logger.info("Adding location update to queue at ${_queue.length}");
-    _routeTraversed = LineString(coordinates: [
-      ...routeTraversed.coordinates,
-      update.location.coordinates
-    ]);
+
+    // Use lock to safely modify the queue
+    _queueLock.synchronized(() {
+      _queue.add(update);
+      _logger.info("Adding location update to queue at ${_queue.length}");
+      _routeTraversed = LineString(coordinates: [
+        ...routeTraversed.coordinates,
+        update.location.coordinates
+      ]);
+    });
+    // No longer calling _processQueue here as it's started once in startTracking
   }
 
   /// Updates the traversed route visualization using LineLayer
@@ -169,12 +177,37 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _processQueue() async {
-    if (_isAnimating || _isUpdatingPersonAnno || _queue.isEmpty) return;
+    _logger.info("Processing the queue");
+    // Quick check without acquiring the lock
+    if (_isAnimating || _isUpdatingPersonAnno) return;
+
+    // Check if there are items to process with lock
+    bool hasItems = false;
+    await _queueLock.synchronized(() {
+      hasItems = _queue.isNotEmpty;
+    });
+    _logger.info("Processing the queue: $hasItems");
+
+    if (!hasItems) return;
 
     _isAnimating = true;
     try {
-      final current = _queue.removeAt(0);
-      _logger.info("Processing queue item ${current.location.toJson()}");
+      // Get the next item from the queue with lock
+      late LocationUpdate current;
+      bool gotItem = false;
+      await _queueLock.synchronized(() {
+        if (_queue.isNotEmpty) {
+          current = _queue.removeAt(0);
+          _logger.info("Processing queue item ${current.location.toJson()}");
+          gotItem = true;
+        }
+      });
+
+      // If we somehow didn't get an item (race condition), just return
+      if (!gotItem) {
+        _isAnimating = false;
+        return;
+      }
 
       final tween = PointTween(
         begin: lastKnownLoc?.location ?? current.location,
