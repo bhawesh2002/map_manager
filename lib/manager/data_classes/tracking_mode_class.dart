@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
-import 'package:map_manager_mapbox/manager/map_utils.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:synchronized/synchronized.dart';
@@ -360,7 +359,6 @@ class TrackingModeClass implements ModeHandler {
             PointAnnotation(id: _personAnno!.id, geometry: point),
           );
         }
-        await moveMapCamTo(_map, point, duration: 200);
       } catch (e) {
         _logger.severe("Error updating person annotation: $e");
         rethrow;
