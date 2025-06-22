@@ -7,6 +7,7 @@ import 'package:map_manager_mapbox/manager/map_mode.dart';
 import 'package:map_manager_mapbox/manager/map_utils.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:synchronized/synchronized.dart';
 
 import '../location_update.dart';
 import '../mode_handler.dart';
@@ -35,6 +36,9 @@ class TrackingModeClass implements ModeHandler {
   LocationUpdate? lastKnownLoc;
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
+  bool _isUpdatingPersonAnno = false;
+  final _personAnnoLock = Lock();
+  final _queueLock = Lock(reentrant: true);
 
   //Variable holding the route traversed
   LineString _routeTraversed = LineString(coordinates: []);
@@ -66,23 +70,35 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> startTracking(ValueNotifier<LocationUpdate?> personLoc) async {
+    _logger.info("Starting tracking");
     _locNotifier = personLoc;
+    // Add the listener for location updates
     _locNotifier!.addListener(_addToUpdateQueue);
     _logger.info("Tracking Ride Route");
   }
 
+  // This is the async implementation that can be properly awaited
   void _addToUpdateQueue() async {
-    final update = _locNotifier!.value;
-    if (update != null) {
-      _queue.add(update);
-      _routeTraversed = LineString(coordinates: [
-        ...routeTraversed.coordinates,
-        update.location.coordinates
-      ]);
-      // Update traversed route visualization
-      // _updateTraversedRoute();
-      await _processQueue();
-    }
+    final update = _locNotifier?.value;
+    if (update == null) return;
+
+    _logger.info(
+        "Adding location update to queue: ${update.location.coordinates.toJson()}");
+
+    // Add to queue
+    _queue.add(update);
+
+    // Update the traversed route coordinates
+    _routeTraversed = LineString(coordinates: [
+      ...routeTraversed.coordinates,
+      update.location.coordinates
+    ]);
+
+    // Uncomment if needed
+    // await _updateTraversedRoute();
+
+    // Process the queue (this will also have a lock inside)
+    _processQueue();
   }
 
   /// Updates the traversed route visualization using LineLayer
@@ -166,33 +182,46 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _processQueue() async {
-    if (_isAnimating || _queue.isEmpty) return;
+    if (_isAnimating || _isUpdatingPersonAnno || _queue.isEmpty) return;
+    // Use lock to ensure only one queue processing can happen at a time
+    await _queueLock.synchronized(() async {
+      if (_isAnimating || _isUpdatingPersonAnno || _queue.isEmpty) return;
 
-    _isAnimating = true;
+      _logger.info("Processing queue with ${_queue.length} items");
+      _isAnimating = true;
 
-    final current = _queue.removeAt(0);
+      try {
+        final current = _queue.removeAt(0);
 
-    final tween = PointTween(
-      begin: lastKnownLoc?.location ?? current.location,
-      end: current.location,
-    );
+        final tween = PointTween(
+          begin: lastKnownLoc?.location ?? current.location,
+          end: current.location,
+        );
 
-    final animation = tween.animate(
-      CurvedAnimation(parent: _controller, curve: Curves.ease),
-    );
+        final animation = tween.animate(
+          CurvedAnimation(parent: _controller, curve: Curves.ease),
+        );
 
-    void listener() => _updatePersonAnno(animation.value);
+        void listener() => _updatePersonAnno(animation.value);
 
-    animation.addListener(listener);
+        animation.addListener(listener);
 
-    try {
-      await _controller.forward(from: 0);
-      lastKnownLoc = current;
-    } finally {
-      animation.removeListener(listener);
-      _isAnimating = false;
-      _processQueue();
-    }
+        try {
+          await _controller.forward(from: 0);
+          lastKnownLoc = current;
+        } finally {
+          animation.removeListener(listener);
+        }
+      } catch (e) {
+        _logger.severe("Error processing location queue: $e");
+      } finally {
+        _isAnimating = false;
+        // Recursively process the next item if there are more in the queue
+        if (_queue.isNotEmpty) {
+          await _processQueue();
+        }
+      }
+    });
   }
 
   /// Creates a route using LineLayer and GeoJsonSource for the planned route
@@ -326,17 +355,30 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _updatePersonAnno(Point point) async {
-    if (_personAnno == null) {
-      _personAnno = await _personAnnoManager!.create(
-        PointAnnotationOptions(
-            image: MapAssets.personLoc, geometry: point, iconOffset: [0, -28]),
-      );
-    } else {
-      await _personAnnoManager!.update(
-        PointAnnotation(id: _personAnno!.id, geometry: point),
-      );
-    }
-    await moveMapCamTo(_map, point, duration: 200);
+    await _personAnnoLock.synchronized(() async {
+      try {
+        _isUpdatingPersonAnno = true;
+        if (_personAnno == null) {
+          _logger.info("Person anno is null, creating new annotation");
+          _personAnno = await _personAnnoManager!.create(
+            PointAnnotationOptions(
+                image: MapAssets.personLoc,
+                geometry: point,
+                iconOffset: [0, -28]),
+          );
+        } else {
+          await _personAnnoManager!.update(
+            PointAnnotation(id: _personAnno!.id, geometry: point),
+          );
+        }
+        await moveMapCamTo(_map, point, duration: 200);
+      } catch (e) {
+        _logger.severe("Error updating person annotation: $e");
+        rethrow;
+      } finally {
+        _isUpdatingPersonAnno = false;
+      }
+    });
   }
 
   Future<void> _createAnnotationManagers() async {
