@@ -239,27 +239,60 @@ RouteCheckResult isUserOnRoute(Point userLocation, List<Point> routePoints,
 /// Modifies a route by shrinking it based on the user's projected position.
 ///
 /// Creates a new route starting from the projected point and including all
-/// subsequent points in the original route.
+/// subsequent points in the original route. Takes into account the projection
+/// ratio to handle the current segment properly.
 ///
 /// Parameters:
 /// - [projectedPoint]: The user's projected point on the route
 /// - [segmentIndex]: The index of the segment where the projection was found
+/// - [projectionRatio]: How far along the segment the projection is (0.0 to 1.0)
 /// - [routePoints]: The original route points
 ///
 /// Returns a new list of route points.
-List<Point> shrinkRoute(
-    Point projectedPoint, int segmentIndex, List<Point> routePoints) {
+List<Point> shrinkRoute(Point projectedPoint, int segmentIndex,
+    double projectionRatio, List<Point> routePoints) {
   if (routePoints.length < 2 ||
       segmentIndex < 0 ||
       segmentIndex >= routePoints.length - 1) {
     return List.from(routePoints);
   }
 
-  // Create new route starting from the projected point
-  List<Point> newRoute = [projectedPoint];
+  List<Point> newRoute = [];
 
-  // Add all points after the segment
-  newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+  // Handle the first segment specially
+  if (segmentIndex == 0) {
+    // If we're at the very start of the first segment, return the whole route
+    if (projectionRatio <= 0.01) {
+      return List.from(routePoints);
+    }
+  }
+
+  // Case 1: Projection at start of segment (within small threshold)
+  if (projectionRatio <= 0.01 && segmentIndex > 0) {
+    // Include the start point of the segment
+    newRoute.add(routePoints[segmentIndex]);
+    newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+  }
+  // Case 2: Projection at end of segment (within small threshold)
+  else if (projectionRatio >= 0.99) {
+    // Skip this segment entirely, start from the next point
+
+    // Handle the last segment specially
+    if (segmentIndex == routePoints.length - 2) {
+      // If we're at the end of the last segment, return an empty route
+      // or just the destination point if needed
+      newRoute.add(routePoints.last);
+    } else {
+      // Normal case - start from the end point of the current segment
+      newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+    }
+  }
+  // Case 3: Projection in middle of segment
+  else {
+    // Create new segment from projected point to end of current segment
+    newRoute.add(projectedPoint);
+    newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+  }
 
   return newRoute;
 }
