@@ -58,7 +58,13 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
         children: [
           // Simulation controls
           ElevatedButton(
-            onPressed: _isSimulating ? _stopSimulation : _startSimulation,
+            onPressed: () async {
+              if (_isSimulating) {
+                _stopSimulation();
+              } else {
+                await _startSimulation();
+              }
+            },
             child: Text(_isSimulating ? 'Stop Simulation' : 'Start Simulation'),
           ),
           const SizedBox(height: 8),
@@ -85,7 +91,7 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     );
   }
 
-  void _startSimulation() {
+  Future<void> _startSimulation() async {
     if (_mapManager == null) return;
 
     // Create a test route
@@ -96,13 +102,15 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
         route: route, updateInterval: const Duration(milliseconds: 500));
 
     // Set the map to tracking mode
-    _mapManager!.changeMode(MapMode.tracking(route: route));
+    await _mapManager!.changeMode(MapMode.tracking(route: route));
 
     // Start the location updates after a short delay to ensure mode is ready
-    Future.delayed(const Duration(milliseconds: 500), () {
+    await Future.delayed(const Duration(milliseconds: 500), () {
       // Connect the simulator to the tracking mode
       _mapManager!.matchModeHandler(tracking: (trackingMode) async {
+        print("Manager : Now beginning tracking");
         await trackingMode.startTracking(_simulator!.locationNotifier);
+        print("Manager :  tracking Now beginning");
       });
 
       // Start the simulation
