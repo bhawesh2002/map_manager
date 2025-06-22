@@ -22,8 +22,6 @@ class TrackingModeClass implements ModeHandler {
   //Variables for adding route and waypoints - modernized LineLayer approach
   static const String _routeSourceId = 'tracking-route-source';
   static const String _routeLayerId = 'tracking-route-layer';
-  static const String _traversedRouteSourceId = 'tracking-traversed-source';
-  static const String _traversedRouteLayerId = 'tracking-traversed-layer';
   LineString? _plannedRoute;
   PointAnnotationManager? _waypointManager;
   List<PointAnnotation?> _waypoints = [];
@@ -88,86 +86,6 @@ class TrackingModeClass implements ModeHandler {
       update.location.coordinates
     ]);
     // No longer calling _processQueue here as it's started once in startTracking
-  }
-
-  /// Updates the traversed route visualization using LineLayer
-  /// This shows the actual path taken by the user in real-time
-  // ignore: unused_element
-  Future<void> _updateTraversedRoute() async {
-    if (_routeTraversed.coordinates.length < 2) return;
-
-    try {
-      // Check if traversed route layer already exists
-      bool layerExists = false;
-      try {
-        await _map.style.getStyleLayerProperty(_traversedRouteLayerId, 'id');
-        layerExists = true;
-      } catch (e) {
-        // Layer doesn't exist yet
-      }
-
-      if (!layerExists) {
-        // Create the source and layer for traversed route
-        final traversedData = {
-          "type": "Feature",
-          "geometry": _routeTraversed.toJson(),
-          "properties": {}
-        };
-
-        final geoJsonSource =
-            GeoJsonSource(id: _traversedRouteSourceId, lineMetrics: true);
-        await _map.style.addSource(geoJsonSource);
-        await _map.style.setStyleSourceProperty(
-          _traversedRouteSourceId,
-          'data',
-          traversedData,
-        );
-
-        // Create traversed route layer with green styling
-        final traversedLineLayer = LineLayer(
-          id: _traversedRouteLayerId,
-          sourceId: _traversedRouteSourceId,
-          lineWidth: 7.0,
-          lineCap: LineCap.ROUND,
-          lineJoin: LineJoin.ROUND,
-          lineOpacity: 0.9,
-          lineGradientExpression: [
-            'interpolate',
-            ['linear'],
-            ['line-progress'],
-            0.0,
-            "#0BE3E3",
-            0.3,
-            "#0BE389",
-            0.7,
-            "#0BE328",
-            1.0,
-            "#0BE3CA",
-          ],
-          lineBlur: 0.0,
-          lineBorderColor: 0xFFFFFFFF,
-          lineBorderWidth: 1.5,
-          lineZOffset: 1.0,
-        );
-
-        await _map.style.addLayer(traversedLineLayer);
-      } else {
-        // Update existing source data
-        final traversedData = {
-          "type": "Feature",
-          "geometry": _routeTraversed.toJson(),
-          "properties": {}
-        };
-
-        await _map.style.setStyleSourceProperty(
-          _traversedRouteSourceId,
-          'data',
-          traversedData,
-        );
-      }
-    } catch (e) {
-      _logger.warning("Error updating traversed route: $e");
-    }
   }
 
   void _processQueue() async {
