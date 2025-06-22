@@ -36,7 +36,6 @@ class TrackingModeClass implements ModeHandler {
   LocationUpdate? lastKnownLoc;
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
-  bool _isUpdatingPersonAnno = false;
   final _personAnnoLock = Lock();
   final _queueLock = Lock(reentrant: true);
 
@@ -348,7 +347,6 @@ class TrackingModeClass implements ModeHandler {
   Future<void> _updatePersonAnno(Point point) async {
     await _personAnnoLock.synchronized(() async {
       try {
-        _isUpdatingPersonAnno = true;
         if (_personAnno == null) {
           _logger.info("Person anno is null, creating new annotation");
           _personAnno = await _personAnnoManager!.create(
@@ -366,8 +364,6 @@ class TrackingModeClass implements ModeHandler {
       } catch (e) {
         _logger.severe("Error updating person annotation: $e");
         rethrow;
-      } finally {
-        _isUpdatingPersonAnno = false;
       }
     });
   }
