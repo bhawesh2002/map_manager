@@ -245,7 +245,8 @@ RouteCheckResult isUserOnRoute(
 /// - [projectionRatio]: How far along the segment the projection is (0.0 to 1.0)
 /// - [routePoints]: The original route points
 ///
-/// Returns a new list of route points.
+/// Returns a new list of route points. Ensures the route always has at least 2 points
+/// to maintain a valid GeoJSON LineString.
 List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     double projectionRatio, List<GeoJSONPoint> routePoints) {
   if (routePoints.length < 2 ||
@@ -276,9 +277,10 @@ List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
 
     // Handle the last segment specially
     if (segmentIndex == routePoints.length - 2) {
-      // If we're at the end of the last segment, return an empty route
-      // or just the destination point if needed
+      // If we're at the end of the last segment, return the destination point
+      // duplicated to ensure at least 2 points for a valid LineString
       newRoute.add(routePoints.last);
+      newRoute.add(routePoints.last); // Duplicate the last point
     } else {
       // Normal case - start from the end point of the current segment
       newRoute.addAll(routePoints.sublist(segmentIndex + 1));
@@ -289,6 +291,16 @@ List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     // Create new segment from projected point to end of current segment
     newRoute.add(projectedPoint);
     newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+  }
+
+  // Ensure we always have at least 2 points for a valid GeoJSON LineString
+  if (newRoute.length < 2 && newRoute.isNotEmpty) {
+    // If we have only one point, duplicate it to create a valid LineString
+    newRoute.add(GeoJSONPoint(List<double>.from(newRoute.first.coordinates)));
+  } else if (newRoute.isEmpty && routePoints.isNotEmpty) {
+    // If somehow we ended up with an empty route, use the last point of the original route
+    newRoute.add(routePoints.last);
+    newRoute.add(routePoints.last); // Duplicate it to ensure 2 points
   }
 
   return newRoute;
