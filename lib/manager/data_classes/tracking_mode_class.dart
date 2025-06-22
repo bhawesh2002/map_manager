@@ -5,8 +5,10 @@ import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
+import 'package:map_manager_mapbox/utils/route_utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:synchronized/synchronized.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 
 import '../location_update.dart';
 import '../mode_handler.dart';
@@ -362,5 +364,207 @@ class TrackingModeClass implements ModeHandler {
     }
 
     _logger.info("Tracking Mode Data Cleared");
+  }  /// Calculates an updated route based on the user's current location
+  /// Returns a map with update information or null if no update is needed
+  Map<String, dynamic>? _calculateUpdatedRoute(LocationUpdate update) {
+    // Skip if no planned route exists
+    if (_plannedRoute == null) return null;
+    
+    try {
+      _logger.info("Calculating updated route based on location: ${update.location.coordinates}");
+      
+      // Convert Mapbox Point coordinates to GeoJSON Point
+      // Mapbox uses [lng, lat] which is compatible with GeoJSON
+      final List<double> pointCoords = [
+        update.location.coordinates[0]?.toDouble() ?? 0.0,
+        update.location.coordinates[1]?.toDouble() ?? 0.0
+      ];
+      final userLocation = GeoJSONPoint(pointCoords);
+      
+      // Convert Mapbox LineString coordinates to GeoJSON format
+      List<List<double>> geoJsonCoords = [];
+      for (var position in _plannedRoute!.coordinates) {
+        geoJsonCoords.add([
+          position[0]?.toDouble() ?? 0.0, 
+          position[1]?.toDouble() ?? 0.0
+        ]);
+      }
+      final geoRoute = GeoJSONLineString(geoJsonCoords);
+      
+      // Convert to list of points for processing
+      final routePoints = lineStringToPoints(geoRoute);
+      
+      // Skip processing if route is too short
+      if (routePoints.length < 2) {
+        _logger.info("Route too short for processing (${routePoints.length} points)");
+        return null;
+      }
+      
+      // Check if user is on route (using a reasonable threshold, e.g., 50 meters)
+      final checkResult = isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+      
+      // Update route based on check result
+      List<GeoJSONPoint> updatedPoints;
+      bool isOnRoute = checkResult.isOnRoute;
+      
+      if (isOnRoute) {
+        _logger.info("User is on route - shrinking route at segment ${checkResult.segmentIndex}");
+        // User is on route - shrink
+        updatedPoints = shrinkRoute(
+          checkResult.projectedPoint,
+          checkResult.segmentIndex,
+          checkResult.projectionRatio,
+          routePoints
+        );
+      } else {
+        _logger.info("User is off route (${checkResult.distance}m away) - growing route");
+        // User is off route - grow
+        updatedPoints = growRoute(userLocation, routePoints);
+      }
+      
+      // Only return data if there's actually a change
+      if (updatedPoints.length != routePoints.length || !_areRoutePointsEqual(updatedPoints, routePoints)) {
+        // Convert back to LineString format for Mapbox
+        final updatedGeoJsonLineString = pointsToLineString(updatedPoints);
+        
+        // Convert GeoJSON coordinates back to Mapbox format
+        List<List<double>> mapboxCoords = updatedGeoJsonLineString.coordinates;
+        
+        // Create the GeoJSON feature
+        final data = {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": mapboxCoords
+          },
+          "properties": {}
+        };
+        
+        // Create Mapbox LineString
+        List<Position> positions = [];
+        for (var coord in mapboxCoords) {
+          positions.add(Position(coord[0], coord[1]));
+        }
+        
+        return {
+          "updatedLineString": LineString(coordinates: positions),
+          "data": data,
+          "isOnRoute": isOnRoute,
+          "distanceFromRoute": checkResult.distance,
+          "routeChanged": true
+        };
+      } else {
+        _logger.info("No significant route change needed");
+        return {
+          "routeChanged": false,
+          "isOnRoute": isOnRoute,
+          "distanceFromRoute": checkResult.distance
+        };
+      }
+    } catch (e) {
+      _logger.warning("Error calculating updated route: $e");
+      return null;
+    }
+  }
+  
+  /// Helper to check if two lists of GeoJSON points represent the same route
+  bool _areRoutePointsEqual(List<GeoJSONPoint> route1, List<GeoJSONPoint> route2) {
+    if (route1.length != route2.length) return false;
+    
+    for (int i = 0; i < route1.length; i++) {
+      if (route1[i].coordinates[0] != route2[i].coordinates[0] ||
+          route1[i].coordinates[1] != route2[i].coordinates[1]) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  /// Updates the route visualization on the map based on the calculated route data
+  /// 
+  /// This method handles updating the GeoJSON source data and the planned route
+  /// object based on the results from _calculateUpdatedRoute
+  Future<void> _updateRouteVisualization(Map<String, dynamic> routeData) async {
+    // Skip if no change needed
+    if (!(routeData['routeChanged'] as bool)) {
+      return;
+    }
+    
+    try {
+      _logger.info("Updating route visualization");
+      
+      // Update the internal route object
+      if (routeData.containsKey('updatedLineString')) {
+        _plannedRoute = routeData['updatedLineString'] as LineString;
+      }
+      
+      // Get the GeoJSON data
+      final Map<String, dynamic> data = routeData['data'] as Map<String, dynamic>;
+      
+      // Check if the source exists
+      bool sourceExists = false;
+      try {
+        await _map.style.getStyleSourceProperty(_routeSourceId, 'type');
+        sourceExists = true;
+      } catch (e) {
+        _logger.warning("Route source doesn't exist, will create: $e");
+      }
+      
+      if (sourceExists) {
+        // Update existing source data
+        await _map.style.setStyleSourceProperty(
+          _routeSourceId,
+          'data',
+          data,
+        );
+        _logger.info("Updated existing route source");
+      } else {
+        // Create a new source if it doesn't exist
+        final geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
+        await _map.style.addSource(geoJsonSource);
+        await _map.style.setStyleSourceProperty(
+          _routeSourceId,
+          'data',
+          data,
+        );
+        
+        // Create and add the line layer
+        final lineLayer = LineLayer(
+          id: _routeLayerId,
+          sourceId: _routeSourceId,
+          lineWidth: 10.0,
+          lineCap: LineCap.ROUND,
+          lineJoin: LineJoin.ROUND,
+          lineOpacity: 0.9,
+          lineGradientExpression: [
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0.0,
+            "#0BE3E3",
+            0.4,
+            "#0B69E3",
+            0.6,
+            "#0B4CE3",
+            1.0,
+            "#890BE3",
+          ],
+          lineBlur: 0.0,
+          lineBorderColor: 0xFFFFFFFF,
+          lineBorderWidth: 1.0,
+          lineZOffset: -1.0,
+        );
+        
+        await _map.style.addLayer(lineLayer);
+        _logger.info("Created new route source and layer");
+      }
+      
+      // Update waypoints positions if needed
+      // This could be implemented later if needed
+      
+      _logger.info("Route visualization updated successfully");
+    } catch (e) {
+      _logger.severe("Error updating route visualization: $e");
+    }
   }
 }
