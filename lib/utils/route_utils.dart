@@ -1,10 +1,10 @@
 import 'dart:math' as math;
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 
 /// Represents the result of projecting a point onto a route segment.
 class ProjectionResult {
   /// The projected point on the segment
-  final Point projectedPoint;
+  final GeoJSONPoint projectedPoint;
 
   /// Whether the projected point falls on the segment (t between 0 and 1)
   final bool onSegment;
@@ -28,7 +28,7 @@ class RouteCheckResult {
   final double distance;
 
   /// The projected point on the route
-  final Point projectedPoint;
+  final GeoJSONPoint projectedPoint;
 
   /// The index of the segment in the route where the projection was found
   final int segmentIndex;
@@ -45,37 +45,37 @@ class RouteCheckResult {
   });
 }
 
-/// Converts a LineString to a List of Points.
+/// Converts a GeoJSONLineString to a List of GeoJSONPoints.
 ///
-/// Useful for converting Mapbox GeoJSON LineString to a list of points for projection.
+/// Useful for converting a GeoJSON LineString to a list of points for projection.
 ///
 /// Parameters:
-/// - [lineString]: The LineString to convert
+/// - [lineString]: The GeoJSONLineString to convert
 ///
-/// Returns a list of Point objects.
-List<Point> lineStringToPoints(LineString lineString) {
-  List<Point> points = [];
-  for (Position coord in lineString.coordinates) {
-    // Create Point objects from LineString coordinates
-    points.add(Point(coordinates: coord));
+/// Returns a list of GeoJSONPoint objects.
+List<GeoJSONPoint> lineStringToPoints(GeoJSONLineString lineString) {
+  List<GeoJSONPoint> points = [];
+  for (var coord in lineString.coordinates) {
+    // Create GeoJSONPoint objects from LineString coordinates
+    points.add(GeoJSONPoint(coord));
   }
   return points;
 }
 
-/// Converts a List of Points to a LineString.
+/// Converts a List of GeoJSONPoints to a GeoJSONLineString.
 ///
-/// Useful for converting a modified list of points back to a Mapbox GeoJSON LineString.
+/// Useful for converting a modified list of points back to a GeoJSON LineString.
 ///
 /// Parameters:
 /// - [points]: The list of points to convert
 ///
-/// Returns a LineString object.
-LineString pointsToLineString(List<Point> points) {
-  List<Position> coordinates = [];
-  for (Point point in points) {
+/// Returns a GeoJSONLineString object.
+GeoJSONLineString pointsToLineString(List<GeoJSONPoint> points) {
+  List<List<double>> coordinates = [];
+  for (GeoJSONPoint point in points) {
     coordinates.add(point.coordinates);
   }
-  return LineString(coordinates: coordinates);
+  return GeoJSONLineString(coordinates);
 }
 
 /// Projects a point onto a line segment defined by two points.
@@ -89,18 +89,14 @@ LineString pointsToLineString(List<Point> points) {
 ///
 /// Returns a [ProjectionResult] containing the projected point and metadata.
 ProjectionResult projectPointOnSegment(
-    Point point, Point segmentStart, Point segmentEnd) {
+    GeoJSONPoint point, GeoJSONPoint segmentStart, GeoJSONPoint segmentEnd) {
   // Create segment vector
-  double segmentX = segmentEnd.coordinates.lng.toDouble() -
-      segmentStart.coordinates.lng.toDouble();
-  double segmentY = segmentEnd.coordinates.lat.toDouble() -
-      segmentStart.coordinates.lat.toDouble();
+  double segmentX = segmentEnd.coordinates[0] - segmentStart.coordinates[0];
+  double segmentY = segmentEnd.coordinates[1] - segmentStart.coordinates[1];
 
   // Create vector from segment start to point
-  double pointX = point.coordinates.lng.toDouble() -
-      segmentStart.coordinates.lng.toDouble();
-  double pointY = point.coordinates.lat.toDouble() -
-      segmentStart.coordinates.lat.toDouble();
+  double pointX = point.coordinates[0] - segmentStart.coordinates[0];
+  double pointY = point.coordinates[1] - segmentStart.coordinates[1];
 
   // Calculate dot product
   double dotProduct = pointX * segmentX + pointY * segmentY;
@@ -124,10 +120,10 @@ ProjectionResult projectPointOnSegment(
   bool onSegment = (t >= 0 && t <= 1);
 
   // Calculate projected point
-  Point projectedPoint = Point(
-      coordinates: Position(
-          segmentStart.coordinates.lat.toDouble() + clampedT * segmentY,
-          segmentStart.coordinates.lng.toDouble() + clampedT * segmentX));
+  GeoJSONPoint projectedPoint = GeoJSONPoint([
+    segmentStart.coordinates[0] + clampedT * segmentX,
+    segmentStart.coordinates[1] + clampedT * segmentY
+  ]);
 
   return ProjectionResult(
       projectedPoint: projectedPoint, onSegment: onSegment, ratio: clampedT);
@@ -142,14 +138,14 @@ ProjectionResult projectPointOnSegment(
 /// - [point2]: Second point
 ///
 /// Returns the distance in meters.
-double haversineDistance(Point point1, Point point2) {
+double haversineDistance(GeoJSONPoint point1, GeoJSONPoint point2) {
   const double kEarthRadius = 6371000; // meters
 
   // Convert degrees to radians
-  double lat1Rad = point1.coordinates.lat.toDouble() * (math.pi / 180);
-  double lng1Rad = point1.coordinates.lng.toDouble() * (math.pi / 180);
-  double lat2Rad = point2.coordinates.lat.toDouble() * (math.pi / 180);
-  double lng2Rad = point2.coordinates.lng.toDouble() * (math.pi / 180);
+  double lat1Rad = point1.coordinates[1] * (math.pi / 180);
+  double lng1Rad = point1.coordinates[0] * (math.pi / 180);
+  double lat2Rad = point2.coordinates[1] * (math.pi / 180);
+  double lng2Rad = point2.coordinates[0] * (math.pi / 180);
 
   // Haversine formula
   double dLat = lat2Rad - lat1Rad;
@@ -174,7 +170,8 @@ double haversineDistance(Point point1, Point point2) {
 /// - [thresholdMeters]: Distance threshold in meters (default: 15.0)
 ///
 /// Returns a [RouteCheckResult] with the outcome and detailed information.
-RouteCheckResult isUserOnRoute(Point userLocation, List<Point> routePoints,
+RouteCheckResult isUserOnRoute(
+    GeoJSONPoint userLocation, List<GeoJSONPoint> routePoints,
     {double thresholdMeters = 15.0}) {
   // Handle edge cases
   if (routePoints.length < 2) {
@@ -209,7 +206,7 @@ RouteCheckResult isUserOnRoute(Point userLocation, List<Point> routePoints,
   // If we get here, user is not on any segment within threshold
   // Find nearest point for reference (useful for growing the route later)
   double minDistance = double.infinity;
-  Point closestPoint = userLocation;
+  GeoJSONPoint closestPoint = userLocation;
   int closestSegmentIndex = -1;
   double closestRatio = 0.0;
 
@@ -249,15 +246,15 @@ RouteCheckResult isUserOnRoute(Point userLocation, List<Point> routePoints,
 /// - [routePoints]: The original route points
 ///
 /// Returns a new list of route points.
-List<Point> shrinkRoute(Point projectedPoint, int segmentIndex,
-    double projectionRatio, List<Point> routePoints) {
+List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
+    double projectionRatio, List<GeoJSONPoint> routePoints) {
   if (routePoints.length < 2 ||
       segmentIndex < 0 ||
       segmentIndex >= routePoints.length - 1) {
     return List.from(routePoints);
   }
 
-  List<Point> newRoute = [];
+  List<GeoJSONPoint> newRoute = [];
 
   // Handle the first segment specially
   if (segmentIndex == 0) {
@@ -306,8 +303,9 @@ List<Point> shrinkRoute(Point projectedPoint, int segmentIndex,
 /// - [routePoints]: The original route points
 ///
 /// Returns a new list of route points.
-List<Point> growRoute(Point userLocation, List<Point> routePoints) {
-  List<Point> newRoute = [userLocation];
+List<GeoJSONPoint> growRoute(
+    GeoJSONPoint userLocation, List<GeoJSONPoint> routePoints) {
+  List<GeoJSONPoint> newRoute = [userLocation];
   newRoute.addAll(routePoints);
   return newRoute;
 }
