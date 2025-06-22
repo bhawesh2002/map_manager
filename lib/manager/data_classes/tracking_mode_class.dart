@@ -173,10 +173,6 @@ class TrackingModeClass implements ModeHandler {
   }
 
   void _processQueue() async {
-    // Quick check without acquiring the lock
-    if (_isAnimating) return;
-
-    // Check if there are items to process with lock
     bool noItems = true;
     while (noItems) {
       noItems = _queue.isEmpty;
@@ -184,8 +180,9 @@ class TrackingModeClass implements ModeHandler {
       await Future.delayed(const Duration(milliseconds: 50));
     }
     await _queueLock.synchronized(() async {
-      _isAnimating = true;
       try {
+        if (_isAnimating) return;
+        _isAnimating = true;
         // Get the next item from the queue with lock
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
