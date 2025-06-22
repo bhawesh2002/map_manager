@@ -83,16 +83,12 @@ class TrackingModeClass implements ModeHandler {
   void _addToUpdateQueue() {
     final update = _locNotifier?.value;
     if (update == null) return;
-
-    // Use lock to safely modify the queue
-    _queueLock.synchronized(() {
-      _queue.add(update);
-      _logger.info("Adding location update to queue at ${_queue.length}");
-      _routeTraversed = LineString(coordinates: [
-        ...routeTraversed.coordinates,
-        update.location.coordinates
-      ]);
-    });
+    _queue.add(update);
+    _logger.info("Adding location update to queue at ${_queue.length}");
+    _routeTraversed = LineString(coordinates: [
+      ...routeTraversed.coordinates,
+      update.location.coordinates
+    ]);
     // No longer calling _processQueue here as it's started once in startTracking
   }
 
@@ -176,66 +172,52 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  Future<void> _processQueue() async {
-    _logger.info("Processing the queue");
+  void _processQueue() async {
     // Quick check without acquiring the lock
     if (_isAnimating || _isUpdatingPersonAnno) return;
 
     // Check if there are items to process with lock
-    bool hasItems = false;
-    await _queueLock.synchronized(() {
-      hasItems = _queue.isNotEmpty;
-    });
-    _logger.info("Processing the queue: $hasItems");
-
-    if (!hasItems) return;
-
-    _isAnimating = true;
-    try {
-      // Get the next item from the queue with lock
-      late LocationUpdate current;
-      bool gotItem = false;
-      await _queueLock.synchronized(() {
-        if (_queue.isNotEmpty) {
-          current = _queue.removeAt(0);
-          _logger.info("Processing queue item ${current.location.toJson()}");
-          gotItem = true;
-        }
-      });
-
-      // If we somehow didn't get an item (race condition), just return
-      if (!gotItem) {
-        _isAnimating = false;
-        return;
-      }
-
-      final tween = PointTween(
-        begin: lastKnownLoc?.location ?? current.location,
-        end: current.location,
-      );
-
-      final animation = tween.animate(
-        CurvedAnimation(parent: _controller, curve: Curves.ease),
-      );
-
-      void listener() => _updatePersonAnno(animation.value);
-
-      animation.addListener(listener);
-
-      try {
-        await _controller.forward(from: 0);
-        lastKnownLoc = current;
-      } finally {
-        animation.removeListener(listener);
-      }
-    } catch (e) {
-      _logger.severe("Error processing location queue: $e");
-    } finally {
-      _isAnimating = false;
-      if (_queue.isNotEmpty) {
-        _processQueue();
-      }
+    bool noItems = true;
+    while (noItems) {
+      noItems = _queue.isEmpty;
+      if (!noItems) break;
+      await Future.delayed(const Duration(milliseconds: 50));
     }
+    await _queueLock.synchronized(() async {
+      _isAnimating = true;
+      try {
+        // Get the next item from the queue with lock
+        final current = _queue.removeAt(0);
+        _logger.info("Processing queue item ${current.location.toJson()}");
+
+        final tween = PointTween(
+          begin: lastKnownLoc?.location ?? current.location,
+          end: current.location,
+        );
+
+        final animation = tween.animate(
+          CurvedAnimation(parent: _controller, curve: Curves.ease),
+        );
+
+        void listener() => _updatePersonAnno(animation.value);
+
+        animation.addListener(listener);
+
+        try {
+          await _controller.forward(from: 0);
+          lastKnownLoc = current;
+        } finally {
+          animation.removeListener(listener);
+        }
+      } catch (e) {
+        _logger.severe("Error processing location queue: $e");
+      } finally {
+        _isAnimating = false;
+        if (_queue.isNotEmpty) {
+          _processQueue();
+        }
+      }
+    });
   }
 
   /// Creates a route using LineLayer and GeoJsonSource for the planned route
