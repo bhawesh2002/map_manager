@@ -72,14 +72,13 @@ class TrackingModeClass implements ModeHandler {
 
   void _addToUpdateQueue() {
     final update = _locNotifier!.value;
+    _logger.info("Got Location Update: ${update?.location.toJson()}");
     if (update != null) {
       _queue.add(update);
       _routeTraversed = LineString(coordinates: [
         ...routeTraversed.coordinates,
         update.location.coordinates
       ]);
-      _logger.info(_routeTraversed.coordinates.length);
-
       // Update traversed route visualization
       _updateTraversedRoute();
       _processQueue();
@@ -245,19 +244,24 @@ class TrackingModeClass implements ModeHandler {
         sourceId: _routeSourceId,
 
         // Planned route styling - Blue/gray for intended path
-        lineWidth: 12.0, // Slightly thinner than traversed route
+        lineWidth: 10.0, // Slightly thinner than traversed route
         lineCap: LineCap.ROUND, // Smooth rounded ends
         lineJoin: LineJoin.ROUND, // Smooth rounded corners
-        lineOpacity: 0.7, // More transparent to show it's planned
+        lineOpacity: 0.9, // More transparent to show it's planned
 
         // Blue gradient for planned route
         lineGradientExpression: [
           'interpolate', // Smooth color interpolation
           ['linear'], // Linear interpolation method
           ['line-progress'], // Use line progress (0.0 to 1.0)
-          0.0, "#4285F4", // Google blue at start
-          0.5, "#1E88E5", // Material blue
-          1.0, "#1565C0", // Dark blue at end
+          0.0,
+          "#0BE3E3",
+          0.4,
+          "#0B69E3",
+          0.6,
+          "#0B4CE3",
+          1.0,
+          "#890BE3",
         ],
 
         // Border effects
