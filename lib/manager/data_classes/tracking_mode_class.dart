@@ -88,7 +88,9 @@ class TrackingModeClass implements ModeHandler {
       update.location.coordinates
     ]);
     // No longer calling _processQueue here as it's started once in startTracking
-  }  void _processQueue() async {
+  }
+
+  void _processQueue() async {
     bool noItems = true;
     while (noItems) {
       noItems = _queue.isEmpty;
@@ -105,18 +107,18 @@ class TrackingModeClass implements ModeHandler {
 
         // Animate the person annotation
         await _animatePersonMarker(current);
-        
+
         // Calculate route updates based on the new location
         if (_plannedRoute != null) {
           _logger.info("Calculating route updates");
           final routeData = _calculateUpdatedRoute(current);
-          
+
           // Update the route visualization if needed
           if (routeData != null) {
             await _updateRouteVisualization(routeData);
           }
         }
-        
+
         // Update lastKnownLoc after successful processing
         lastKnownLoc = current;
       } catch (e) {
@@ -128,9 +130,9 @@ class TrackingModeClass implements ModeHandler {
       _processQueue();
     });
   }
-  
+
   /// Animates the person marker from its current position to the new location
-  /// 
+  ///
   /// Creates a smooth animation using a tween and the animation controller
   Future<void> _animatePersonMarker(LocationUpdate update) async {
     try {
@@ -152,7 +154,7 @@ class TrackingModeClass implements ModeHandler {
       } finally {
         animation.removeListener(listener);
       }
-      
+
       _logger.info("Person marker animation completed");
     } catch (e) {
       _logger.warning("Error animating person marker: $e");
@@ -392,15 +394,18 @@ class TrackingModeClass implements ModeHandler {
     }
 
     _logger.info("Tracking Mode Data Cleared");
-  }  /// Calculates an updated route based on the user's current location
+  }
+
+  /// Calculates an updated route based on the user's current location
   /// Returns a map with update information or null if no update is needed
   Map<String, dynamic>? _calculateUpdatedRoute(LocationUpdate update) {
     // Skip if no planned route exists
     if (_plannedRoute == null) return null;
-    
+
     try {
-      _logger.info("Calculating updated route based on location: ${update.location.coordinates}");
-      
+      _logger.info(
+          "Calculating updated route based on location: ${update.location.coordinates}");
+
       // Convert Mapbox Point coordinates to GeoJSON Point
       // Mapbox uses [lng, lat] which is compatible with GeoJSON
       final List<double> pointCoords = [
@@ -408,72 +413,68 @@ class TrackingModeClass implements ModeHandler {
         update.location.coordinates[1]?.toDouble() ?? 0.0
       ];
       final userLocation = GeoJSONPoint(pointCoords);
-      
+
       // Convert Mapbox LineString coordinates to GeoJSON format
       List<List<double>> geoJsonCoords = [];
       for (var position in _plannedRoute!.coordinates) {
-        geoJsonCoords.add([
-          position[0]?.toDouble() ?? 0.0, 
-          position[1]?.toDouble() ?? 0.0
-        ]);
+        geoJsonCoords.add(
+            [position[0]?.toDouble() ?? 0.0, position[1]?.toDouble() ?? 0.0]);
       }
       final geoRoute = GeoJSONLineString(geoJsonCoords);
-      
+
       // Convert to list of points for processing
       final routePoints = lineStringToPoints(geoRoute);
-      
+
       // Skip processing if route is too short
       if (routePoints.length < 2) {
-        _logger.info("Route too short for processing (${routePoints.length} points)");
+        _logger.info(
+            "Route too short for processing (${routePoints.length} points)");
         return null;
       }
-      
+
       // Check if user is on route (using a reasonable threshold, e.g., 50 meters)
-      final checkResult = isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
-      
+      final checkResult =
+          isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+
       // Update route based on check result
       List<GeoJSONPoint> updatedPoints;
       bool isOnRoute = checkResult.isOnRoute;
-      
+
       if (isOnRoute) {
-        _logger.info("User is on route - shrinking route at segment ${checkResult.segmentIndex}");
+        _logger.info(
+            "User is on route - shrinking route at segment ${checkResult.segmentIndex}");
         // User is on route - shrink
-        updatedPoints = shrinkRoute(
-          checkResult.projectedPoint,
-          checkResult.segmentIndex,
-          checkResult.projectionRatio,
-          routePoints
-        );
+        updatedPoints = shrinkRoute(checkResult.projectedPoint,
+            checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
       } else {
-        _logger.info("User is off route (${checkResult.distance}m away) - growing route");
+        _logger.info(
+            "User is off route (${checkResult.distance}m away) - growing route");
         // User is off route - grow
         updatedPoints = growRoute(userLocation, routePoints);
       }
-      
+
       // Only return data if there's actually a change
-      if (updatedPoints.length != routePoints.length || !_areRoutePointsEqual(updatedPoints, routePoints)) {
+      if (updatedPoints.length != routePoints.length ||
+          !_areRoutePointsEqual(updatedPoints, routePoints)) {
         // Convert back to LineString format for Mapbox
         final updatedGeoJsonLineString = pointsToLineString(updatedPoints);
-        
+
         // Convert GeoJSON coordinates back to Mapbox format
         List<List<double>> mapboxCoords = updatedGeoJsonLineString.coordinates;
-        
+
         // Create the GeoJSON feature
         final data = {
           "type": "Feature",
-          "geometry": {
-            "type": "LineString",
-            "coordinates": mapboxCoords
-          },
+          "geometry": {"type": "LineString", "coordinates": mapboxCoords},
           "properties": {}
         };
-        
+
         // Create Mapbox LineString
         List<Position> positions = [];
         for (var coord in mapboxCoords) {
           positions.add(Position(coord[0], coord[1]));
         }
-        
+
         return {
           "updatedLineString": LineString(coordinates: positions),
           "data": data,
@@ -494,22 +495,24 @@ class TrackingModeClass implements ModeHandler {
       return null;
     }
   }
-  
+
   /// Helper to check if two lists of GeoJSON points represent the same route
-  bool _areRoutePointsEqual(List<GeoJSONPoint> route1, List<GeoJSONPoint> route2) {
+  bool _areRoutePointsEqual(
+      List<GeoJSONPoint> route1, List<GeoJSONPoint> route2) {
     if (route1.length != route2.length) return false;
-    
+
     for (int i = 0; i < route1.length; i++) {
       if (route1[i].coordinates[0] != route2[i].coordinates[0] ||
           route1[i].coordinates[1] != route2[i].coordinates[1]) {
         return false;
       }
     }
-    
+
     return true;
   }
+
   /// Updates the route visualization on the map based on the calculated route data
-  /// 
+  ///
   /// This method handles updating the GeoJSON source data and the planned route
   /// object based on the results from _calculateUpdatedRoute
   Future<void> _updateRouteVisualization(Map<String, dynamic> routeData) async {
@@ -517,18 +520,19 @@ class TrackingModeClass implements ModeHandler {
     if (!(routeData['routeChanged'] as bool)) {
       return;
     }
-    
+
     try {
       _logger.info("Updating route visualization");
-      
+
       // Update the internal route object
       if (routeData.containsKey('updatedLineString')) {
         _plannedRoute = routeData['updatedLineString'] as LineString;
       }
-      
+
       // Get the GeoJSON data
-      final Map<String, dynamic> data = routeData['data'] as Map<String, dynamic>;
-      
+      final Map<String, dynamic> data =
+          routeData['data'] as Map<String, dynamic>;
+
       // Check if the source exists
       bool sourceExists = false;
       try {
@@ -537,7 +541,7 @@ class TrackingModeClass implements ModeHandler {
       } catch (e) {
         _logger.warning("Route source doesn't exist, will create: $e");
       }
-      
+
       if (sourceExists) {
         // Update existing source data
         await _map.style.setStyleSourceProperty(
@@ -548,14 +552,15 @@ class TrackingModeClass implements ModeHandler {
         _logger.info("Updated existing route source");
       } else {
         // Create a new source if it doesn't exist
-        final geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
+        final geoJsonSource =
+            GeoJsonSource(id: _routeSourceId, lineMetrics: true);
         await _map.style.addSource(geoJsonSource);
         await _map.style.setStyleSourceProperty(
           _routeSourceId,
           'data',
           data,
         );
-        
+
         // Create and add the line layer
         final lineLayer = LineLayer(
           id: _routeLayerId,
@@ -582,14 +587,14 @@ class TrackingModeClass implements ModeHandler {
           lineBorderWidth: 1.0,
           lineZOffset: -1.0,
         );
-        
+
         await _map.style.addLayer(lineLayer);
         _logger.info("Created new route source and layer");
       }
-      
+
       // Update waypoints positions if needed
       // This could be implemented later if needed
-      
+
       _logger.info("Route visualization updated successfully");
     } catch (e) {
       _logger.severe("Error updating route visualization: $e");
