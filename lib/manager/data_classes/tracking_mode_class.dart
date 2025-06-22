@@ -306,14 +306,6 @@ class TrackingModeClass implements ModeHandler {
       _logger.warning("Error removing planned route layer/source: $e");
     }
 
-    // Remove traversed route layer and source
-    // try {
-    //   await _map.style.removeStyleLayer(_traversedRouteLayerId);
-    //   await _map.style.removeStyleSource(_traversedRouteSourceId);
-    // } catch (e) {
-    //   _logger.warning("Error removing traversed route layer/source: $e");
-    // }
-
     // Remove waypoint annotations
     if (_waypoints.isNotEmpty) {
       try {
