@@ -101,8 +101,8 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     // Start the location updates after a short delay to ensure mode is ready
     Future.delayed(const Duration(milliseconds: 500), () {
       // Connect the simulator to the tracking mode
-      _mapManager!.matchModeHandler(tracking: (trackingMode) {
-        trackingMode.startTracking(_simulator!.locationNotifier);
+      _mapManager!.matchModeHandler(tracking: (trackingMode) async {
+        await trackingMode.startTracking(_simulator!.locationNotifier);
       });
 
       // Start the simulation
