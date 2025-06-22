@@ -3,7 +3,6 @@ import 'package:example/sample_data.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
-import 'package:map_manager_mapbox/utils/location_simulator.dart';
 
 class TrackingTestPage extends StatefulWidget {
   const TrackingTestPage({super.key});
