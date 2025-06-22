@@ -72,15 +72,16 @@ class TrackingModeClass implements ModeHandler {
   Future<void> startTracking(ValueNotifier<LocationUpdate?> personLoc) async {
     _logger.info("Starting tracking");
     _locNotifier = personLoc;
-    // Add the listener for location updates
     _locNotifier!.addListener(_addToUpdateQueue);
     _logger.info("Tracking Ride Route");
   }
 
+  // This method handles the location updates from the ValueNotifier
   void _addToUpdateQueue() {
     final update = _locNotifier?.value;
     if (update == null) return;
     _queue.add(update);
+    _logger.info("Adding location update to queue at ${_queue.length}");
     _routeTraversed = LineString(coordinates: [
       ...routeTraversed.coordinates,
       update.location.coordinates
@@ -170,10 +171,11 @@ class TrackingModeClass implements ModeHandler {
   Future<void> _processQueue() async {
     if (_isAnimating || _isUpdatingPersonAnno || _queue.isEmpty) return;
 
-    _logger.info("Processing queue with ${_queue.length} items");
     _isAnimating = true;
     try {
       final current = _queue.removeAt(0);
+      _logger.info("Processing queue item ${current.location.toJson()}");
+
       final tween = PointTween(
         begin: lastKnownLoc?.location ?? current.location,
         end: current.location,
