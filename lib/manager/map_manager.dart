@@ -26,7 +26,7 @@ class MapManager extends ChangeNotifier {
     if (kDebugMode) {
       Logger.root.onRecord.listen((log) {
         debugPrint(
-            "${log.loggerName} : ${log.level} : ${log.message} : ${log.time} ");
+            "ManagerLogger ${log.loggerName} : ${log.level} : ${log.message} : ${log.time} ");
       });
     }
 
