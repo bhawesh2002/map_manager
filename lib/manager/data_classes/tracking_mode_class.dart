@@ -174,7 +174,7 @@ class TrackingModeClass implements ModeHandler {
 
   void _processQueue() async {
     // Quick check without acquiring the lock
-    if (_isAnimating || _isUpdatingPersonAnno) return;
+    if (_isAnimating) return;
 
     // Check if there are items to process with lock
     bool noItems = true;
@@ -209,11 +209,12 @@ class TrackingModeClass implements ModeHandler {
         } finally {
           animation.removeListener(listener);
           _isAnimating = false;
-          _processQueue();
         }
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
       }
+    }).then((val) {
+      _processQueue();
     });
   }
 
