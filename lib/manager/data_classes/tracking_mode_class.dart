@@ -208,14 +208,11 @@ class TrackingModeClass implements ModeHandler {
           lastKnownLoc = current;
         } finally {
           animation.removeListener(listener);
+          _isAnimating = false;
+          _processQueue();
         }
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
-      } finally {
-        _isAnimating = false;
-        if (_queue.isNotEmpty) {
-          _processQueue();
-        }
       }
     });
   }
