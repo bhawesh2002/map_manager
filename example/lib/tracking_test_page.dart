@@ -99,7 +99,7 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
 
     // Initialize simulator with the route
     _simulator = LocationSimulator(
-        route: route, updateInterval: const Duration(milliseconds: 500));
+        route: route, updateInterval: const Duration(milliseconds: 150));
 
     // Set the map to tracking mode
     await _mapManager!.changeMode(MapMode.tracking(route: route));
@@ -108,9 +108,7 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     await Future.delayed(const Duration(milliseconds: 500), () {
       // Connect the simulator to the tracking mode
       _mapManager!.matchModeHandler(tracking: (trackingMode) async {
-        print("Manager : Now beginning tracking");
         await trackingMode.startTracking(_simulator!.locationNotifier);
-        print("Manager :  tracking Now beginning");
       });
 
       // Start the simulation
