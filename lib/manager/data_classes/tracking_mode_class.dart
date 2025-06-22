@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
+import 'package:map_manager_mapbox/manager/map_utils.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -70,9 +71,8 @@ class TrackingModeClass implements ModeHandler {
     _logger.info("Tracking Ride Route");
   }
 
-  void _addToUpdateQueue() {
+  void _addToUpdateQueue() async {
     final update = _locNotifier!.value;
-    _logger.info("Got Location Update: ${update?.location.toJson()}");
     if (update != null) {
       _queue.add(update);
       _routeTraversed = LineString(coordinates: [
@@ -80,13 +80,14 @@ class TrackingModeClass implements ModeHandler {
         update.location.coordinates
       ]);
       // Update traversed route visualization
-      _updateTraversedRoute();
-      _processQueue();
+      // _updateTraversedRoute();
+      await _processQueue();
     }
   }
 
   /// Updates the traversed route visualization using LineLayer
   /// This shows the actual path taken by the user in real-time
+  // ignore: unused_element
   Future<void> _updateTraversedRoute() async {
     if (_routeTraversed.coordinates.length < 2) return;
 
@@ -305,6 +306,7 @@ class TrackingModeClass implements ModeHandler {
           image: asset != null
               ? addImageFromAsset(asset.first)
               : MapAssets.selectedLoc,
+          iconOffset: [0, -28],
           geometry: waypoints.removeAt(0)!),
       PointAnnotationOptions(
         image: asset != null
@@ -326,13 +328,15 @@ class TrackingModeClass implements ModeHandler {
   Future<void> _updatePersonAnno(Point point) async {
     if (_personAnno == null) {
       _personAnno = await _personAnnoManager!.create(
-        PointAnnotationOptions(geometry: point, iconOffset: [0, -28]),
+        PointAnnotationOptions(
+            image: MapAssets.personLoc, geometry: point, iconOffset: [0, -28]),
       );
     } else {
       await _personAnnoManager!.update(
         PointAnnotation(id: _personAnno!.id, geometry: point),
       );
     }
+    await moveMapCamTo(_map, point, duration: 200);
   }
 
   Future<void> _createAnnotationManagers() async {
@@ -358,12 +362,12 @@ class TrackingModeClass implements ModeHandler {
     }
 
     // Remove traversed route layer and source
-    try {
-      await _map.style.removeStyleLayer(_traversedRouteLayerId);
-      await _map.style.removeStyleSource(_traversedRouteSourceId);
-    } catch (e) {
-      _logger.warning("Error removing traversed route layer/source: $e");
-    }
+    // try {
+    //   await _map.style.removeStyleLayer(_traversedRouteLayerId);
+    //   await _map.style.removeStyleSource(_traversedRouteSourceId);
+    // } catch (e) {
+    //   _logger.warning("Error removing traversed route layer/source: $e");
+    // }
 
     // Remove waypoint annotations
     if (_waypoints.isNotEmpty) {
