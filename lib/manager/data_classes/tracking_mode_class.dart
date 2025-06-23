@@ -400,7 +400,8 @@ class TrackingModeClass implements ModeHandler {
   /// Returns a map with update information or null if no update is needed
   Map<String, dynamic>? _calculateUpdatedRoute(LocationUpdate update) {
     // Skip if no planned route exists
-    if (_plannedRoute == null) return null;    try {
+    if (_plannedRoute == null) return null;
+    try {
       _logger.info(
           "Calculating updated route based on location: ${update.location}");
 
@@ -418,10 +419,11 @@ class TrackingModeClass implements ModeHandler {
         geoJsonCoords.add(
             [position[0]?.toDouble() ?? 0.0, position[1]?.toDouble() ?? 0.0]);
       }
-      
+
       // Extra safeguard - ensure we have at least 2 coordinates for the LineString
       if (geoJsonCoords.length < 2) {
-        _logger.warning("Route has fewer than 2 points - adding duplicate end point");
+        _logger.warning(
+            "Route has fewer than 2 points - adding duplicate end point");
         if (geoJsonCoords.isNotEmpty) {
           // Duplicate the last point to ensure we have at least 2 points
           geoJsonCoords.add(List<double>.from(geoJsonCoords.last));
@@ -431,7 +433,7 @@ class TrackingModeClass implements ModeHandler {
           return null;
         }
       }
-      
+
       final geoRoute = GeoJSONLineString(geoJsonCoords);
 
       // Convert to list of points for processing
@@ -445,8 +447,8 @@ class TrackingModeClass implements ModeHandler {
       }
 
       // Check if user is on route (using a reasonable threshold, e.g., 50 meters)
-      final checkResult =
-          isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);      // Update route based on check result
+      final checkResult = isUserOnRoute(userLocation, routePoints,
+          thresholdMeters: 50.0); // Update route based on check result
       List<GeoJSONPoint> updatedPoints;
       bool isOnRoute = checkResult.isOnRoute;
 
@@ -456,13 +458,16 @@ class TrackingModeClass implements ModeHandler {
         // User is on route - shrink
         updatedPoints = shrinkRoute(checkResult.projectedPoint,
             checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
-        
+
         // Special handling for near-completion - if we have only duplicated points,
         // this may indicate we've essentially completed the route
-        if (updatedPoints.length == 2 && 
-            updatedPoints[0].coordinates[0] == updatedPoints[1].coordinates[0] &&
-            updatedPoints[0].coordinates[1] == updatedPoints[1].coordinates[1]) {
-          _logger.info("Route nearly complete - maintaining minimal valid route");
+        if (updatedPoints.length == 2 &&
+            updatedPoints[0].coordinates[0] ==
+                updatedPoints[1].coordinates[0] &&
+            updatedPoints[0].coordinates[1] ==
+                updatedPoints[1].coordinates[1]) {
+          _logger
+              .info("Route nearly complete - maintaining minimal valid route");
         }
       } else {
         _logger.info(
@@ -507,10 +512,12 @@ class TrackingModeClass implements ModeHandler {
           "isOnRoute": isOnRoute,
           "distanceFromRoute": checkResult.distance
         };
-      }    } catch (e) {
+      }
+    } catch (e) {
       _logger.warning("Error calculating updated route: $e");
       if (e.toString().contains('coordinates.length >= 2')) {
-        _logger.warning("Route has fewer than 2 points - this typically happens at the end of a route");
+        _logger.warning(
+            "Route has fewer than 2 points - this typically happens at the end of a route");
       }
       return null;
     }
