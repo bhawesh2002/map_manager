@@ -447,25 +447,20 @@ class TrackingModeClass implements ModeHandler {
       }
 
       // Check if user is on route (using a reasonable threshold, e.g., 50 meters)
-      final checkResult = isUserOnRoute(userLocation, routePoints,
-          thresholdMeters: 50.0); // Update route based on check result
-      List<GeoJSONPoint> updatedPoints;
+      final checkResult =
+          isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+
+      RouteUpdateResult routeUpdateResult;
       bool isOnRoute = checkResult.isOnRoute;
 
       if (isOnRoute) {
         _logger.info(
             "User is on route - shrinking route at segment ${checkResult.segmentIndex}");
         // User is on route - shrink
-        updatedPoints = shrinkRoute(checkResult.projectedPoint,
+        routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
             checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
 
-        // Special handling for near-completion - if we have only duplicated points,
-        // this may indicate we've essentially completed the route
-        if (updatedPoints.length == 2 &&
-            updatedPoints[0].coordinates[0] ==
-                updatedPoints[1].coordinates[0] &&
-            updatedPoints[0].coordinates[1] ==
-                updatedPoints[1].coordinates[1]) {
+        if (routeUpdateResult.isNearlyComplete) {
           _logger
               .info("Route nearly complete - maintaining minimal valid route");
         }
@@ -473,14 +468,22 @@ class TrackingModeClass implements ModeHandler {
         _logger.info(
             "User is off route (${checkResult.distance}m away) - growing route");
         // User is off route - grow
-        updatedPoints = growRoute(userLocation, routePoints);
+        routeUpdateResult = growRoute(userLocation, routePoints);
       }
 
       // Only return data if there's actually a change
-      if (updatedPoints.length != routePoints.length ||
-          !_areRoutePointsEqual(updatedPoints, routePoints)) {
+      if (routeUpdateResult.hasChanged) {
+        // Log segment change information
+        if (routeUpdateResult.changedSegmentIndex >= 0) {
+          _logger.info(
+              '''Route segment changed at index: ${routeUpdateResult.changedSegmentIndex}, 
+              isGrowing: ${routeUpdateResult.isGrowing}, 
+              isNearlyComplete: ${routeUpdateResult.isNearlyComplete}''');
+        }
+
         // Convert back to LineString format for Mapbox
-        final updatedGeoJsonLineString = pointsToLineString(updatedPoints);
+        final updatedGeoJsonLineString =
+            pointsToLineString(routeUpdateResult.updatedRoute);
 
         // Convert GeoJSON coordinates back to Mapbox format
         List<List<double>> mapboxCoords = updatedGeoJsonLineString.coordinates;
@@ -503,7 +506,13 @@ class TrackingModeClass implements ModeHandler {
           "data": data,
           "isOnRoute": isOnRoute,
           "distanceFromRoute": checkResult.distance,
-          "routeChanged": true
+          "routeChanged": true,
+          // Add segment change information for animation
+          "changedSegmentIndex": routeUpdateResult.changedSegmentIndex,
+          "originalSegment": routeUpdateResult.originalSegment,
+          "newSegment": routeUpdateResult.newSegment,
+          "isGrowing": routeUpdateResult.isGrowing,
+          "isNearlyComplete": routeUpdateResult.isNearlyComplete
         };
       } else {
         _logger.info("No significant route change needed");
@@ -523,21 +532,6 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  /// Helper to check if two lists of GeoJSON points represent the same route
-  bool _areRoutePointsEqual(
-      List<GeoJSONPoint> route1, List<GeoJSONPoint> route2) {
-    if (route1.length != route2.length) return false;
-
-    for (int i = 0; i < route1.length; i++) {
-      if (route1[i].coordinates[0] != route2[i].coordinates[0] ||
-          route1[i].coordinates[1] != route2[i].coordinates[1]) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   /// Updates the route visualization on the map based on the calculated route data
   ///
   /// This method handles updating the GeoJSON source data and the planned route
@@ -554,6 +548,21 @@ class TrackingModeClass implements ModeHandler {
       // Update the internal route object
       if (routeData.containsKey('updatedLineString')) {
         _plannedRoute = routeData['updatedLineString'] as LineString;
+      }
+
+      // Log segment information if available
+      if (routeData.containsKey('changedSegmentIndex')) {
+        int segmentIndex = routeData['changedSegmentIndex'] as int;
+        bool isGrowing = routeData['isGrowing'] as bool;
+        bool isNearlyComplete = routeData['isNearlyComplete'] as bool;
+
+        _logger.info('''Route segment update - " "Index: $segmentIndex, 
+            Growing: $isGrowing, 
+            Nearly Complete: $isNearlyComplete''');
+
+        // Future segment animation would be implemented here
+        // For now, we're just updating the whole route
+        // TODO: Implement segment-based animation
       }
 
       // Get the GeoJSON data
