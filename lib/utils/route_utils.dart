@@ -1,6 +1,43 @@
 import 'dart:math' as math;
 import 'package:geojson_vi/geojson_vi.dart';
 
+/// Represents the result of a route update operation (shrink or grow).
+///
+/// Contains information about what changed in the route, specifically which segment
+/// was modified, to support animated route transitions.
+class RouteUpdateResult {
+  /// The updated route after shrinking or growing
+  final List<GeoJSONPoint> updatedRoute;
+
+  /// Whether the route has changed significantly
+  final bool hasChanged;
+
+  /// The index of the segment that changed (-1 if no change)
+  final int changedSegmentIndex;
+
+  /// The segment before the change (typically 2 points defining a line)
+  final List<GeoJSONPoint> originalSegment;
+
+  /// The segment after the change
+  final List<GeoJSONPoint> newSegment;
+
+  /// Whether the route is growing (true) or shrinking (false)
+  final bool isGrowing;
+
+  /// True when the route is nearly complete (close to destination)
+  final bool isNearlyComplete;
+
+  RouteUpdateResult({
+    required this.updatedRoute,
+    required this.hasChanged,
+    required this.changedSegmentIndex,
+    required this.originalSegment,
+    required this.newSegment,
+    required this.isGrowing,
+    this.isNearlyComplete = false,
+  });
+}
+
 /// Represents the result of projecting a point onto a route segment.
 class ProjectionResult {
   /// The projected point on the segment
@@ -245,24 +282,45 @@ RouteCheckResult isUserOnRoute(
 /// - [projectionRatio]: How far along the segment the projection is (0.0 to 1.0)
 /// - [routePoints]: The original route points
 ///
-/// Returns a new list of route points. Ensures the route always has at least 2 points
-/// to maintain a valid GeoJSON LineString.
-List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
+/// Returns a [RouteUpdateResult] containing the updated route and information about
+/// which segment changed, to support animated transitions.
+RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     double projectionRatio, List<GeoJSONPoint> routePoints) {
   if (routePoints.length < 2 ||
       segmentIndex < 0 ||
       segmentIndex >= routePoints.length - 1) {
-    return List.from(routePoints);
+    return RouteUpdateResult(
+      updatedRoute: List.from(routePoints),
+      hasChanged: false,
+      changedSegmentIndex: -1,
+      originalSegment: [],
+      newSegment: [],
+      isGrowing: false,
+    );
   }
 
   List<GeoJSONPoint> newRoute = [];
+  bool hasChanged = true;
+  List<GeoJSONPoint> originalSegment = [];
+  List<GeoJSONPoint> newSegment = [];
+  bool isNearlyComplete = false;
 
   // Handle the first segment specially
   if (segmentIndex == 0) {
     // If we're at the very start of the first segment, return the whole route
     if (projectionRatio <= 0.01) {
-      return List.from(routePoints);
+      return RouteUpdateResult(
+        updatedRoute: List.from(routePoints),
+        hasChanged: false,
+        changedSegmentIndex: -1,
+        originalSegment: [],
+        newSegment: [],
+        isGrowing: false,
+      );
     }
+
+    // For the first segment, capture the original segment
+    originalSegment = [routePoints[0], routePoints[1]];
   }
 
   // Case 1: Projection at start of segment (within small threshold)
@@ -270,6 +328,13 @@ List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     // Include the start point of the segment
     newRoute.add(routePoints[segmentIndex]);
     newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+
+    // Capture the original and new segments
+    originalSegment = [
+      routePoints[segmentIndex - 1],
+      routePoints[segmentIndex]
+    ];
+    newSegment = [routePoints[segmentIndex], routePoints[segmentIndex + 1]];
   }
   // Case 2: Projection at end of segment (within small threshold)
   else if (projectionRatio >= 0.99) {
@@ -281,9 +346,26 @@ List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
       // duplicated to ensure at least 2 points for a valid LineString
       newRoute.add(routePoints.last);
       newRoute.add(routePoints.last); // Duplicate the last point
+
+      // Mark as nearly complete
+      isNearlyComplete = true;
+
+      // Capture original and new segments
+      originalSegment = [routePoints[segmentIndex], routePoints.last];
+      newSegment = [routePoints.last, routePoints.last];
     } else {
       // Normal case - start from the end point of the current segment
       newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+
+      // Capture original and new segments
+      originalSegment = [
+        routePoints[segmentIndex],
+        routePoints[segmentIndex + 1]
+      ];
+      newSegment = [
+        routePoints[segmentIndex + 1],
+        routePoints[segmentIndex + 2]
+      ];
     }
   }
   // Case 3: Projection in middle of segment
@@ -291,33 +373,80 @@ List<GeoJSONPoint> shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     // Create new segment from projected point to end of current segment
     newRoute.add(projectedPoint);
     newRoute.addAll(routePoints.sublist(segmentIndex + 1));
+
+    // Capture original and new segments
+    originalSegment = [
+      routePoints[segmentIndex],
+      routePoints[segmentIndex + 1]
+    ];
+    newSegment = [projectedPoint, routePoints[segmentIndex + 1]];
   }
 
   // Ensure we always have at least 2 points for a valid GeoJSON LineString
   if (newRoute.length < 2 && newRoute.isNotEmpty) {
     // If we have only one point, duplicate it to create a valid LineString
     newRoute.add(GeoJSONPoint(List<double>.from(newRoute.first.coordinates)));
+    isNearlyComplete = true;
   } else if (newRoute.isEmpty && routePoints.isNotEmpty) {
     // If somehow we ended up with an empty route, use the last point of the original route
     newRoute.add(routePoints.last);
     newRoute.add(routePoints.last); // Duplicate it to ensure 2 points
+    isNearlyComplete = true;
   }
 
-  return newRoute;
+  // Check if duplicate endpoints (a sign we're nearly complete)
+  if (newRoute.length == 2 &&
+      newRoute[0].coordinates[0] == newRoute[1].coordinates[0] &&
+      newRoute[0].coordinates[1] == newRoute[1].coordinates[1]) {
+    isNearlyComplete = true;
+  }
+
+  return RouteUpdateResult(
+    updatedRoute: newRoute,
+    hasChanged: hasChanged,
+    changedSegmentIndex: segmentIndex,
+    originalSegment: originalSegment,
+    newSegment: newSegment,
+    isGrowing: false,
+    isNearlyComplete: isNearlyComplete,
+  );
 }
 
 /// Modifies a route by growing it to include the user's current off-route position.
 ///
-/// Simply adds the user's location to the start of the route.
+/// Adds the user's location to the start of the route, creating a new segment
+/// from the user's position to the first point of the original route.
 ///
 /// Parameters:
 /// - [userLocation]: The user's current location
 /// - [routePoints]: The original route points
 ///
-/// Returns a new list of route points.
-List<GeoJSONPoint> growRoute(
+/// Returns a [RouteUpdateResult] containing the updated route and information about
+/// the new segment added, to support animated transitions.
+RouteUpdateResult growRoute(
     GeoJSONPoint userLocation, List<GeoJSONPoint> routePoints) {
   List<GeoJSONPoint> newRoute = [userLocation];
   newRoute.addAll(routePoints);
-  return newRoute;
+
+  // There's no original segment when growing (we're adding a new one)
+  List<GeoJSONPoint> originalSegment = [];
+
+  // The new segment is from user location to first route point
+  List<GeoJSONPoint> newSegment = [];
+  if (routePoints.isNotEmpty) {
+    newSegment = [userLocation, routePoints.first];
+  } else {
+    // If the route was empty, duplicate the user location
+    newRoute.add(GeoJSONPoint(List<double>.from(userLocation.coordinates)));
+    newSegment = [userLocation, userLocation];
+  }
+
+  return RouteUpdateResult(
+    updatedRoute: newRoute,
+    hasChanged: true, // Growing always changes the route
+    changedSegmentIndex: 0, // New segment is always at the beginning
+    originalSegment: originalSegment,
+    newSegment: newSegment,
+    isGrowing: true,
+  );
 }
