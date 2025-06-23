@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:synchronized/synchronized.dart';
 import '../location_update.dart';
 import '../mode_handler.dart';
 import '../tweens/point_tween.dart';
+import 'route_calculation_isolate.dart';
 
 class TrackingModeClass implements ModeHandler {
   final TrackingMode mode;
@@ -100,7 +102,20 @@ class TrackingModeClass implements ModeHandler {
         _isAnimating = true;
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
+
+        // Start person marker animation
         await _animatePersonMarker(current);
+
+        // Calculate route updates in isolate if we have a planned route
+        if (_plannedRoute != null) {
+          final routeData = await _calculateRouteInIsolate(current);
+
+          // Update route visualization if there are changes
+          if (routeData != null && routeData['routeChanged'] == true) {
+            await _updateRouteVisualization(routeData);
+          }
+        }
+
         lastKnownLoc = current;
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
@@ -471,5 +486,61 @@ class TrackingModeClass implements ModeHandler {
     }
 
     _logger.info("Tracking Mode Data Cleared");
+  }
+
+  /// Calculates route updates in a separate isolate to avoid blocking the main thread
+  ///
+  /// Returns a map with route update information or null if no update is needed
+  Future<Map<String, dynamic>?> _calculateRouteInIsolate(
+      LocationUpdate update) async {
+    if (_plannedRoute == null) return null;
+
+    try {
+      _logger.info("Starting route calculation in isolate");
+
+      // Create a ReceivePort for receiving the result
+      final receivePort = ReceivePort();
+
+      // Convert the planned route to GeoJSON coordinates
+      final routeCoordinates = _plannedRoute!.toGeojsonLineStr().coordinates;
+
+      // Create the message to send to the isolate
+      final message = RouteCalculationMessage(
+        update: update,
+        routeCoordinates: routeCoordinates,
+        sendPort: receivePort.sendPort,
+      );
+
+      // Start the isolate
+      final isolate = await Isolate.spawn(routeCalculationIsolate, message);
+
+      // Wait for the result from the isolate
+      final result = await receivePort.first as RouteCalculationResult;
+
+      // Clean up the isolate
+      isolate.kill(priority: Isolate.immediate);
+      receivePort.close();
+
+      // Handle the result
+      if (result.success) {
+        if (result.routeData != null) {
+          _logger.info("Route calculation completed successfully in isolate");
+          return result.routeData;
+        } else {
+          _logger.info("No route changes needed");
+          return null;
+        }
+      } else {
+        _logger.warning(
+            "Error in route calculation isolate: ${result.errorMessage}");
+        return null;
+      }
+    } catch (e) {
+      _logger.severe("Error running route calculation isolate: $e");
+
+      // Fallback to the original implementation if isolate fails
+      _logger.info("Falling back to main thread calculation");
+      return _calculateUpdatedRoute(update);
+    }
   }
 }
