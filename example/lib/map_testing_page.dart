@@ -57,15 +57,6 @@ class _MapTestingPageState extends State<MapTestingPage> {
       )
     },
     {
-      'name': "Tracking Mode (LineString)",
-      'config': TrackingMode(
-          route: LineString(coordinates: routePositionList),
-          waypoints: [
-            Point(coordinates: routePositionList.first),
-            Point(coordinates: routePositionList.last),
-          ])
-    },
-    {
       'name': "Tracking Mode (GeoJSON)",
       'config': TrackingMode(geojson: {
         "type": "Feature",

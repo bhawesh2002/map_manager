@@ -101,7 +101,14 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
         route: route, updateInterval: const Duration(milliseconds: 150));
 
     // Set the map to tracking mode
-    await _mapManager!.changeMode(MapMode.tracking(route: route));
+    await _mapManager!.changeMode(MapMode.tracking(geojson: {
+      "type": "Feature",
+      "geometry": {"type": "LineString", "coordinates": routeCoordinates},
+      "properties": {
+        "name": "Test Tracking Route",
+        "description": "Example GeoJSON route for tracking"
+      }
+    }));
 
     // Start the location updates after a short delay to ensure mode is ready
     await Future.delayed(const Duration(milliseconds: 500), () {
