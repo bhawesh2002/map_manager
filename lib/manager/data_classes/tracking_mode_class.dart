@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
+import 'package:map_manager_mapbox/manager/map_utils.dart';
+import 'package:map_manager_mapbox/utils/extensions.dart';
 import 'package:map_manager_mapbox/utils/utils.dart';
 import 'package:map_manager_mapbox/utils/route_utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:synchronized/synchronized.dart';
-import 'package:geojson_vi/geojson_vi.dart';
 
 import '../location_update.dart';
 import '../mode_handler.dart';
@@ -57,12 +58,8 @@ class TrackingModeClass implements ModeHandler {
     cls.setAnimController(animController);
     await map.location.updateSettings(LocationComponentSettings(enabled: true));
     await cls._createAnnotationManagers();
-
-    // Add planned route from either LineString or GeoJSON
-    if (mode.route != null || mode.geojson != null) {
-      await cls._addPlannedRoute(
-          route: mode.route, geojson: mode.geojson, waypoints: mode.waypoints);
-    }
+    await cls._addPlannedRoute(
+        geojson: mode.geojson, waypoints: mode.waypoints);
 
     return cls;
   }
@@ -101,25 +98,9 @@ class TrackingModeClass implements ModeHandler {
       try {
         if (_isAnimating) return;
         _isAnimating = true;
-        // Get the next item from the queue with lock
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
-
-        // Animate the person annotation
         await _animatePersonMarker(current);
-
-        // Calculate route updates based on the new location
-        if (_plannedRoute != null) {
-          _logger.info("Calculating route updates");
-          final routeData = _calculateUpdatedRoute(current);
-
-          // Update the route visualization if needed
-          if (routeData != null) {
-            await _updateRouteVisualization(routeData);
-          }
-        }
-
-        // Update lastKnownLoc after successful processing
         lastKnownLoc = current;
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
@@ -166,37 +147,11 @@ class TrackingModeClass implements ModeHandler {
   /// Creates a route using LineLayer and GeoJsonSource for the planned route
   /// Either provide a LineString route OR a GeoJSON map, but not both
   Future<void> _addPlannedRoute(
-      {LineString? route,
-      Map<String, dynamic>? geojson,
-      List<Point>? waypoints}) async {
-    assert(!(route == null && geojson == null),
-        "Either route or geojson must be provided");
-    assert(!(route != null && geojson != null),
-        "Both route and geojson cannot be provided");
-
+      {required Map<String, dynamic> geojson, List<Point>? waypoints}) async {
     try {
       GeoJsonSource? geoJsonSource;
-      if (route != null) {
-        _plannedRoute = route; // Store the planned route
-        final data = {
-          "type": "Feature",
-          "geometry": route.toJson(),
-          "properties": {}
-        };
-        // Create GeoJSON source with line metrics enabled for gradient support
-        geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
-        await _map.style.addSource(geoJsonSource);
-        await _map.style.setStyleSourceProperty(
-          _routeSourceId,
-          'data',
-          data,
-        );
-      } else {
-        // For geojson input, try to extract LineString if possible
-        if (geojson!['type'] == 'Feature' &&
-            geojson['geometry']?['type'] == 'LineString') {
-          _plannedRoute = LineString.fromJson(geojson['geometry']);
-        }
+      if (geojson['type'] == 'Feature' &&
+          geojson['geometry']?['type'] == 'LineString') {
         // Create GeoJSON source with line metrics enabled for gradient support
         geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
         await _map.style.addSource(geoJsonSource);
@@ -205,42 +160,32 @@ class TrackingModeClass implements ModeHandler {
           'data',
           geojson,
         );
+        _plannedRoute = LineString.fromJson(geojson['geometry']);
       }
 
       // Create and add the line layer for planned route with blue styling
       final lineLayer = LineLayer(
-        id: _routeLayerId,
-        sourceId: _routeSourceId,
-
-        // Planned route styling - Blue/gray for intended path
-        lineWidth: 10.0, // Slightly thinner than traversed route
-        lineCap: LineCap.ROUND, // Smooth rounded ends
-        lineJoin: LineJoin.ROUND, // Smooth rounded corners
-        lineOpacity: 0.9, // More transparent to show it's planned
-
-        // Blue gradient for planned route
-        lineGradientExpression: [
-          'interpolate', // Smooth color interpolation
-          ['linear'], // Linear interpolation method
-          ['line-progress'], // Use line progress (0.0 to 1.0)
-          0.0,
-          "#0BE3E3",
-          0.4,
-          "#0B69E3",
-          0.6,
-          "#0B4CE3",
-          1.0,
-          "#890BE3",
-        ],
-
-        // Border effects
-        lineBlur: 0.0, // Sharp edges
-        lineBorderColor: 0xFFFFFFFF, // White border for contrast
-        lineBorderWidth: 1.0, // Thin border
-
-        // Z-positioning (below traversed route)
-        lineZOffset: -1.0, // Place below traversed route
-      );
+          id: _routeLayerId,
+          sourceId: _routeSourceId,
+          lineWidth: 10.0,
+          lineCap: LineCap.ROUND,
+          lineJoin: LineJoin.ROUND,
+          lineOpacity: 0.9,
+          lineGradientExpression: [
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0.0,
+            "#0BE3E3",
+            0.4,
+            "#0B69E3",
+            0.6,
+            "#0B4CE3",
+            1.0,
+            "#890BE3",
+          ],
+          lineBlur: 0.0,
+          lineZOffset: -1.0);
 
       // Add the planned route layer to the map style
       await _map.style.addLayer(lineLayer);
@@ -256,10 +201,8 @@ class TrackingModeClass implements ModeHandler {
 
       // Move camera to show the start of the route
       if (_plannedRoute != null) {
-        await _map.flyTo(
-            CameraOptions(
-                center: Point(coordinates: _plannedRoute!.coordinates.first)),
-            MapAnimationOptions());
+        await moveMapCamTo(
+            _map, Point(coordinates: _plannedRoute!.coordinates.first));
       }
     } catch (e) {
       _logger.warning("Error adding planned route: $e");
@@ -314,6 +257,140 @@ class TrackingModeClass implements ModeHandler {
         rethrow;
       }
     });
+  }
+
+  /// Calculates an updated route based on the user's current location
+  /// Returns a map with update information or null if no update is needed
+  Map<String, dynamic>? _calculateUpdatedRoute(LocationUpdate update) {
+    // Skip if no planned route exists
+    if (_plannedRoute == null) return null;
+    try {
+      _logger.info(
+          "Calculating updated route based on location: ${update.location}");
+      final userLocation = update.location.toGeojsonPoint();
+      // Convert Mapbox LineString coordinates to GeoJSON format
+      List<List<double>> geoJsonCoords =
+          _plannedRoute!.toGeojsonLineStr().coordinates;
+
+      // Extra safeguard - ensure we have at least 2 coordinates for the LineString
+      if (geoJsonCoords.length < 2) {
+        _logger.warning(
+            "Route has fewer than 2 points - adding duplicate end point");
+        if (geoJsonCoords.isNotEmpty) {
+          // Duplicate the last point to ensure we have at least 2 points
+          geoJsonCoords.add(List<double>.from(geoJsonCoords.last));
+        } else {
+          // If somehow we have no points, we can't process
+          _logger.severe("Route has no points - cannot process");
+          return null;
+        }
+      }
+
+      final geoRoute = _plannedRoute!.toGeojsonLineStr();
+      final routePoints = lineStringToPoints(geoRoute);
+      if (routePoints.length < 2) {
+        _logger.info(
+            "Route too short for processing (${routePoints.length} points)");
+        return null;
+      }
+      final checkResult =
+          isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+
+      RouteUpdateResult routeUpdateResult;
+      bool isOnRoute = checkResult.isOnRoute;
+
+      if (isOnRoute) {
+        _logger.info(
+            "User is on route - shrinking route at segment ${checkResult.segmentIndex}");
+        // User is on route - shrink
+        routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
+            checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
+        if (routeUpdateResult.isNearlyComplete) {
+          _logger
+              .info("Route nearly complete - maintaining minimal valid route");
+        }
+      } else {
+        _logger.info(
+            "User is off route (${checkResult.distance}m away) - growing route");
+        // User is off route - grow
+        routeUpdateResult = growRoute(userLocation, routePoints);
+      }
+
+      // Only return data if there's actually a change
+      if (routeUpdateResult.hasChanged) {
+        // Log segment change information
+        if (routeUpdateResult.changedSegmentIndex >= 0) {
+          _logger.info(
+              '''Route segment changed at index: ${routeUpdateResult.changedSegmentIndex}, 
+              isGrowing: ${routeUpdateResult.isGrowing}, 
+              isNearlyComplete: ${routeUpdateResult.isNearlyComplete}''');
+        }
+
+        final updatedGeoJsonLineString =
+            pointsToLineString(routeUpdateResult.updatedRoute);
+        final data = {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": updatedGeoJsonLineString.coordinates
+          },
+          "properties": {}
+        };
+        return {
+          "data": data,
+          "isOnRoute": isOnRoute,
+          "distanceFromRoute": checkResult.distance,
+          "routeChanged": true,
+          "changedSegmentIndex": routeUpdateResult.changedSegmentIndex,
+          "originalSegment": routeUpdateResult.originalSegment,
+          "newSegment": routeUpdateResult.newSegment,
+          "isGrowing": routeUpdateResult.isGrowing,
+          "isNearlyComplete": routeUpdateResult.isNearlyComplete,
+          "updatedRoutePoints": routeUpdateResult.updatedRoute
+        };
+      } else {
+        _logger.info("No significant route change needed");
+        return {
+          "routeChanged": false,
+          "isOnRoute": isOnRoute,
+          "distanceFromRoute": checkResult.distance
+        };
+      }
+    } catch (e) {
+      _logger.warning("Error calculating updated route: $e");
+      if (e.toString().contains('coordinates.length >= 2')) {
+        _logger.warning(
+            "Route has fewer than 2 points - this typically happens at the end of a route");
+      }
+      return null;
+    }
+  }
+
+  /// Updates the route visualization on the map based on the calculated route data
+  ///  /// This method handles updating the GeoJSON source data and the planned route
+  /// object based on the results from _calculateUpdatedRoute
+  Future<void> _updateRouteVisualization(Map<String, dynamic> routeData) async {
+    if (!(routeData['routeChanged'] as bool)) {
+      return;
+    }
+    try {
+      _logger.info("Updating route visualization");
+
+      // Get the GeoJSON data
+      final Map<String, dynamic> data =
+          routeData['data'] as Map<String, dynamic>;
+
+      // Update existing source data
+      await _map.style.setStyleSourceProperty(
+        _routeSourceId,
+        'data',
+        data,
+      );
+      _logger.info("Updated existing route source");
+      _logger.info("Route visualization updated successfully");
+    } catch (e) {
+      _logger.severe("Error updating route visualization: $e");
+    }
   }
 
   Future<void> _createAnnotationManagers() async {
@@ -394,246 +471,5 @@ class TrackingModeClass implements ModeHandler {
     }
 
     _logger.info("Tracking Mode Data Cleared");
-  }
-
-  /// Calculates an updated route based on the user's current location
-  /// Returns a map with update information or null if no update is needed
-  Map<String, dynamic>? _calculateUpdatedRoute(LocationUpdate update) {
-    // Skip if no planned route exists
-    if (_plannedRoute == null) return null;
-    try {
-      _logger.info(
-          "Calculating updated route based on location: ${update.location}");
-
-      // Convert Mapbox Point coordinates to GeoJSON Point
-      // Mapbox uses [lng, lat] which is compatible with GeoJSON
-      final List<double> pointCoords = [
-        update.location.coordinates[0]?.toDouble() ?? 0.0,
-        update.location.coordinates[1]?.toDouble() ?? 0.0
-      ];
-      final userLocation = GeoJSONPoint(pointCoords);
-
-      // Convert Mapbox LineString coordinates to GeoJSON format
-      List<List<double>> geoJsonCoords = [];
-      for (var position in _plannedRoute!.coordinates) {
-        geoJsonCoords.add(
-            [position[0]?.toDouble() ?? 0.0, position[1]?.toDouble() ?? 0.0]);
-      }
-
-      // Extra safeguard - ensure we have at least 2 coordinates for the LineString
-      if (geoJsonCoords.length < 2) {
-        _logger.warning(
-            "Route has fewer than 2 points - adding duplicate end point");
-        if (geoJsonCoords.isNotEmpty) {
-          // Duplicate the last point to ensure we have at least 2 points
-          geoJsonCoords.add(List<double>.from(geoJsonCoords.last));
-        } else {
-          // If somehow we have no points, we can't process
-          _logger.severe("Route has no points - cannot process");
-          return null;
-        }
-      }
-
-      final geoRoute = GeoJSONLineString(geoJsonCoords);
-
-      // Convert to list of points for processing
-      final routePoints = lineStringToPoints(geoRoute);
-
-      // Skip processing if route is too short
-      if (routePoints.length < 2) {
-        _logger.info(
-            "Route too short for processing (${routePoints.length} points)");
-        return null;
-      }
-
-      // Check if user is on route (using a reasonable threshold, e.g., 50 meters)
-      final checkResult =
-          isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
-
-      RouteUpdateResult routeUpdateResult;
-      bool isOnRoute = checkResult.isOnRoute;
-
-      if (isOnRoute) {
-        _logger.info(
-            "User is on route - shrinking route at segment ${checkResult.segmentIndex}");
-        // User is on route - shrink
-        routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
-            checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
-
-        if (routeUpdateResult.isNearlyComplete) {
-          _logger
-              .info("Route nearly complete - maintaining minimal valid route");
-        }
-      } else {
-        _logger.info(
-            "User is off route (${checkResult.distance}m away) - growing route");
-        // User is off route - grow
-        routeUpdateResult = growRoute(userLocation, routePoints);
-      }
-
-      // Only return data if there's actually a change
-      if (routeUpdateResult.hasChanged) {
-        // Log segment change information
-        if (routeUpdateResult.changedSegmentIndex >= 0) {
-          _logger.info(
-              '''Route segment changed at index: ${routeUpdateResult.changedSegmentIndex}, 
-              isGrowing: ${routeUpdateResult.isGrowing}, 
-              isNearlyComplete: ${routeUpdateResult.isNearlyComplete}''');
-        }
-
-        // Convert back to LineString format for Mapbox
-        final updatedGeoJsonLineString =
-            pointsToLineString(routeUpdateResult.updatedRoute);
-
-        // Convert GeoJSON coordinates back to Mapbox format
-        List<List<double>> mapboxCoords = updatedGeoJsonLineString.coordinates;
-
-        // Create the GeoJSON feature
-        final data = {
-          "type": "Feature",
-          "geometry": {"type": "LineString", "coordinates": mapboxCoords},
-          "properties": {}
-        };
-
-        // Create Mapbox LineString
-        List<Position> positions = [];
-        for (var coord in mapboxCoords) {
-          positions.add(Position(coord[0], coord[1]));
-        }
-
-        return {
-          "updatedLineString": LineString(coordinates: positions),
-          "data": data,
-          "isOnRoute": isOnRoute,
-          "distanceFromRoute": checkResult.distance,
-          "routeChanged": true,
-          // Add segment change information for animation
-          "changedSegmentIndex": routeUpdateResult.changedSegmentIndex,
-          "originalSegment": routeUpdateResult.originalSegment,
-          "newSegment": routeUpdateResult.newSegment,
-          "isGrowing": routeUpdateResult.isGrowing,
-          "isNearlyComplete": routeUpdateResult.isNearlyComplete
-        };
-      } else {
-        _logger.info("No significant route change needed");
-        return {
-          "routeChanged": false,
-          "isOnRoute": isOnRoute,
-          "distanceFromRoute": checkResult.distance
-        };
-      }
-    } catch (e) {
-      _logger.warning("Error calculating updated route: $e");
-      if (e.toString().contains('coordinates.length >= 2')) {
-        _logger.warning(
-            "Route has fewer than 2 points - this typically happens at the end of a route");
-      }
-      return null;
-    }
-  }
-
-  /// Updates the route visualization on the map based on the calculated route data
-  ///
-  /// This method handles updating the GeoJSON source data and the planned route
-  /// object based on the results from _calculateUpdatedRoute
-  Future<void> _updateRouteVisualization(Map<String, dynamic> routeData) async {
-    // Skip if no change needed
-    if (!(routeData['routeChanged'] as bool)) {
-      return;
-    }
-
-    try {
-      _logger.info("Updating route visualization");
-
-      // Update the internal route object
-      if (routeData.containsKey('updatedLineString')) {
-        _plannedRoute = routeData['updatedLineString'] as LineString;
-      }
-
-      // Log segment information if available
-      if (routeData.containsKey('changedSegmentIndex')) {
-        int segmentIndex = routeData['changedSegmentIndex'] as int;
-        bool isGrowing = routeData['isGrowing'] as bool;
-        bool isNearlyComplete = routeData['isNearlyComplete'] as bool;
-
-        _logger.info('''Route segment update - " "Index: $segmentIndex, 
-            Growing: $isGrowing, 
-            Nearly Complete: $isNearlyComplete''');
-
-        // Future segment animation would be implemented here
-        // For now, we're just updating the whole route
-        // TODO: Implement segment-based animation
-      }
-
-      // Get the GeoJSON data
-      final Map<String, dynamic> data =
-          routeData['data'] as Map<String, dynamic>;
-
-      // Check if the source exists
-      bool sourceExists = false;
-      try {
-        await _map.style.getStyleSourceProperty(_routeSourceId, 'type');
-        sourceExists = true;
-      } catch (e) {
-        _logger.warning("Route source doesn't exist, will create: $e");
-      }
-
-      if (sourceExists) {
-        // Update existing source data
-        await _map.style.setStyleSourceProperty(
-          _routeSourceId,
-          'data',
-          data,
-        );
-        _logger.info("Updated existing route source");
-      } else {
-        // Create a new source if it doesn't exist
-        final geoJsonSource =
-            GeoJsonSource(id: _routeSourceId, lineMetrics: true);
-        await _map.style.addSource(geoJsonSource);
-        await _map.style.setStyleSourceProperty(
-          _routeSourceId,
-          'data',
-          data,
-        );
-
-        // Create and add the line layer
-        final lineLayer = LineLayer(
-          id: _routeLayerId,
-          sourceId: _routeSourceId,
-          lineWidth: 10.0,
-          lineCap: LineCap.ROUND,
-          lineJoin: LineJoin.ROUND,
-          lineOpacity: 0.9,
-          lineGradientExpression: [
-            'interpolate',
-            ['linear'],
-            ['line-progress'],
-            0.0,
-            "#0BE3E3",
-            0.4,
-            "#0B69E3",
-            0.6,
-            "#0B4CE3",
-            1.0,
-            "#890BE3",
-          ],
-          lineBlur: 0.0,
-          lineBorderColor: 0xFFFFFFFF,
-          lineBorderWidth: 1.0,
-          lineZOffset: -1.0,
-        );
-
-        await _map.style.addLayer(lineLayer);
-        _logger.info("Created new route source and layer");
-      }
-
-      // Update waypoints positions if needed
-      // This could be implemented later if needed
-
-      _logger.info("Route visualization updated successfully");
-    } catch (e) {
-      _logger.severe("Error updating route visualization: $e");
-    }
   }
 }
