@@ -172,14 +172,14 @@ void main() {
     test('isUserOnRoute - user on route', () {
       // Arrange
       final userLocation = GeoJSONPoint([1.0, 1.0]);
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
+      final route = GeoJSONLineString([
+        [0.0, 0.0],
+        [2.0, 2.0],
+        [4.0, 4.0]
+      ]);
 
       // Act
-      final result = isUserOnRoute(userLocation, routePoints);
+      final result = isUserOnRoute(userLocation, route);
 
       // Assert
       expect(result.isOnRoute, true);
@@ -187,19 +187,17 @@ void main() {
       expect(result.distance, closeTo(0.0, 0.001)); // User is exactly on route
       expect(result.projectionRatio, closeTo(0.5, 0.001)); // Halfway on segment
     });
-
     test('isUserOnRoute - user off route', () {
       // Arrange
       final userLocation = GeoJSONPoint([3.0, 0.0]); // Far from route
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
+      final route = GeoJSONLineString([
+        [0.0, 0.0],
+        [2.0, 2.0],
+        [4.0, 4.0]
+      ]);
 
       // Act
-      final result =
-          isUserOnRoute(userLocation, routePoints, thresholdMeters: 10);
+      final result = isUserOnRoute(userLocation, route, thresholdMeters: 10);
 
       // Assert
       expect(result.isOnRoute, false);
@@ -207,36 +205,39 @@ void main() {
           result.segmentIndex, anyOf(0, 1)); // Either segment could be closest
       expect(result.distance, greaterThan(10.0)); // Greater than threshold
     });
-
-    test('isUserOnRoute - empty route', () {
+    test('isUserOnRoute - minimal route', () {
+      // Note: We can't create empty GeoJSONLineString, so test with minimal valid route
       // Arrange
-      final userLocation = GeoJSONPoint([1.0, 1.0]);
-      final emptyRoute = <GeoJSONPoint>[];
+      final userLocation = GeoJSONPoint([5.0, 5.0]); // Far from route
+      final minimalRoute = GeoJSONLineString([
+        [0.0, 0.0],
+        [0.0, 0.0] // Same point twice to create minimal valid route
+      ]);
 
       // Act
-      final result = isUserOnRoute(userLocation, emptyRoute);
+      final result = isUserOnRoute(userLocation, minimalRoute);
 
       // Assert
       expect(result.isOnRoute, false);
-      expect(result.segmentIndex, -1); // Invalid segment
-      expect(result.distance, double.infinity);
+      expect(result.segmentIndex, 0); // Should find the segment
+      expect(result.distance, greaterThan(0.0));
     });
-
-    test('isUserOnRoute - single point route', () {
+    test('isUserOnRoute - minimal valid route', () {
+      // Note: We can't create GeoJSONLineString with single point, use minimal valid route
       // Arrange
       final userLocation = GeoJSONPoint([1.0, 1.0]);
-      final singlePointRoute = [
-        GeoJSONPoint([0.0, 0.0])
-      ];
+      final minimalRoute = GeoJSONLineString([
+        [0.0, 0.0],
+        [1.0, 1.0] // Two different points for valid route
+      ]);
 
       // Act
-      final result = isUserOnRoute(userLocation, singlePointRoute);
+      final result = isUserOnRoute(userLocation, minimalRoute);
 
       // Assert
-      expect(
-          result.isOnRoute, false); // Need at least 2 points to form a segment
-      expect(result.segmentIndex, -1); // Invalid segment
-      expect(result.distance, double.infinity);
+      expect(result.isOnRoute, true); // User is exactly on the route
+      expect(result.segmentIndex, 0); // First and only segment
+      expect(result.distance, closeTo(0.0, 0.001)); // User is exactly on route
     });
   });
 
@@ -601,7 +602,6 @@ void main() {
         [-180.0, 35.0], // Date line entry point
         [-122.4194, 37.7749] // San Francisco
       ]);
-
       var routePoints = lineStringToPoints(globalRoute);
       expect(routePoints.length, 4);
 
@@ -609,7 +609,7 @@ void main() {
       var pacificPoint = GeoJSONPoint([170.0, 35.0]);
 
       // Check if point is on route (should be within threshold)
-      var checkResult = isUserOnRoute(pacificPoint, routePoints,
+      var checkResult = isUserOnRoute(pacificPoint, globalRoute,
           thresholdMeters: 1000000); // 1000km threshold
 
       // The haversine distance calculation should handle the date line
