@@ -17,8 +17,8 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
   late AnimationController _animController;
   @override
   void initState() {
-    _animController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    _animController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
     super.initState();
   }
 
