@@ -1,6 +1,5 @@
 import 'dart:isolate';
 import 'package:geojson_vi/geojson_vi.dart';
-import 'package:map_manager_mapbox/utils/geojson_extensions.dart';
 import 'package:map_manager_mapbox/utils/route_utils.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
 import '../location_update.dart';
@@ -57,11 +56,9 @@ void routeCalculationIsolate(RouteCalculationMessage message) {
         errorMessage: "Route too short for processing",
       ));
       return;
-    }
-
-    // Check if user is on route
+    } // Check if user is on route
     final checkResult =
-        isUserOnRoute(userLocation, geoRoute.points, thresholdMeters: 50.0);
+        isUserOnRoute(userLocation, geoRoute, thresholdMeters: 50.0);
     RouteUpdateResult routeUpdateResult;
     bool isOnRoute = checkResult.isOnRoute;
 
