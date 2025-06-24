@@ -140,11 +140,12 @@ class TrackingModeClass implements ModeHandler {
         final routeData = calculateUpdatedRoute(
             animation.value.toGeojsonPoint(),
             routeGeoFeature.geometry as GeoJSONLineString);
-
         if (routeData != null && routeData.updatedRoute != null) {
           routeGeoFeature.geometry = routeData.updatedRoute;
+          if (routeData.routeChanged) {
+            _updateMapVisualization(addMissingLayers: true);
+          }
         }
-        _updateMapVisualization(addMissingLayers: true);
       }
 
       animation.addListener(listener);
