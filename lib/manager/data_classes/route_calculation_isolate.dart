@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'package:geojson_vi/geojson_vi.dart';
+import 'package:map_manager_mapbox/utils/geojson_extensions.dart';
 import 'package:map_manager_mapbox/utils/route_utils.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
 import '../location_update.dart';
@@ -19,12 +20,12 @@ class RouteCalculationMessage {
 
 /// Result from the route calculation isolate
 class RouteCalculationResult {
-  final Map<String, dynamic>? routeData;
+  final RouteCalculationData routeData;
   final bool success;
   final String? errorMessage;
 
   RouteCalculationResult({
-    this.routeData,
+    required this.routeData,
     required this.success,
     this.errorMessage,
   });
@@ -42,16 +43,16 @@ void routeCalculationIsolate(RouteCalculationMessage message) {
     // Extra safeguard - ensure we have at least 2 coordinates for the LineString
     if (message.routeCoordinates.length < 2) {
       message.sendPort.send(RouteCalculationResult(
+        routeData: RouteCalculationData.error(),
         success: false,
         errorMessage: "Route has fewer than 2 points",
       ));
       return;
     }
 
-    // Convert LineString to list of points for processing
-    final routePoints = lineStringToPoints(geoRoute);
-    if (routePoints.length < 2) {
+    if (geoRoute.coordinates.length < 2) {
       message.sendPort.send(RouteCalculationResult(
+        routeData: RouteCalculationData.error(),
         success: false,
         errorMessage: "Route too short for processing",
       ));
@@ -60,61 +61,44 @@ void routeCalculationIsolate(RouteCalculationMessage message) {
 
     // Check if user is on route
     final checkResult =
-        isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+        isUserOnRoute(userLocation, geoRoute.points, thresholdMeters: 50.0);
     RouteUpdateResult routeUpdateResult;
     bool isOnRoute = checkResult.isOnRoute;
 
     if (isOnRoute) {
       // User is on route - shrink
       routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
-          checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
+          checkResult.segmentIndex, checkResult.projectionRatio, geoRoute);
     } else {
       // User is off route - grow
-      routeUpdateResult = growRoute(userLocation, routePoints);
+      routeUpdateResult = growRoute(userLocation, geoRoute);
     }
 
     // Only return data if there's actually a change
     if (routeUpdateResult.hasChanged) {
-      final updatedGeoJsonLineString =
-          pointsToLineString(routeUpdateResult.updatedRoute);
-      final data = {
-        "type": "Feature",
-        "geometry": {
-          "type": "LineString",
-          "coordinates": updatedGeoJsonLineString.coordinates
-        },
-        "properties": {}
-      };
-
-      final resultData = {
-        "data": data,
-        "isOnRoute": isOnRoute,
-        "distanceFromRoute": checkResult.distance,
-        "routeChanged": true,
-        "changedSegmentIndex": routeUpdateResult.changedSegmentIndex,
-        "originalSegment": routeUpdateResult.originalSegment,
-        "newSegment": routeUpdateResult.newSegment,
-        "isGrowing": routeUpdateResult.isGrowing,
-        "isNearlyComplete": routeUpdateResult.isNearlyComplete,
-        "updatedRoutePoints": routeUpdateResult.updatedRoute
-      };
-
       message.sendPort.send(RouteCalculationResult(
         success: true,
-        routeData: resultData,
+        routeData: RouteCalculationData.routeChanged(
+          isOnRoute: isOnRoute,
+          distanceFromRoute: checkResult.distance,
+          changedSegmentIndex: routeUpdateResult.changedSegmentIndex,
+          originalSegment: routeUpdateResult.originalSegment,
+          newSegment: routeUpdateResult.newSegment,
+          isGrowing: routeUpdateResult.isGrowing,
+          isNearlyComplete: routeUpdateResult.isNearlyComplete,
+          updatedRoute: routeUpdateResult.updatedRoute,
+        ),
       ));
     } else {
       message.sendPort.send(RouteCalculationResult(
         success: true,
-        routeData: {
-          "routeChanged": false,
-          "isOnRoute": isOnRoute,
-          "distanceFromRoute": checkResult.distance
-        },
+        routeData: RouteCalculationData.unchanged(
+            isOnRoute: isOnRoute, distanceFromRoute: checkResult.distance),
       ));
     }
   } catch (e) {
     message.sendPort.send(RouteCalculationResult(
+      routeData: RouteCalculationData.error(),
       success: false,
       errorMessage: e.toString(),
     ));
