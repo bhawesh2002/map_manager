@@ -83,6 +83,79 @@ class RouteCheckResult {
   });
 }
 
+class RouteCalculationData {
+  // Required fields
+  final bool routeChanged;
+  final bool isOnRoute;
+  final double distanceFromRoute;
+
+  // Fields for when route has changed
+  final int? changedSegmentIndex;
+  final List<GeoJSONPoint>? originalSegment;
+  final List<GeoJSONPoint>? newSegment;
+  final bool isGrowing;
+  final bool isNearlyComplete;
+  final GeoJSONLineString? updatedRoute;
+
+  // Private constructor for field initialization
+  const RouteCalculationData._({
+    required this.routeChanged,
+    required this.isOnRoute,
+    required this.distanceFromRoute,
+    this.changedSegmentIndex,
+    this.originalSegment,
+    this.newSegment,
+    this.isGrowing = false,
+    this.isNearlyComplete = false,
+    this.updatedRoute,
+  });
+
+  // Named constructor for route changes
+  factory RouteCalculationData.routeChanged({
+    required bool isOnRoute,
+    required double distanceFromRoute,
+    required int changedSegmentIndex,
+    required List<GeoJSONPoint> originalSegment,
+    required List<GeoJSONPoint> newSegment,
+    required bool isGrowing,
+    required bool isNearlyComplete,
+    required GeoJSONLineString updatedRoute,
+  }) {
+    return RouteCalculationData._(
+      routeChanged: true,
+      isOnRoute: isOnRoute,
+      distanceFromRoute: distanceFromRoute,
+      changedSegmentIndex: changedSegmentIndex,
+      originalSegment: originalSegment,
+      newSegment: newSegment,
+      isGrowing: isGrowing,
+      isNearlyComplete: isNearlyComplete,
+      updatedRoute: updatedRoute,
+    );
+  }
+
+  // Named constructor for when the route hasn't changed
+  factory RouteCalculationData.unchanged({
+    required bool isOnRoute,
+    required double distanceFromRoute,
+  }) {
+    return RouteCalculationData._(
+      routeChanged: false,
+      isOnRoute: isOnRoute,
+      distanceFromRoute: distanceFromRoute,
+    );
+  }
+
+  // Named constructor for errors or invalid states
+  factory RouteCalculationData.error() {
+    return const RouteCalculationData._(
+      routeChanged: false,
+      isOnRoute: false,
+      distanceFromRoute: double.infinity,
+    );
+  }
+}
+
 /// Converts a GeoJSONLineString to a List of GeoJSONPoints.
 ///
 /// Useful for converting a GeoJSON LineString to a list of points for projection.
@@ -463,4 +536,45 @@ RouteUpdateResult growRoute(
     newSegment: newSegment,
     isGrowing: true,
   );
+}
+
+/// Calculates an updated route based on the user's current location
+/// Returns a map with update information or null if no update is needed
+RouteCalculationData? calculateUpdatedRoute(
+    GeoJSONPoint point, GeoJSONLineString route) {
+  try {
+    final userLocation = point;
+    final routePoints = lineStringToPoints(route);
+    final checkResult =
+        isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+
+    RouteUpdateResult routeUpdateResult;
+
+    if (checkResult.isOnRoute) {
+      routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
+          checkResult.segmentIndex, checkResult.projectionRatio, route);
+    } else {
+      routeUpdateResult = growRoute(userLocation, route);
+    }
+
+    // Only return data if there's actually a change
+    if (routeUpdateResult.hasChanged) {
+      return RouteCalculationData.routeChanged(
+        isOnRoute: checkResult.isOnRoute,
+        distanceFromRoute: checkResult.distance,
+        changedSegmentIndex: routeUpdateResult.changedSegmentIndex,
+        originalSegment: routeUpdateResult.originalSegment,
+        newSegment: routeUpdateResult.newSegment,
+        isGrowing: routeUpdateResult.isGrowing,
+        isNearlyComplete: routeUpdateResult.isNearlyComplete,
+        updatedRoute: routeUpdateResult.updatedRoute,
+      );
+    } else {
+      return RouteCalculationData.unchanged(
+          isOnRoute: checkResult.isOnRoute,
+          distanceFromRoute: checkResult.distance);
+    }
+  } catch (e) {
+    rethrow;
+  }
 }
