@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:geojson_vi/geojson_vi.dart';
+import 'geojson_extensions.dart';
 
 /// Represents the result of a route update operation (shrink or grow).
 ///
@@ -280,7 +281,7 @@ RouteCheckResult isUserOnRoute(
 /// - [projectedPoint]: The user's projected point on the route
 /// - [segmentIndex]: The index of the segment where the projection was found
 /// - [projectionRatio]: How far along the segment the projection is (0.0 to 1.0)
-/// - [routePoints]: The original route points
+/// - [route]: The original route as a GeoJSONLineString
 ///
 /// Returns a [RouteUpdateResult] containing the updated route and information about
 /// which segment changed, to support animated transitions.
@@ -299,7 +300,11 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     );
   }
 
-  GeoJSONLineString newRoute = GeoJSONLineString([]);
+  // Convert route to points list for easier manipulation
+  List<GeoJSONPoint> routePoints = route.points;
+
+  // Use List<GeoJSONPoint> for internal route construction
+  List<GeoJSONPoint> newRoutePoints = [];
   bool hasChanged = true;
   List<GeoJSONPoint> originalSegment = [];
   List<GeoJSONPoint> newSegment = [];
@@ -319,102 +324,89 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
       );
     }
 
-    originalSegment = [
-      GeoJSONPoint(route.coordinates[0]),
-      GeoJSONPoint(route.coordinates[1])
-    ];
+    originalSegment = [routePoints[0], routePoints[1]];
   }
 
   // Case 1: Projection at start of segment (within small threshold)
   if (projectionRatio <= 0.01 && segmentIndex > 0) {
     // Include the start point of the segment
-    newRoute.coordinates.add(route.coordinates[segmentIndex]);
-    newRoute.coordinates.addAll(route.coordinates.sublist(segmentIndex + 1));
+    newRoutePoints.add(routePoints[segmentIndex]);
+    newRoutePoints.addAll(routePoints.sublist(segmentIndex + 1));
 
     // Capture the original and new segments
     originalSegment = [
-      GeoJSONPoint(route.coordinates[segmentIndex - 1]),
-      GeoJSONPoint(route.coordinates[segmentIndex])
+      routePoints[segmentIndex - 1],
+      routePoints[segmentIndex]
     ];
-    newSegment = [
-      GeoJSONPoint(route.coordinates[segmentIndex]),
-      GeoJSONPoint(route.coordinates[segmentIndex + 1])
-    ];
+    newSegment = [routePoints[segmentIndex], routePoints[segmentIndex + 1]];
   }
   // Case 2: Projection at end of segment (within small threshold)
   else if (projectionRatio >= 0.99) {
     // Skip this segment entirely, start from the next point
 
     // Handle the last segment specially
-    if (segmentIndex == route.coordinates.length - 2) {
+    if (segmentIndex == routePoints.length - 2) {
       // If we're at the end of the last segment, return the destination point
       // duplicated to ensure at least 2 points for a valid LineString
-      newRoute.coordinates.add(route.coordinates.last);
-      newRoute.coordinates
-          .add(route.coordinates.last); // Duplicate the last point
+      newRoutePoints.add(routePoints.last);
+      newRoutePoints.add(routePoints.last); // Duplicate the last point
 
       // Mark as nearly complete
       isNearlyComplete = true;
 
       // Capture original and new segments
-      originalSegment = [
-        GeoJSONPoint(route.coordinates[segmentIndex]),
-        GeoJSONPoint(route.coordinates.last)
-      ];
-      newSegment = [
-        GeoJSONPoint(route.coordinates.last),
-        GeoJSONPoint(route.coordinates.last)
-      ];
+      originalSegment = [routePoints[segmentIndex], routePoints.last];
+      newSegment = [routePoints.last, routePoints.last];
     } else {
       // Normal case - start from the end point of the current segment
-      newRoute.coordinates.addAll(route.coordinates.sublist(segmentIndex + 1));
+      newRoutePoints.addAll(routePoints.sublist(segmentIndex + 1));
 
       // Capture original and new segments
       originalSegment = [
-        GeoJSONPoint(route.coordinates[segmentIndex]),
-        GeoJSONPoint(route.coordinates[segmentIndex + 1])
+        routePoints[segmentIndex],
+        routePoints[segmentIndex + 1]
       ];
       newSegment = [
-        GeoJSONPoint(route.coordinates[segmentIndex + 1]),
-        GeoJSONPoint(route.coordinates[segmentIndex + 2])
+        routePoints[segmentIndex + 1],
+        routePoints[segmentIndex + 2]
       ];
     }
   }
   // Case 3: Projection in middle of segment
   else {
     // Create new segment from projected point to end of current segment
-    newRoute.coordinates.add(projectedPoint.coordinates);
-    newRoute.coordinates.addAll(route.coordinates.sublist(segmentIndex + 1));
+    newRoutePoints.add(projectedPoint);
+    newRoutePoints.addAll(routePoints.sublist(segmentIndex + 1));
 
     // Capture original and new segments
     originalSegment = [
-      GeoJSONPoint(route.coordinates[segmentIndex]),
-      GeoJSONPoint(route.coordinates[segmentIndex + 1])
+      routePoints[segmentIndex],
+      routePoints[segmentIndex + 1]
     ];
-    newSegment = [
-      projectedPoint,
-      GeoJSONPoint(route.coordinates[segmentIndex + 1])
-    ];
+    newSegment = [projectedPoint, routePoints[segmentIndex + 1]];
   }
 
   // Ensure we always have at least 2 points for a valid GeoJSON LineString
-  if (newRoute.coordinates.length < 2 && newRoute.coordinates.isNotEmpty) {
+  if (newRoutePoints.length < 2 && newRoutePoints.isNotEmpty) {
     // If we have only one point, duplicate it to create a valid LineString
-    newRoute.coordinates.add(newRoute.coordinates.first);
+    newRoutePoints.add(newRoutePoints.first);
     isNearlyComplete = true;
-  } else if (newRoute.coordinates.isEmpty && route.coordinates.isNotEmpty) {
+  } else if (newRoutePoints.isEmpty && routePoints.isNotEmpty) {
     // If somehow we ended up with an empty route, use the last point of the original route
-    newRoute.coordinates.add(route.coordinates.last);
-    newRoute.coordinates
-        .add(route.coordinates.last); // Duplicate it to ensure 2 points
+    newRoutePoints.add(routePoints.last);
+    newRoutePoints.add(routePoints.last); // Duplicate it to ensure 2 points
     isNearlyComplete = true;
   }
+
   // Check if duplicate endpoints (a sign we're nearly complete)
-  if (newRoute.coordinates.length == 2 &&
-      newRoute.coordinates[0][0] == newRoute.coordinates[1][0] &&
-      newRoute.coordinates[0][1] == newRoute.coordinates[1][1]) {
+  if (newRoutePoints.length == 2 &&
+      newRoutePoints[0].coordinates[0] == newRoutePoints[1].coordinates[0] &&
+      newRoutePoints[0].coordinates[1] == newRoutePoints[1].coordinates[1]) {
     isNearlyComplete = true;
   }
+
+  // Convert points back to GeoJSONLineString for return
+  GeoJSONLineString newRoute = newRoutePoints.toLineStringOrThrow();
 
   return RouteUpdateResult(
     updatedRoute: newRoute,
@@ -434,27 +426,34 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
 ///
 /// Parameters:
 /// - [userLocation]: The user's current location
-/// - [routePoints]: The original route points
+/// - [route]: The original route as a GeoJSONLineString
 ///
 /// Returns a [RouteUpdateResult] containing the updated route and information about
 /// the new segment added, to support animated transitions.
 RouteUpdateResult growRoute(
     GeoJSONPoint userLocation, GeoJSONLineString route) {
-  GeoJSONLineString newRoute = GeoJSONLineString([userLocation.coordinates]);
-  newRoute.coordinates.addAll(route.coordinates);
+  // Use List<GeoJSONPoint> for internal route construction
+  List<GeoJSONPoint> newRoutePoints = [userLocation];
+
+  // Convert route to points and add them
+  List<GeoJSONPoint> routePoints = route.points;
+  newRoutePoints.addAll(routePoints);
 
   // There's no original segment when growing (we're adding a new one)
   List<GeoJSONPoint> originalSegment = [];
 
   // The new segment is from user location to first route point
   List<GeoJSONPoint> newSegment = [];
-  if (route.coordinates.isNotEmpty) {
-    newSegment = [userLocation, GeoJSONPoint(route.coordinates.first)];
+  if (routePoints.isNotEmpty) {
+    newSegment = [userLocation, routePoints.first];
   } else {
     // If the route was empty, duplicate the user location
-    newRoute.coordinates.add(userLocation.coordinates);
+    newRoutePoints.add(userLocation);
     newSegment = [userLocation, userLocation];
   }
+
+  // Convert points back to GeoJSONLineString for return
+  GeoJSONLineString newRoute = newRoutePoints.toLineStringOrThrow();
 
   return RouteUpdateResult(
     updatedRoute: newRoute,
