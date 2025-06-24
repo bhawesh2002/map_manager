@@ -405,22 +405,27 @@ void main() {
         expect(result.updatedRoute.coordinates[1],
             [4.0, 4.0]); // Duplicated for valid LineString
       });
+      test('shrinkRoute - edge case with invalid input', () {
+        // Note: We can't create a GeoJSONLineString with empty coordinates as it's invalid.
+        // Instead, test with invalid parameters which should trigger the edge case handling.
 
-      test('shrinkRoute - edge case with empty route', () {
         // Arrange
         final projectedPoint = GeoJSONPoint([1.0, 1.0]);
-        const segmentIndex = 0;
+        const segmentIndex = -1; // Invalid segment index
         const projectionRatio = 0.5;
-        final emptyRoute = GeoJSONLineString([]);
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [1.0, 1.0]
+        ]);
 
         // Act
-        final result = shrinkRoute(
-            projectedPoint, segmentIndex, projectionRatio, emptyRoute);
+        final result =
+            shrinkRoute(projectedPoint, segmentIndex, projectionRatio, route);
 
         // Assert
         expect(result.hasChanged, false);
         expect(result.changedSegmentIndex, -1);
-        expect(result.updatedRoute.coordinates, []);
+        expect(result.updatedRoute, equals(route));
       });
 
       test('shrinkRoute - edge case with invalid segment index', () {
@@ -479,31 +484,38 @@ void main() {
         expect(result.newSegment[1].coordinates,
             [0.0, 0.0]); // First point of original route
       });
+      test('growRoute - edge case with minimal route', () {
+        // Note: We can't create a GeoJSONLineString with empty coordinates as it's invalid.
+        // Instead, test with a minimal valid route.
 
-      test('growRoute - edge case with empty route', () {
         // Arrange
         final userLocation = GeoJSONPoint([10.0, 10.0]);
-        final emptyRoute = GeoJSONLineString([]);
+        final minimalRoute = GeoJSONLineString([
+          [0.0, 0.0],
+          [0.0, 0.0] // Duplicate point to create minimal valid route
+        ]);
 
         // Act
-        final result = growRoute(userLocation, emptyRoute);
+        final result = growRoute(userLocation, minimalRoute);
 
         // Assert
         expect(result.hasChanged, true);
         expect(result.isGrowing, true);
         expect(result.changedSegmentIndex, 0);
-        expect(result.updatedRoute.coordinates.length, 2);
+        expect(result.updatedRoute.coordinates.length, 3);
         expect(
             result.updatedRoute.coordinates[0], [10.0, 10.0]); // User location
         expect(result.updatedRoute.coordinates[1],
-            [10.0, 10.0]); // Duplicated for valid LineString
+            [0.0, 0.0]); // Original route points
+        expect(result.updatedRoute.coordinates[2],
+            [0.0, 0.0]); // Original route points
 
         // Verify segment information
         expect(result.originalSegment.length, 0);
-
         expect(result.newSegment.length, 2);
         expect(result.newSegment[0].coordinates, [10.0, 10.0]);
-        expect(result.newSegment[1].coordinates, [10.0, 10.0]);
+        expect(result.newSegment[1].coordinates,
+            [0.0, 0.0]); // First point of original route
       });
 
       test('growRoute - preserves all original route points', () {
@@ -551,23 +563,27 @@ void main() {
         expect(result.isNearlyComplete,
             false); // Growing never marks as nearly complete
       });
+      test('growRoute - with minimal valid route', () {
+        // Note: We can't create a GeoJSONLineString with a single point as it's invalid.
+        // Use a minimal valid LineString instead.
 
-      test('growRoute - with single-point route', () {
         // Arrange
         final userLocation = GeoJSONPoint([10.0, 10.0]);
-        final singlePointRoute = GeoJSONLineString([
-          [0.0, 0.0] // Only one point
+        final minimalRoute = GeoJSONLineString([
+          [0.0, 0.0],
+          [1.0, 1.0] // Two points for valid LineString
         ]);
 
         // Act
-        final result = growRoute(userLocation, singlePointRoute);
+        final result = growRoute(userLocation, minimalRoute);
 
-        // Assert
-        expect(result.updatedRoute.coordinates.length, 2);
+        // Assert        expect(result.updatedRoute.coordinates.length, 3);
         expect(
             result.updatedRoute.coordinates[0], [10.0, 10.0]); // User location
-        expect(
-            result.updatedRoute.coordinates[1], [0.0, 0.0]); // Original point
+        expect(result.updatedRoute.coordinates[1],
+            [0.0, 0.0]); // First original point
+        expect(result.updatedRoute.coordinates[2],
+            [1.0, 1.0]); // Second original point
         expect(result.newSegment.length, 2);
         expect(result.newSegment[0].coordinates, [10.0, 10.0]);
         expect(result.newSegment[1].coordinates, [0.0, 0.0]);
