@@ -277,13 +277,16 @@ double haversineDistance(GeoJSONPoint point1, GeoJSONPoint point2) {
 ///
 /// Parameters:
 /// - [userLocation]: The user's current location
-/// - [routePoints]: List of points defining the route
+/// - [route]: GeoJSONLineString defining the route
 /// - [thresholdMeters]: Distance threshold in meters (default: 15.0)
 ///
 /// Returns a [RouteCheckResult] with the outcome and detailed information.
 RouteCheckResult isUserOnRoute(
-    GeoJSONPoint userLocation, List<GeoJSONPoint> routePoints,
+    GeoJSONPoint userLocation, GeoJSONLineString route,
     {double thresholdMeters = 15.0}) {
+  // Convert route to points for processing
+  List<GeoJSONPoint> routePoints = route.points;
+
   // Handle edge cases
   if (routePoints.length < 2) {
     return RouteCheckResult(
@@ -544,9 +547,8 @@ RouteCalculationData? calculateUpdatedRoute(
     GeoJSONPoint point, GeoJSONLineString route) {
   try {
     final userLocation = point;
-    final routePoints = lineStringToPoints(route);
     final checkResult =
-        isUserOnRoute(userLocation, routePoints, thresholdMeters: 50.0);
+        isUserOnRoute(userLocation, route, thresholdMeters: 50.0);
 
     RouteUpdateResult routeUpdateResult;
 
