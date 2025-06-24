@@ -246,22 +246,22 @@ void main() {
       final projectedPoint = GeoJSONPoint([1.0, 1.0]);
       const segmentIndex = 0;
       const projectionRatio = 0.5; // Middle of segment
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
+      final routePoints = GeoJSONLineString([
+        [0.0, 0.0],
+        [2.0, 2.0],
+        [4.0, 4.0]
+      ]);
 
       // Act
       final result = shrinkRoute(
           projectedPoint, segmentIndex, projectionRatio, routePoints);
 
       // Assert
-      expect(result.updatedRoute.length, 3);
-      expect(result.updatedRoute[0].coordinates, [1.0, 1.0]); // Projected point
-      expect(result.updatedRoute[1].coordinates,
+      expect(result.updatedRoute.coordinates.length, 3);
+      expect(result.updatedRoute.coordinates[0], [1.0, 1.0]); // Projected point
+      expect(result.updatedRoute.coordinates[1],
           [2.0, 2.0]); // Original second point
-      expect(result.updatedRoute[2].coordinates,
+      expect(result.updatedRoute.coordinates[2],
           [4.0, 4.0]); // Original third point
     });
     test('shrinkRoute - start of segment projection', () {
@@ -269,250 +269,313 @@ void main() {
       final projectedPoint = GeoJSONPoint([0.0, 0.0]);
       const segmentIndex = 0;
       const projectionRatio = 0.0; // Start of segment
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
+      final routePoints = GeoJSONLineString([
+        [0.0, 0.0],
+        [2.0, 2.0],
+        [4.0, 4.0]
+      ]);
 
       // Act
       final result = shrinkRoute(
           projectedPoint, segmentIndex, projectionRatio, routePoints);
 
       // Assert
-      expect(result.updatedRoute.length, 3);
-      expect(result.updatedRoute[0].coordinates, [0.0, 0.0]);
-      expect(result.updatedRoute[1].coordinates, [2.0, 2.0]);
-      expect(result.updatedRoute[2].coordinates, [4.0, 4.0]);
+      expect(result.updatedRoute.coordinates.length, 3);
+      expect(result.updatedRoute.coordinates[0], [0.0, 0.0]);
+      expect(result.updatedRoute.coordinates[1], [2.0, 2.0]);
+      expect(result.updatedRoute.coordinates[2], [4.0, 4.0]);
     });
     test('shrinkRoute - end of segment projection', () {
       // Arrange
       final projectedPoint = GeoJSONPoint([2.0, 2.0]);
       const segmentIndex = 0;
       const projectionRatio = 1.0; // End of segment
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
+      final routePoints = GeoJSONLineString([
+        [0.0, 0.0],
+        [2.0, 2.0],
+        [4.0, 4.0]
+      ]);
 
       // Act
       final result = shrinkRoute(
           projectedPoint, segmentIndex, projectionRatio, routePoints);
 
       // Assert
-      expect(result.updatedRoute.length, 2);
-      expect(result.updatedRoute[0].coordinates, [2.0, 2.0]);
-      expect(result.updatedRoute[1].coordinates, [4.0, 4.0]);
-    });
-    test('shrinkRoute - last segment projection', () {
-      // Arrange
-      final projectedPoint = GeoJSONPoint([3.0, 3.0]);
-      const segmentIndex = 1; // Last segment
-      const projectionRatio = 0.5; // Middle of last segment
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
-
-      // Act
-      final result = shrinkRoute(
-          projectedPoint, segmentIndex, projectionRatio, routePoints);
-
-      // Assert
-      expect(result.updatedRoute.length, 2);
-      expect(result.updatedRoute[0].coordinates, [3.0, 3.0]); // Projected point
-      expect(result.updatedRoute[1].coordinates, [4.0, 4.0]); // End point
-    });
-    test('shrinkRoute - invalid segment index', () {
-      // Arrange
-      final projectedPoint = GeoJSONPoint([0.0, 0.0]);
-      const segmentIndex = -1; // Invalid
-      const projectionRatio = 0.5;
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
-
-      // Act
-      final result = shrinkRoute(
-          projectedPoint, segmentIndex, projectionRatio, routePoints);
-
-      // Assert
-      expect(result.updatedRoute.length, 3); // Should return original route
-      expect(result.updatedRoute[0].coordinates, [0.0, 0.0]);
-      expect(result.updatedRoute[1].coordinates, [2.0, 2.0]);
-      expect(result.updatedRoute[2].coordinates, [4.0, 4.0]);
-    });
-    test('growRoute - adds user location to start', () {
-      // Arrange
-      final userLocation = GeoJSONPoint([10.0, 10.0]);
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0])
-      ];
-
-      // Act
-      final result = growRoute(userLocation, routePoints);
-
-      // Assert
-      expect(result.updatedRoute.length, 3);
-      expect(result.updatedRoute[0].coordinates,
-          [10.0, 10.0]); // User location at start
-      expect(result.updatedRoute[1].coordinates, [0.0, 0.0]);
-      expect(result.updatedRoute[2].coordinates, [2.0, 2.0]);
-      expect(result.hasChanged, true);
-      expect(result.changedSegmentIndex, 0);
-      expect(result.originalSegment, isEmpty);
-      expect(result.newSegment.length, 2);
-      expect(result.newSegment[0].coordinates, [10.0, 10.0]);
-      expect(result.newSegment[1].coordinates, [0.0, 0.0]);
-      expect(result.isGrowing, true);
-      expect(result.isNearlyComplete, false);
-    });
-    test('growRoute - with empty route', () {
-      // Arrange
-      final userLocation = GeoJSONPoint([10.0, 10.0]);
-      final emptyRoute = <GeoJSONPoint>[];
-
-      // Act
-      final result = growRoute(userLocation, emptyRoute);
-
-      // Assert
-      expect(result.updatedRoute.length, 2); // Now includes duplicate point
-      expect(result.updatedRoute[0].coordinates, [10.0, 10.0]); // User location
-      expect(result.updatedRoute[1].coordinates, [10.0, 10.0]); // Duplicated
-      expect(result.hasChanged, true);
-      expect(result.changedSegmentIndex, 0);
-      expect(result.originalSegment, isEmpty);
-      expect(result.newSegment.length, 2);
-      expect(result.newSegment[0].coordinates, [10.0, 10.0]);
-      expect(result.newSegment[1].coordinates, [10.0, 10.0]);
-      expect(result.isGrowing, true);
-      expect(result.isNearlyComplete, false);
+      expect(result.updatedRoute.coordinates.length, 2);
+      expect(result.updatedRoute.coordinates[0], [2.0, 2.0]);
+      expect(result.updatedRoute.coordinates[1], [4.0, 4.0]);
     });
   });
+
+  group('GeoJSONLineString API Tests', () {
+    group('shrinkRoute with GeoJSONLineString API', () {
+      test('shrinkRoute - middle segment projection with GeoJSONLineString',
+          () {
+        // Arrange
+        final projectedPoint = GeoJSONPoint([1.0, 1.0]);
+        const segmentIndex = 0;
+        const projectionRatio = 0.5; // Middle of segment
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0],
+          [4.0, 4.0]
+        ]);
+
+        // Act
+        final result =
+            shrinkRoute(projectedPoint, segmentIndex, projectionRatio, route);
+
+        // Assert
+        expect(result.hasChanged, true);
+        expect(result.isGrowing, false);
+        expect(result.changedSegmentIndex, 0);
+        expect(result.updatedRoute.coordinates.length, 3);
+        expect(
+            result.updatedRoute.coordinates[0], [1.0, 1.0]); // Projected point
+        expect(result.updatedRoute.coordinates[1], [2.0, 2.0]);
+        expect(result.updatedRoute.coordinates[2], [4.0, 4.0]);
+
+        // Verify segment information
+        expect(result.originalSegment.length, 2);
+        expect(result.originalSegment[0].coordinates, [0.0, 0.0]);
+        expect(result.originalSegment[1].coordinates, [2.0, 2.0]);
+
+        expect(result.newSegment.length, 2);
+        expect(result.newSegment[0].coordinates, [1.0, 1.0]);
+        expect(result.newSegment[1].coordinates, [2.0, 2.0]);
+      });
+
+      test('shrinkRoute - end of route projection with GeoJSONLineString', () {
+        // Arrange
+        final projectedPoint = GeoJSONPoint([3.0, 3.0]);
+        const segmentIndex = 1; // Last segment
+        const projectionRatio = 0.5; // Middle of last segment
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0],
+          [4.0, 4.0]
+        ]);
+
+        // Act
+        final result =
+            shrinkRoute(projectedPoint, segmentIndex, projectionRatio, route);
+
+        // Assert
+        expect(result.hasChanged, true);
+        expect(result.isGrowing, false);
+        expect(result.changedSegmentIndex, 1);
+        expect(result.updatedRoute.coordinates.length, 2);
+        expect(
+            result.updatedRoute.coordinates[0], [3.0, 3.0]); // Projected point
+        expect(result.updatedRoute.coordinates[1], [4.0, 4.0]); // Last point
+
+        // Verify segment information
+        expect(result.originalSegment.length, 2);
+        expect(result.originalSegment[0].coordinates, [2.0, 2.0]);
+        expect(result.originalSegment[1].coordinates, [4.0, 4.0]);
+
+        expect(result.newSegment.length, 2);
+        expect(result.newSegment[0].coordinates, [3.0, 3.0]);
+        expect(result.newSegment[1].coordinates, [4.0, 4.0]);
+      });
+
+      test(
+          'shrinkRoute - end of final segment with GeoJSONLineString (nearly complete)',
+          () {
+        // Arrange
+        final projectedPoint = GeoJSONPoint([4.0, 4.0]); // At the very end
+        const segmentIndex = 1; // Last segment
+        const projectionRatio = 1.0; // End of segment
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0],
+          [4.0, 4.0]
+        ]);
+
+        // Act
+        final result =
+            shrinkRoute(projectedPoint, segmentIndex, projectionRatio, route);
+
+        // Assert
+        expect(result.hasChanged, true);
+        expect(result.isGrowing, false);
+        expect(result.isNearlyComplete, true);
+        expect(result.updatedRoute.coordinates.length, 2);
+        expect(result.updatedRoute.coordinates[0], [4.0, 4.0]); // Last point
+        expect(result.updatedRoute.coordinates[1],
+            [4.0, 4.0]); // Duplicated for valid LineString
+      });
+
+      test('shrinkRoute - edge case with empty route', () {
+        // Arrange
+        final projectedPoint = GeoJSONPoint([1.0, 1.0]);
+        const segmentIndex = 0;
+        const projectionRatio = 0.5;
+        final emptyRoute = GeoJSONLineString([]);
+
+        // Act
+        final result = shrinkRoute(
+            projectedPoint, segmentIndex, projectionRatio, emptyRoute);
+
+        // Assert
+        expect(result.hasChanged, false);
+        expect(result.changedSegmentIndex, -1);
+        expect(result.updatedRoute.coordinates, []);
+      });
+
+      test('shrinkRoute - edge case with invalid segment index', () {
+        // Arrange
+        final projectedPoint = GeoJSONPoint([1.0, 1.0]);
+        const segmentIndex = 5; // Invalid index
+        const projectionRatio = 0.5;
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0],
+          [4.0, 4.0]
+        ]);
+
+        // Act
+        final result =
+            shrinkRoute(projectedPoint, segmentIndex, projectionRatio, route);
+
+        // Assert
+        expect(result.hasChanged, false);
+        expect(result.changedSegmentIndex, -1);
+        // Should return original route unchanged
+        expect(result.updatedRoute.coordinates, route.coordinates);
+      });
+    });
+
+    group('growRoute with GeoJSONLineString API', () {
+      test('growRoute - add user location to start of route', () {
+        // Arrange
+        final userLocation = GeoJSONPoint([10.0, 10.0]);
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0],
+          [4.0, 4.0]
+        ]);
+
+        // Act
+        final result = growRoute(userLocation, route);
+
+        // Assert
+        expect(result.hasChanged, true);
+        expect(result.isGrowing, true);
+        expect(result.changedSegmentIndex, 0);
+        expect(result.updatedRoute.coordinates.length, 4);
+        expect(
+            result.updatedRoute.coordinates[0], [10.0, 10.0]); // User location
+        expect(result.updatedRoute.coordinates[1], [0.0, 0.0]);
+        expect(result.updatedRoute.coordinates[2], [2.0, 2.0]);
+        expect(result.updatedRoute.coordinates[3], [4.0, 4.0]);
+
+        // Verify segment information
+        expect(result.originalSegment.length,
+            0); // No original segment when growing
+
+        expect(result.newSegment.length, 2);
+        expect(result.newSegment[0].coordinates, [10.0, 10.0]); // User location
+        expect(result.newSegment[1].coordinates,
+            [0.0, 0.0]); // First point of original route
+      });
+
+      test('growRoute - edge case with empty route', () {
+        // Arrange
+        final userLocation = GeoJSONPoint([10.0, 10.0]);
+        final emptyRoute = GeoJSONLineString([]);
+
+        // Act
+        final result = growRoute(userLocation, emptyRoute);
+
+        // Assert
+        expect(result.hasChanged, true);
+        expect(result.isGrowing, true);
+        expect(result.changedSegmentIndex, 0);
+        expect(result.updatedRoute.coordinates.length, 2);
+        expect(
+            result.updatedRoute.coordinates[0], [10.0, 10.0]); // User location
+        expect(result.updatedRoute.coordinates[1],
+            [10.0, 10.0]); // Duplicated for valid LineString
+
+        // Verify segment information
+        expect(result.originalSegment.length, 0);
+
+        expect(result.newSegment.length, 2);
+        expect(result.newSegment[0].coordinates, [10.0, 10.0]);
+        expect(result.newSegment[1].coordinates, [10.0, 10.0]);
+      });
+
+      test('growRoute - preserves all original route points', () {
+        // Arrange
+        final userLocation = GeoJSONPoint([10.0, 10.0]);
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0],
+          [4.0, 4.0],
+          [6.0, 6.0],
+          [8.0, 8.0]
+        ]);
+
+        // Act
+        final result = growRoute(userLocation, route);
+
+        // Assert
+        expect(result.updatedRoute.coordinates.length,
+            route.coordinates.length + 1);
+        // Check that all original points are preserved in order
+        for (int i = 0; i < route.coordinates.length; i++) {
+          expect(result.updatedRoute.coordinates[i + 1], route.coordinates[i]);
+        }
+      });
+
+      test('growRoute - maintains proper segment information', () {
+        // Arrange
+        final userLocation =
+            GeoJSONPoint([5.0, -5.0]); // Off to the side of the route
+        final route = GeoJSONLineString([
+          [0.0, 0.0],
+          [2.0, 2.0]
+        ]);
+
+        // Act
+        final result = growRoute(userLocation, route);
+
+        // Assert
+        expect(result.newSegment.length, 2);
+        expect(result.newSegment[0].coordinates, [5.0, -5.0]); // User location
+        expect(result.newSegment[1].coordinates,
+            [0.0, 0.0]); // First point of original route
+        expect(
+            result.changedSegmentIndex, 0); // First segment is always changed
+        expect(result.isNearlyComplete,
+            false); // Growing never marks as nearly complete
+      });
+
+      test('growRoute - with single-point route', () {
+        // Arrange
+        final userLocation = GeoJSONPoint([10.0, 10.0]);
+        final singlePointRoute = GeoJSONLineString([
+          [0.0, 0.0] // Only one point
+        ]);
+
+        // Act
+        final result = growRoute(userLocation, singlePointRoute);
+
+        // Assert
+        expect(result.updatedRoute.coordinates.length, 2);
+        expect(
+            result.updatedRoute.coordinates[0], [10.0, 10.0]); // User location
+        expect(
+            result.updatedRoute.coordinates[1], [0.0, 0.0]); // Original point
+        expect(result.newSegment.length, 2);
+        expect(result.newSegment[0].coordinates, [10.0, 10.0]);
+        expect(result.newSegment[1].coordinates, [0.0, 0.0]);
+      });
+    });
+  });
+
   group('Integration Tests', () {
-    test('Route shrinking and growing workflow', () {
-      // Setup a route with multiple segments
-      final route = GeoJSONLineString([
-        [0.0, 0.0], // Start point
-        [10.0, 10.0], // Mid point 1
-        [20.0, 20.0], // Mid point 2
-        [30.0, 30.0] // End point
-      ]);
-
-      // Convert to points
-      final routePoints = lineStringToPoints(route);
-      expect(routePoints.length, 4);
-      // Simulate user at point near first segment
-      final userLocation =
-          GeoJSONPoint([5.0, 4.0]); // Near but not on the first segment
-
-      // Check if user is on route
-      final checkResult =
-          isUserOnRoute(userLocation, routePoints, thresholdMeters: 150000);
-
-      if (checkResult.isOnRoute) {
-        // User is on route, shrink the route
-        final shrinkResult = shrinkRoute(checkResult.projectedPoint,
-            checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
-
-        // With the test data, we know it should shrink but might still include all points
-        // depending on where the projection lands, so just verify it's valid
-        expect(shrinkResult.updatedRoute.length, greaterThanOrEqualTo(1));
-        expect(shrinkResult.hasChanged, true);
-        expect(shrinkResult.changedSegmentIndex, checkResult.segmentIndex);
-
-        // Conversion back to LineString works
-        final shrunkLineString = pointsToLineString(shrinkResult.updatedRoute);
-        expect(shrunkLineString.coordinates.length,
-            shrinkResult.updatedRoute.length);
-      } else {
-        // User is off route, grow the route
-        final growResult = growRoute(userLocation, routePoints);
-
-        // Verify the grown route has the user location at the start
-        expect(growResult.updatedRoute.length, equals(routePoints.length + 1));
-        expect(
-            growResult.updatedRoute[0].coordinates, userLocation.coordinates);
-        expect(growResult.hasChanged, true);
-        expect(growResult.isGrowing, true);
-
-        // Conversion back to LineString works
-        final grownLineString = pointsToLineString(growResult.updatedRoute);
-        expect(
-            grownLineString.coordinates.length, growResult.updatedRoute.length);
-      }
-    });
-
-    test('Successive route shrinking', () {
-      // Setup a longer route with multiple segments
-      final route = GeoJSONLineString([
-        [0.0, 0.0], // Start
-        [10.0, 10.0], // Point 1
-        [20.0, 20.0], // Point 2
-        [30.0, 30.0], // Point 3
-        [40.0, 40.0], // Point 4
-        [50.0, 50.0] // End
-      ]);
-
-      var routePoints = lineStringToPoints(route);
-      expect(routePoints.length, 6);
-
-      // First user location - near first segment
-      var userLocation1 = GeoJSONPoint([5.0, 5.0]);
-      var checkResult1 =
-          isUserOnRoute(userLocation1, routePoints, thresholdMeters: 100);
-      expect(checkResult1.isOnRoute, true);
-      expect(checkResult1.segmentIndex, 0);
-
-      // First shrink
-      var shrinkResult1 = shrinkRoute(checkResult1.projectedPoint,
-          checkResult1.segmentIndex, checkResult1.projectionRatio, routePoints);
-      expect(shrinkResult1.hasChanged, true);
-      expect(shrinkResult1.changedSegmentIndex, 0);
-
-      // Second user location - now near third segment of shrunk route
-      var userLocation2 = GeoJSONPoint([25.0, 25.0]);
-      var checkResult2 = isUserOnRoute(
-          userLocation2, shrinkResult1.updatedRoute,
-          thresholdMeters: 100);
-      expect(checkResult2.isOnRoute, true);
-
-      // Second shrink
-      var shrinkResult2 = shrinkRoute(
-          checkResult2.projectedPoint,
-          checkResult2.segmentIndex,
-          checkResult2.projectionRatio,
-          shrinkResult1.updatedRoute);
-
-      // Verify route has shrunk properly
-      expect(shrinkResult2.updatedRoute.length,
-          lessThan(shrinkResult1.updatedRoute.length));
-      expect(shrinkResult2.hasChanged, true);
-
-      // Last check - user at end of route
-      var userLocation3 = GeoJSONPoint([50.0, 50.0]);
-      var checkResult3 = isUserOnRoute(
-          userLocation3, shrinkResult2.updatedRoute,
-          thresholdMeters: 100);
-      expect(checkResult3.isOnRoute, true);
-
-      // Final shrink
-      var shrinkResult3 = shrinkRoute(
-          checkResult3.projectedPoint,
-          checkResult3.segmentIndex,
-          checkResult3.projectionRatio,
-          shrinkResult2.updatedRoute);
-
-      // Should be at or near the end
-      expect(shrinkResult3.updatedRoute.length, lessThanOrEqualTo(2));
-      expect(shrinkResult3.isNearlyComplete, true);
-    });
-
     test('Global scale route with dateline crossing', () {
       // Create a route that crosses international date line
       // Tokyo to San Francisco
@@ -536,266 +599,6 @@ void main() {
       // The haversine distance calculation should handle the date line
       // This is a difficult case for projection but should give reasonable results
       expect(checkResult.segmentIndex, anyOf(0, 1));
-    });
-  });
-  group('Edge Case Tests', () {
-    test('Route with extremely close points', () {
-      // Create a route with some points that are extremely close to each other
-      final route = GeoJSONLineString([
-        [0.0, 0.0],
-        [0.0000001, 0.0000001], // Almost the same point
-        [10.0, 10.0]
-      ]);
-
-      var routePoints = lineStringToPoints(route);
-      expect(routePoints.length, 3);
-
-      // User location near the first segment but not exactly at the start
-      var userLocation = GeoJSONPoint([0.1, 0.1]); // Slightly off the start
-      var checkResult = isUserOnRoute(userLocation, routePoints);
-
-      expect(checkResult.isOnRoute, true);
-      expect(checkResult.segmentIndex,
-          anyOf(0, 1)); // Could be either of the very close segments
-
-      // Shrink route from this position
-      var shrinkResult = shrinkRoute(checkResult.projectedPoint,
-          checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
-
-      expect(shrinkResult.hasChanged, true);
-      expect(shrinkResult.updatedRoute.length, greaterThanOrEqualTo(2));
-    });
-
-    test('Route with many segments for performance', () {
-      // Create a route with many segments to check performance
-      // For example, a detailed city route might have hundreds of points
-      List<List<double>> coordinates = [];
-
-      // Generate 100 points along a line
-      for (int i = 0; i < 100; i++) {
-        coordinates.add([i.toDouble(), i.toDouble()]);
-      }
-
-      final longRoute = GeoJSONLineString(coordinates);
-      var routePoints = lineStringToPoints(longRoute);
-      expect(routePoints.length, 100);
-
-      // User somewhere in the middle
-      var userLocation = GeoJSONPoint([50.5, 50.0]);
-
-      // Use a larger threshold for this test since we're testing performance, not precision
-      var checkResult =
-          isUserOnRoute(userLocation, routePoints, thresholdMeters: 100000);
-
-      expect(checkResult.isOnRoute, true);
-      expect(checkResult.segmentIndex,
-          closeTo(50, 1)); // Should find a segment near point 50
-
-      // Shrink the route and check performance
-      var shrinkResult = shrinkRoute(checkResult.projectedPoint,
-          checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
-
-      expect(shrinkResult.hasChanged, true);
-      expect(shrinkResult.updatedRoute.length,
-          lessThan(routePoints.length)); // Route should be shorter
-      expect(shrinkResult.changedSegmentIndex, checkResult.segmentIndex);
-    });
-  });
-
-  group('RouteUpdateResult Tests', () {
-    test('shrinkRoute returns valid RouteUpdateResult when shrinking route',
-        () {
-      // Arrange
-      final projectedPoint = GeoJSONPoint([1.0, 1.0]);
-      const segmentIndex = 0;
-      const projectionRatio = 0.5; // Middle of segment
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
-
-      // Act
-      final result = shrinkRoute(
-          projectedPoint, segmentIndex, projectionRatio, routePoints);
-
-      // Assert
-      expect(result, isA<RouteUpdateResult>());
-      expect(result.hasChanged, true);
-      expect(result.isGrowing, false);
-      expect(result.changedSegmentIndex, 0);
-      expect(result.originalSegment.length, 2);
-      expect(result.originalSegment[0].coordinates, [0.0, 0.0]);
-      expect(result.originalSegment[1].coordinates, [2.0, 2.0]);
-      expect(result.newSegment.length, 2);
-      expect(result.newSegment[0].coordinates, [1.0, 1.0]);
-      expect(result.newSegment[1].coordinates, [2.0, 2.0]);
-      expect(result.updatedRoute.length, 3);
-      expect(result.isNearlyComplete, false);
-    });
-    test('shrinkRoute sets isNearlyComplete when close to destination', () {
-      // Arrange
-      final projectedPoint = GeoJSONPoint([3.9, 3.9]); // Almost at the end
-      const segmentIndex = 1; // Last segment
-      const projectionRatio =
-          0.99; // Very close to end (must be >= 0.99 per implementation)
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
-
-      // Act
-      final result = shrinkRoute(
-          projectedPoint, segmentIndex, projectionRatio, routePoints);
-
-      // Assert
-      expect(result.hasChanged, true);
-      expect(result.isGrowing, false);
-      expect(result.changedSegmentIndex, 1);
-      expect(result.updatedRoute.length, 2);
-      // Should be nearly complete since we're at the end of the last segment
-      expect(result.isNearlyComplete, true);
-    });
-
-    test('growRoute returns valid RouteUpdateResult when growing route', () {
-      // Arrange
-      final userLocation = GeoJSONPoint([10.0, 10.0]);
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0])
-      ];
-
-      // Act
-      final result = growRoute(userLocation, routePoints);
-
-      // Assert
-      expect(result, isA<RouteUpdateResult>());
-      expect(result.hasChanged, true);
-      expect(result.isGrowing, true);
-      expect(result.changedSegmentIndex, 0);
-      expect(
-          result.originalSegment.length, 0); // No original segment when growing
-      expect(result.newSegment.length, 2);
-      expect(result.newSegment[0].coordinates, [10.0, 10.0]);
-      expect(result.newSegment[1].coordinates, [0.0, 0.0]);
-      expect(result.updatedRoute.length, 3);
-      expect(result.isNearlyComplete, false);
-    });
-
-    test('shrinkRoute handles edge cases properly', () {
-      // Arrange - invalid segment index
-      final projectedPoint = GeoJSONPoint([0.0, 0.0]);
-      const segmentIndex = -1; // Invalid
-      const projectionRatio = 0.5;
-      final routePoints = [
-        GeoJSONPoint([0.0, 0.0]),
-        GeoJSONPoint([2.0, 2.0]),
-        GeoJSONPoint([4.0, 4.0])
-      ];
-
-      // Act
-      final result = shrinkRoute(
-          projectedPoint, segmentIndex, projectionRatio, routePoints);
-
-      // Assert
-      expect(result.hasChanged, false); // Should not change the route
-      expect(result.changedSegmentIndex, -1); // Invalid segment
-      expect(result.updatedRoute.length, 3); // Original route returned
-    });
-  });
-
-  group('Integration Tests - RouteUpdateResult', () {
-    test('Progressive route shrinking with segment tracking', () {
-      // Setup a route with multiple segments
-      final route = GeoJSONLineString([
-        [0.0, 0.0], // Start
-        [10.0, 10.0], // Point 1
-        [20.0, 20.0], // Point 2
-        [30.0, 30.0], // Point 3
-        [40.0, 40.0], // End
-      ]);
-
-      var routePoints = lineStringToPoints(route);
-      expect(routePoints.length, 5);
-
-      // First user location - on first segment
-      var userLocation1 = GeoJSONPoint([5.0, 5.0]);
-      var checkResult1 =
-          isUserOnRoute(userLocation1, routePoints, thresholdMeters: 100);
-      expect(checkResult1.isOnRoute, true);
-      expect(checkResult1.segmentIndex, 0);
-
-      // First shrink
-      var shrinkResult1 = shrinkRoute(checkResult1.projectedPoint,
-          checkResult1.segmentIndex, checkResult1.projectionRatio, routePoints);
-
-      expect(shrinkResult1.hasChanged, true);
-      expect(shrinkResult1.changedSegmentIndex, 0);
-      expect(shrinkResult1.isGrowing, false);
-
-      // Second user location - on second segment of shrunk route
-      var userLocation2 = GeoJSONPoint([15.0, 15.0]);
-      var checkResult2 = isUserOnRoute(
-          userLocation2, shrinkResult1.updatedRoute,
-          thresholdMeters: 100);
-      expect(checkResult2.isOnRoute, true);
-
-      // Second shrink
-      var shrinkResult2 = shrinkRoute(
-          checkResult2.projectedPoint,
-          checkResult2.segmentIndex,
-          checkResult2.projectionRatio,
-          shrinkResult1.updatedRoute);
-
-      expect(shrinkResult2.hasChanged, true);
-      expect(shrinkResult2.changedSegmentIndex, checkResult2.segmentIndex);
-      expect(shrinkResult2.isGrowing, false);
-
-      // Third user location - off route, need to grow
-      var userLocation3 = GeoJSONPoint([25.0, 15.0]); // Off to the side
-      var checkResult3 = isUserOnRoute(
-          userLocation3, shrinkResult2.updatedRoute,
-          thresholdMeters: 5);
-      expect(checkResult3.isOnRoute, false);
-
-      // Grow route
-      var growResult = growRoute(userLocation3, shrinkResult2.updatedRoute);
-
-      expect(growResult.hasChanged, true);
-      expect(growResult.changedSegmentIndex, 0); // First segment changed
-      expect(growResult.isGrowing, true);
-      expect(growResult.newSegment.length, 2);
-      expect(growResult.newSegment[0].coordinates, userLocation3.coordinates);
-    });
-
-    test('Route completion detection', () {
-      // Setup a route with just two segments
-      final route = GeoJSONLineString([
-        [0.0, 0.0], // Start
-        [10.0, 10.0], // Middle
-        [20.0, 20.0], // End
-      ]);
-
-      var routePoints = lineStringToPoints(route);
-
-      // User at the very end of the route
-      var userLocation = GeoJSONPoint([20.0, 20.0]);
-      var checkResult =
-          isUserOnRoute(userLocation, routePoints, thresholdMeters: 100);
-      expect(checkResult.isOnRoute, true);
-      expect(checkResult.segmentIndex, 1); // Second segment
-      expect(checkResult.projectionRatio, 1.0); // End of segment
-
-      // Shrink to the end
-      var result = shrinkRoute(checkResult.projectedPoint,
-          checkResult.segmentIndex, checkResult.projectionRatio, routePoints);
-
-      expect(result.isNearlyComplete, true);
-      expect(result.updatedRoute.length, 2);
-      // The two points should be identical (duplicated end point)
-      expect(result.updatedRoute[0].coordinates,
-          result.updatedRoute[1].coordinates);
     });
   });
 }
