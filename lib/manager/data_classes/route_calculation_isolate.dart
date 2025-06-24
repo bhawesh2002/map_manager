@@ -56,41 +56,24 @@ void routeCalculationIsolate(RouteCalculationMessage message) {
         errorMessage: "Route too short for processing",
       ));
       return;
-    } // Check if user is on route
-    final checkResult =
-        isUserOnRoute(userLocation, geoRoute, thresholdMeters: 50.0);
-    RouteUpdateResult routeUpdateResult;
-    bool isOnRoute = checkResult.isOnRoute;
-
-    if (isOnRoute) {
-      // User is on route - shrink
-      routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
-          checkResult.segmentIndex, checkResult.projectionRatio, geoRoute);
-    } else {
-      // User is off route - grow
-      routeUpdateResult = growRoute(userLocation, geoRoute);
     }
 
-    // Only return data if there's actually a change
-    if (routeUpdateResult.hasChanged) {
+    // Use the centralized calculation function
+    final calculationResult = calculateUpdatedRoute(userLocation, geoRoute);
+
+    if (calculationResult != null) {
       message.sendPort.send(RouteCalculationResult(
         success: true,
-        routeData: RouteCalculationData.routeChanged(
-          isOnRoute: isOnRoute,
-          distanceFromRoute: checkResult.distance,
-          changedSegmentIndex: routeUpdateResult.changedSegmentIndex,
-          originalSegment: routeUpdateResult.originalSegment,
-          newSegment: routeUpdateResult.newSegment,
-          isGrowing: routeUpdateResult.isGrowing,
-          isNearlyComplete: routeUpdateResult.isNearlyComplete,
-          updatedRoute: routeUpdateResult.updatedRoute,
-        ),
+        routeData: calculationResult,
       ));
     } else {
+      // This shouldn't happen with the current implementation, but handle it just in case
       message.sendPort.send(RouteCalculationResult(
-        success: true,
         routeData: RouteCalculationData.unchanged(
-            isOnRoute: isOnRoute, distanceFromRoute: checkResult.distance),
+          isOnRoute: false,
+          distanceFromRoute: double.infinity,
+        ),
+        success: true,
       ));
     }
   } catch (e) {
