@@ -206,22 +206,15 @@ class TrackingModeClass implements ModeHandler {
 
       // Handle the result
       if (result.success) {
-        if (result.success) {
-          _logger.info("Route calculation completed successfully in isolate");
-          return result.routeData;
-        } else {
-          _logger.info("No route changes needed");
-          return null;
-        }
+        _logger.info("Route calculation completed successfully in isolate");
+        return result.routeData;
       } else {
         _logger.warning(
             "Error in route calculation isolate: ${result.errorMessage}");
-        return null;
+        throw Exception(result.errorMessage);
       }
     } catch (e) {
       _logger.severe("Error running route calculation isolate: $e");
-
-      // Fallback to the original implementation if isolate fails
       _logger.info("Falling back to main thread calculation");
       return calculateUpdatedRoute(update.location.toGeojsonPoint(),
           routeGeoFeature.geometry as GeoJSONLineString);
