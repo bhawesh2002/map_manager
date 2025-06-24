@@ -107,7 +107,7 @@ class TrackingModeClass implements ModeHandler {
     await _queueLock.synchronized(() async {
       try {
         final current = _queue.removeAt(0);
-        _logger.info("Processing queue item ${current.location.toJson()}");
+        // _logger.info("Processing queue item ${current.location.toJson()}");
         await _animateLocationUpdate(current);
         lastKnownLoc = current;
       } catch (e) {
@@ -156,8 +156,8 @@ class TrackingModeClass implements ModeHandler {
         animation.removeListener(listener);
       }
 
-      _logger
-          .info("_animateLocationUpdate: Location Update animation completed");
+      // _logger
+      //     .info("_animateLocationUpdate: Location Update animation completed");
     } catch (e) {
       _logger
           .warning("_animateLocationUpdate: Error animating person marker: $e");
