@@ -142,7 +142,10 @@ class TrackingModeClass implements ModeHandler {
       );
       void listener() async {
         personGeoFeature!.geometry = update.location.toGeojsonPoint();
-        final routeData = await _calculateRouteInIsolate(update);
+        final routeData = routeGeoLineString!.coordinates.length > 40
+            ? await _calculateRouteInIsolate(update)
+            : calculateUpdatedRoute(update.location.toGeojsonPoint(),
+                routeGeoFeature.geometry as GeoJSONLineString);
         if (routeData != null) {
           routeGeoFeature.geometry = routeData.updatedRoute;
         }
