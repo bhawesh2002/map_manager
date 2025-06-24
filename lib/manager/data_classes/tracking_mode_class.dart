@@ -31,17 +31,13 @@ class TrackingModeClass implements ModeHandler {
   GeoJSONPoint? get personGeoPoint => personGeoFeature != null
       ? GeoJSONPoint.fromMap(personGeoFeature!.geometry!.toMap())
       : null;
-  GeoJSONLineString? get routeGeoLineString =>
-      GeoJSONLineString.fromMap(routeGeoFeature.geometry!.toMap());
+  GeoJSONLineString? get routeGeoLineString => routeGeoFeature.geometry != null
+      ? GeoJSONLineString.fromMap(routeGeoFeature.geometry!.toMap())
+      : null;
 
   // Combined feature collection
-  Map<String, dynamic> get featureCollection => {
-        "type": "FeatureCollection",
-        "features": [
-          if (personGeoFeature != null) personGeoFeature!,
-          routeGeoFeature
-        ]
-      };
+  GeoJSONFeatureCollection get featureCollection => GeoJSONFeatureCollection(
+      [if (personGeoFeature != null) personGeoFeature!, routeGeoFeature]);
 
   //Variables for live location tracking
   late GeoJSONLineString _plannedRoute;
@@ -141,12 +137,13 @@ class TrackingModeClass implements ModeHandler {
         CurvedAnimation(parent: _controller, curve: Curves.ease),
       );
       void listener() async {
-        personGeoFeature!.geometry = update.location.toGeojsonPoint();
-        final routeData = routeGeoLineString!.coordinates.length > 40
-            ? await _calculateRouteInIsolate(update)
-            : calculateUpdatedRoute(update.location.toGeojsonPoint(),
-                routeGeoFeature.geometry as GeoJSONLineString);
-        if (routeData != null) {
+        personGeoFeature?.geometry = update.location.toGeojsonPoint();
+
+        final routeData = calculateUpdatedRoute(
+            update.location.toGeojsonPoint(),
+            routeGeoFeature.geometry as GeoJSONLineString);
+
+        if (routeData != null && routeData.updatedRoute != null) {
           routeGeoFeature.geometry = routeData.updatedRoute;
         }
         await _updateMapVisualization(addMissingLayers: true);
@@ -160,9 +157,11 @@ class TrackingModeClass implements ModeHandler {
         animation.removeListener(listener);
       }
 
-      _logger.info("Person marker animation completed");
+      _logger
+          .info("_animateLocationUpdate: Location Update animation completed");
     } catch (e) {
-      _logger.warning("Error animating person marker: $e");
+      _logger
+          .warning("_animateLocationUpdate: Error animating person marker: $e");
       personGeoFeature!.geometry = update.location.toGeojsonPoint();
       final routeData = calculateUpdatedRoute(update.location.toGeojsonPoint(),
           routeGeoFeature.geometry as GeoJSONLineString);
@@ -295,10 +294,9 @@ class TrackingModeClass implements ModeHandler {
       await _mapUpdateLock.synchronized(() async {
         if (addMissingLayers) {
           final personLayerExists =
-              await _map.style.getLayer(_personLayerId) != null;
+              await _map.style.styleLayerExists(_personLayerId);
           final routeLayerExists =
-              await _map.style.getLayer(_routeLayerId) != null;
-
+              await _map.style.styleLayerExists(_routeLayerId);
           if (!routeLayerExists) {
             await _addRouteLayer(
                 geojson:
@@ -312,11 +310,12 @@ class TrackingModeClass implements ModeHandler {
         await _map.style.setStyleSourceProperty(
           _featureCollectionSourceId,
           'data',
-          featureCollection,
+          featureCollection.toMap(),
         );
       });
     } catch (e) {
-      _logger.severe("Error updating map visualization: $e");
+      _logger.severe(
+          "_updateMapVisualization: Error updating map visualization: $e");
     }
   }
 
@@ -327,9 +326,15 @@ class TrackingModeClass implements ModeHandler {
 
     try {
       // Clean up the feature collection source and layers
-      await _map.style.removeStyleLayer(_routeLayerId);
-      await _map.style.removeStyleLayer(_personLayerId);
-      await _map.style.removeStyleSource(_featureCollectionSourceId);
+      if (await _map.style.styleLayerExists(_routeLayerId)) {
+        await _map.style.removeStyleLayer(_routeLayerId);
+      }
+      if (await _map.style.styleLayerExists(_personLayerId)) {
+        await _map.style.removeStyleLayer(_personLayerId);
+      }
+      if (await _map.style.styleSourceExists(_featureCollectionSourceId)) {
+        await _map.style.removeStyleSource(_featureCollectionSourceId);
+      }
       _logger.info("Removed feature collection source and layers");
     } catch (e) {
       _logger.warning("Error removing feature collection layers/source: $e");
