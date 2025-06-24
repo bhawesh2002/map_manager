@@ -71,7 +71,6 @@ class TrackingModeClass implements ModeHandler {
     await map.style.addSource(
         GeoJsonSource(id: _featureCollectionSourceId, lineMetrics: true));
     await cls._addRouteLayer(geojson: mode.geojson, waypoints: mode.waypoints);
-
     return cls;
   }
 
@@ -136,9 +135,8 @@ class TrackingModeClass implements ModeHandler {
       final animation = tween.animate(
         CurvedAnimation(parent: _controller, curve: Curves.ease),
       );
-      void listener() async {
+      void listener() {
         personGeoFeature?.geometry = update.location.toGeojsonPoint();
-
         final routeData = calculateUpdatedRoute(
             update.location.toGeojsonPoint(),
             routeGeoFeature.geometry as GeoJSONLineString);
@@ -146,7 +144,7 @@ class TrackingModeClass implements ModeHandler {
         if (routeData != null && routeData.updatedRoute != null) {
           routeGeoFeature.geometry = routeData.updatedRoute;
         }
-        await _updateMapVisualization(addMissingLayers: true);
+        _updateMapVisualization(addMissingLayers: true);
       }
 
       animation.addListener(listener);
@@ -270,6 +268,11 @@ class TrackingModeClass implements ModeHandler {
 
   Future<void> _addPersonLayer(List<double> point) async {
     personGeoFeature = GeoJSONFeature(GeoJSONPoint(point));
+    if (personGeoFeature!.properties != null) {
+      personGeoFeature!.properties!['type'] = 'person';
+    } else {
+      personGeoFeature!.properties = {'type': 'person'};
+    }
     final circleLayer = CircleLayer(
         id: _personLayerId,
         sourceId: _featureCollectionSourceId,
@@ -283,6 +286,7 @@ class TrackingModeClass implements ModeHandler {
           ["get", "type"],
           "person"
         ]);
+
     await _map.style.addLayer(circleLayer);
     await _updateMapVisualization();
   }
@@ -291,28 +295,26 @@ class TrackingModeClass implements ModeHandler {
   /// This updates both the person marker and route in a single operation
   Future<void> _updateMapVisualization({bool addMissingLayers = false}) async {
     try {
-      await _mapUpdateLock.synchronized(() async {
-        if (addMissingLayers) {
-          final personLayerExists =
-              await _map.style.styleLayerExists(_personLayerId);
-          final routeLayerExists =
-              await _map.style.styleLayerExists(_routeLayerId);
-          if (!routeLayerExists) {
-            await _addRouteLayer(
-                geojson:
-                    GeoJSONFeature(routeTraversed.toGeojsonLineStr()).toMap());
-          }
-          if (personGeoFeature == null || !personLayerExists) {
-            await _addPersonLayer(
-                lastKnownLoc!.location.toGeojsonPoint().coordinates);
-          }
+      if (addMissingLayers) {
+        final personLayerExists =
+            await _map.style.styleLayerExists(_personLayerId);
+        final routeLayerExists =
+            await _map.style.styleLayerExists(_routeLayerId);
+        if (!routeLayerExists) {
+          await _addRouteLayer(
+              geojson:
+                  GeoJSONFeature(routeTraversed.toGeojsonLineStr()).toMap());
         }
-        await _map.style.setStyleSourceProperty(
-          _featureCollectionSourceId,
-          'data',
-          featureCollection.toMap(),
-        );
-      });
+        if (!personLayerExists) {
+          await _addPersonLayer(
+              lastKnownLoc!.location.toGeojsonPoint().coordinates);
+        }
+      }
+      await _map.style.setStyleSourceProperty(
+        _featureCollectionSourceId,
+        'data',
+        featureCollection.toMap(),
+      );
     } catch (e) {
       _logger.severe(
           "_updateMapVisualization: Error updating map visualization: $e");
