@@ -409,11 +409,10 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
         .add(route.coordinates.last); // Duplicate it to ensure 2 points
     isNearlyComplete = true;
   }
-
   // Check if duplicate endpoints (a sign we're nearly complete)
   if (newRoute.coordinates.length == 2 &&
-      newRoute.coordinates[0] == newRoute.coordinates[0] &&
-      newRoute.coordinates[1] == newRoute.coordinates[1]) {
+      newRoute.coordinates[0][0] == newRoute.coordinates[1][0] &&
+      newRoute.coordinates[0][1] == newRoute.coordinates[1][1]) {
     isNearlyComplete = true;
   }
 
