@@ -107,9 +107,9 @@ class TrackingModeClass implements ModeHandler {
     await _queueLock.synchronized(() async {
       try {
         final current = _queue.removeAt(0);
-        lastKnownLoc = current;
         _logger.info("Processing queue item ${current.location.toJson()}");
         await _animateLocationUpdate(current);
+        lastKnownLoc = current;
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
       } finally {
@@ -136,9 +136,9 @@ class TrackingModeClass implements ModeHandler {
         CurvedAnimation(parent: _controller, curve: Curves.ease),
       );
       void listener() {
-        personGeoFeature?.geometry = update.location.toGeojsonPoint();
+        personGeoFeature?.geometry = animation.value.toGeojsonPoint();
         final routeData = calculateUpdatedRoute(
-            update.location.toGeojsonPoint(),
+            animation.value.toGeojsonPoint(),
             routeGeoFeature.geometry as GeoJSONLineString);
 
         if (routeData != null && routeData.updatedRoute != null) {
