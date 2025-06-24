@@ -56,6 +56,8 @@ class TrackingModeClass implements ModeHandler {
 
   final Logger _logger = Logger('RideTrackingModeClass');
 
+  bool _layersAdded = false;
+
   void setAnimController(AnimationController animController) {
     if (!_controllerSet) {
       _controller = animController;
@@ -107,7 +109,7 @@ class TrackingModeClass implements ModeHandler {
     await _queueLock.synchronized(() async {
       try {
         final current = _queue.removeAt(0);
-        // _logger.info("Processing queue item ${current.location.toJson()}");
+        _logger.info("Processing queue item ${current.location.toJson()}");
         await _animateLocationUpdate(current);
         lastKnownLoc = current;
       } catch (e) {
@@ -143,7 +145,7 @@ class TrackingModeClass implements ModeHandler {
         if (routeData != null && routeData.updatedRoute != null) {
           routeGeoFeature.geometry = routeData.updatedRoute;
           if (routeData.routeChanged) {
-            _updateMapVisualization(addMissingLayers: true);
+            _updateMapVisualization();
           }
         }
       }
@@ -167,7 +169,7 @@ class TrackingModeClass implements ModeHandler {
       if (routeData != null) {
         routeGeoFeature.geometry = routeData.updatedRoute;
       }
-      await _updateMapVisualization(addMissingLayers: true);
+      await _updateMapVisualization();
     }
   }
 
@@ -294,22 +296,16 @@ class TrackingModeClass implements ModeHandler {
 
   /// Updates the map visualization with the combined feature collection
   /// This updates both the person marker and route in a single operation
-  Future<void> _updateMapVisualization({bool addMissingLayers = false}) async {
+  Future<void> _updateMapVisualization() async {
     try {
-      if (addMissingLayers) {
+      if (!_layersAdded) {
         final personLayerExists =
             await _map.style.styleLayerExists(_personLayerId);
-        final routeLayerExists =
-            await _map.style.styleLayerExists(_routeLayerId);
-        if (!routeLayerExists) {
-          await _addRouteLayer(
-              geojson:
-                  GeoJSONFeature(routeTraversed.toGeojsonLineStr()).toMap());
-        }
         if (!personLayerExists) {
           await _addPersonLayer(
               lastKnownLoc!.location.toGeojsonPoint().coordinates);
         }
+        _layersAdded = true;
       }
       await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId,
