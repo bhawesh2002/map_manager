@@ -94,7 +94,7 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     if (_mapManager == null) return;
 
     // Create a test route
-    final route = LineString(coordinates: routePositionList.sublist(0, 20));
+    final route = LineString(coordinates: routePositionList);
 
     // Initialize simulator with the route
     _simulator = LocationSimulator(
