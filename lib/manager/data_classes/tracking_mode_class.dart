@@ -43,6 +43,7 @@ class TrackingModeClass implements ModeHandler {
   LocationUpdate? lastKnownLoc;
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
+  bool _isProcessing = false;
 
   //Variable holding the route traversed
   LineString _routeTraversed = LineString(coordinates: []);
@@ -75,43 +76,54 @@ class TrackingModeClass implements ModeHandler {
     _locNotifier = personLoc;
     _locNotifier!.addListener(_addToUpdateQueue);
     _logger.info("Tracking Ride Route");
-
-    // Start the queue processing loop - this will self-perpetuate as long as items are in the queue
-    _processQueue();
   }
 
   // This method handles the location updates from the ValueNotifier
-  void _addToUpdateQueue() {
+  void _addToUpdateQueue() async {
     final update = _locNotifier?.value;
     if (update == null) return;
+    if (!_layersAdded) {
+      await _addPersonLayer(update.location.toGeojsonPoint().coordinates);
+      _layersAdded = true;
+    }
     _queue.add(update);
     _logger.info("Adding location update to queue at ${_queue.length}");
     _routeTraversed = LineString(coordinates: [
       ...routeTraversed.coordinates,
       update.location.coordinates
     ]);
-    // No longer calling _processQueue here as it's started once in startTracking
+
+    // Start processing if not already processing
+    if (!_isProcessing) {
+      _processQueue();
+    }
   }
 
   void _processQueue() async {
-    bool noItems = true;
-    while (noItems) {
-      noItems = _queue.isEmpty;
-      if (!noItems) break;
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
+    if (_isProcessing) return; // Prevent multiple processing loops
+
+    _isProcessing = true;
+    _logger.info("_processQueue: Entered, queue length: ${_queue.length}");
+
     try {
       while (_queue.isNotEmpty) {
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
+        final startTime = DateTime.now();
         _isAnimating = false;
         await _animateLocationUpdate(current);
+        final endTime = DateTime.now();
+        final duration = endTime.difference(startTime).inMilliseconds;
+        _logger.info("_processQueue: Animation took ${duration}ms");
         lastKnownLoc = current;
+        _logger.info(
+            "_processQueue: About to process next item, queue length: ${_queue.length}");
       }
+      _logger.info("_processQueue: All items processed");
     } catch (e) {
       _logger.severe("Error processing location queue: $e");
     } finally {
-      _processQueue();
+      _isProcessing = false;
     }
   }
 
@@ -120,8 +132,15 @@ class TrackingModeClass implements ModeHandler {
   /// Creates a smooth animation using a tween and the animation controller
   Future<void> _animateLocationUpdate(LocationUpdate update) async {
     try {
-      if (_isAnimating) return;
+      _logger.info(
+          "_animateLocationUpdate: Starting animation for ${update.location.toJson()}");
+      if (_isAnimating) {
+        _logger.warning("_animateLocationUpdate: Already animating, skipping");
+        return;
+      }
       _isAnimating = true;
+      final setupStartTime = DateTime.now();
+
       final tween = PointTween(
         begin: lastKnownLoc?.location ?? update.location,
         end: update.location,
@@ -140,10 +159,27 @@ class TrackingModeClass implements ModeHandler {
       }
 
       animation.addListener(listener);
+      final setupEndTime = DateTime.now();
+      final setupDuration =
+          setupEndTime.difference(setupStartTime).inMilliseconds;
+      _logger.info("_animateLocationUpdate: Setup took ${setupDuration}ms");
 
       try {
+        final animationStartTime = DateTime.now();
         await _controller.forward(from: 0);
+        final animationEndTime = DateTime.now();
+        final animationDuration =
+            animationEndTime.difference(animationStartTime).inMilliseconds;
+        _logger.info(
+            "_animateLocationUpdate: Controller animation took ${animationDuration}ms");
+
+        final cameraStartTime = DateTime.now();
         await moveMapCamTo(_map, update.location);
+        final cameraEndTime = DateTime.now();
+        final cameraDuration =
+            cameraEndTime.difference(cameraStartTime).inMilliseconds;
+        _logger.info(
+            "_animateLocationUpdate: Camera movement took ${cameraDuration}ms");
       } finally {
         animation.removeListener(listener);
         _logger.info(
@@ -160,10 +196,11 @@ class TrackingModeClass implements ModeHandler {
   void _updateGeojson(GeoJSONPoint point) {
     final geom = routeGeoFeature.geometry as GeoJSONLineString;
     final check = isUserOnRoute(point, routeGeoLineString!);
+    personGeoFeature?.geometry = point;
+
     if (check.isOnRoute) {
-      final res = shrinkRoute(check.projectedPoint, check.segmentIndex,
-          check.projectionRatio, routeGeoLineString!);
-      personGeoFeature?.geometry = check.projectedPoint;
+      final res = shrinkRoute(point, check.segmentIndex, check.projectionRatio,
+          routeGeoLineString!);
       if (res.hasChanged) {
         geom.coordinates = res.updatedRoute.coordinates;
       }
@@ -253,21 +290,16 @@ class TrackingModeClass implements ModeHandler {
   /// Updates the map visualization with the combined feature collection
   /// This updates both the person marker and route in a single operation
   Future<void> _updateMapVisualization() async {
+    final startTime = DateTime.now();
     try {
-      if (!_layersAdded) {
-        final personLayerExists =
-            await _map.style.styleLayerExists(_personLayerId);
-        if (!personLayerExists) {
-          await _addPersonLayer(
-              lastKnownLoc!.location.toGeojsonPoint().coordinates);
-        }
-        _layersAdded = true;
-      }
       await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId,
         'data',
         featureCollection.toMap(),
       );
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime).inMilliseconds;
+      _logger.info("_updateMapVisualization: Map update took ${duration}ms");
     } catch (e) {
       _logger.severe(
           "_updateMapVisualization: Error updating map visualization: $e");
