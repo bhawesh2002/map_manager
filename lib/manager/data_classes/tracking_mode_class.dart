@@ -106,18 +106,7 @@ class TrackingModeClass implements ModeHandler {
       try {
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
-        final tween = PointTween(
-          begin: lastKnownLoc?.location ?? current.location,
-          end: current.location,
-        );
-        await Future.delayed(const Duration(milliseconds: 10), () async {
-          for (var i = 0; i < 40; i++) {
-            _updateGeojson(tween.lerp(i / 100).toGeojsonPoint());
-            _updateMapVisualization();
-          }
-        });
-        _updateGeojson(current.location.toGeojsonPoint());
-        await _updateMapVisualization();
+        await _animateLocationUpdate(current);
         lastKnownLoc = current;
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
@@ -144,7 +133,14 @@ class TrackingModeClass implements ModeHandler {
       final animation = tween.animate(
         CurvedAnimation(parent: _controller, curve: Curves.ease),
       );
-      void listener() {}
+      int frameCount = 0;
+      void listener() {
+        if (frameCount++ % 3 != 0) return;
+
+        _updateGeojson(animation.value.toGeojsonPoint());
+
+        _updateMapVisualization();
+      }
 
       await moveMapCamTo(_map, update.location);
       animation.addListener(listener);
