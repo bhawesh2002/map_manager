@@ -594,3 +594,99 @@ RouteCalculationData? calculateUpdatedRoute(
     rethrow;
   }
 }
+
+/// Calculates updated route coordinates by finding the current point's position and removing traversed segments
+///
+/// This function efficiently calculates new route coordinates by:
+/// 1. Finding where the current point projects onto the route
+/// 2. If point is close to route: Determining the projected point's position and returning coordinates from there onwards
+/// 3. If point is far from route: Adding the point to the beginning of the route to show a detour
+///
+/// This approach is much faster than recalculating the entire route structure
+/// and provides smoother animation performance.
+///
+/// Parameters:
+/// - [currentPoint]: The current location point
+/// - [routeCoordinates]: The original route coordinates
+///
+/// Returns:
+/// - [List<List<double>>?]: New route coordinates starting from the current position,
+///   or with the current point added to the beginning if it's far from the route.
+///   Returns null only if the original route is invalid (less than 2 points).
+List<List<double>>? updateRouteGeojson(
+    GeoJSONPoint currentPoint, List<List<double>> routeCoordinates) {
+  if (routeCoordinates.length < 2) return null;
+
+  // Find the best insertion point and projection
+  double minDistance = double.infinity;
+  int bestSegmentIndex = 0;
+  double bestRatio = 0.0;
+  List<double>? projectedCoords;
+
+  // Check each segment to find where the point should be projected
+  for (int i = 0; i < routeCoordinates.length - 1; i++) {
+    final segmentStart = GeoJSONPoint(routeCoordinates[i]);
+    final segmentEnd = GeoJSONPoint(routeCoordinates[i + 1]);
+
+    final projection =
+        projectPointOnSegment(currentPoint, segmentStart, segmentEnd);
+    final distance = haversineDistance(currentPoint, projection.projectedPoint);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      bestSegmentIndex = i;
+      bestRatio = projection.ratio;
+      projectedCoords = projection.projectedPoint.coordinates;
+    }
+  }
+
+  // If point is too far from route, add it to the beginning without removing others
+  if (minDistance > 50.0 || projectedCoords == null) {
+    // Point is too far from route, add current point to the start of the route
+    List<List<double>> newCoordinates = [currentPoint.coordinates];
+    newCoordinates.addAll(routeCoordinates);
+    return newCoordinates;
+  }
+
+  // Create new coordinate list
+  List<List<double>> newCoordinates = [];
+
+  // If we're at the beginning of a segment (ratio close to 0), start from that segment
+  if (bestRatio <= 0.01) {
+    // Add coordinates from the segment start onwards
+    newCoordinates.addAll(routeCoordinates.sublist(bestSegmentIndex));
+  }
+  // If we're at the end of a segment (ratio close to 1), start from next segment
+  else if (bestRatio >= 0.99) {
+    // Add coordinates from the next segment onwards
+    if (bestSegmentIndex + 1 < routeCoordinates.length) {
+      newCoordinates.addAll(routeCoordinates.sublist(bestSegmentIndex + 1));
+    } else {
+      // We're at the very end - create a minimal route with just the destination
+      newCoordinates.add(routeCoordinates.last);
+      newCoordinates.add(
+          routeCoordinates.last); // Duplicate to maintain LineString validity
+    }
+  }
+  // We're in the middle of a segment
+  else {
+    // Add the projected point as the first coordinate
+    newCoordinates.add(projectedCoords);
+    // Add remaining coordinates from the next point onwards
+    if (bestSegmentIndex + 1 < routeCoordinates.length) {
+      newCoordinates.addAll(routeCoordinates.sublist(bestSegmentIndex + 1));
+    }
+  }
+
+  // Ensure we have at least 2 coordinates for a valid LineString
+  if (newCoordinates.length < 2) {
+    if (newCoordinates.isNotEmpty) {
+      newCoordinates.add(newCoordinates.last); // Duplicate the last point
+    } else {
+      // Fallback: return null if we can't create valid coordinates
+      return null;
+    }
+  }
+
+  return newCoordinates;
+}
