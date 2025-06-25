@@ -5,7 +5,6 @@ import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-import 'package:synchronized/synchronized.dart';
 
 import '../tweens/point_tween.dart';
 
@@ -44,7 +43,6 @@ class TrackingModeClass implements ModeHandler {
   LocationUpdate? lastKnownLoc;
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
-  final _queueLock = Lock(reentrant: true);
 
   //Variable holding the route traversed
   LineString _routeTraversed = LineString(coordinates: []);
@@ -102,20 +100,19 @@ class TrackingModeClass implements ModeHandler {
       if (!noItems) break;
       await Future.delayed(const Duration(milliseconds: 50));
     }
-    await _queueLock.synchronized(() async {
-      try {
+    try {
+      while (_queue.isNotEmpty) {
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
+        _isAnimating = false;
         await _animateLocationUpdate(current);
         lastKnownLoc = current;
-      } catch (e) {
-        _logger.severe("Error processing location queue: $e");
-      } finally {
-        _isAnimating = false;
       }
-    }).then((val) {
+    } catch (e) {
+      _logger.severe("Error processing location queue: $e");
+    } finally {
       _processQueue();
-    });
+    }
   }
 
   /// Animates the person marker from its current position to the new location
@@ -131,7 +128,7 @@ class TrackingModeClass implements ModeHandler {
       );
 
       final animation = tween.animate(
-        CurvedAnimation(parent: _controller, curve: Curves.ease),
+        CurvedAnimation(parent: _controller, curve: Curves.linear),
       );
       int frameCount = 0;
       void listener() {
@@ -142,11 +139,11 @@ class TrackingModeClass implements ModeHandler {
         _updateMapVisualization();
       }
 
-      await moveMapCamTo(_map, update.location);
       animation.addListener(listener);
 
       try {
         await _controller.forward(from: 0);
+        await moveMapCamTo(_map, update.location);
       } finally {
         animation.removeListener(listener);
         _logger.info(
