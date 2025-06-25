@@ -94,11 +94,11 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     if (_mapManager == null) return;
 
     // Create a test route
-    final route = LineString(coordinates: routePositionList);
+    final route = LineString(coordinates: routePositionList.sublist(0, 20));
 
     // Initialize simulator with the route
     _simulator = LocationSimulator(
-        route: route, updateInterval: const Duration(milliseconds: 150));
+        route: route, updateInterval: const Duration(milliseconds: 250));
 
     // Set the map to tracking mode
     await _mapManager!.changeMode(MapMode.tracking(geojson: {
