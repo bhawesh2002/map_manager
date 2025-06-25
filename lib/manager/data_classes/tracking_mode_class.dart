@@ -1,15 +1,14 @@
-import 'dart:isolate';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
+import 'package:map_manager_mapbox/utils/geojson_extensions.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:synchronized/synchronized.dart';
 
 import '../tweens/point_tween.dart';
-import 'route_calculation_isolate.dart';
 
 class TrackingModeClass implements ModeHandler {
   final TrackingMode mode;
@@ -46,9 +45,8 @@ class TrackingModeClass implements ModeHandler {
   LocationUpdate? lastKnownLoc;
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
-
-  final _mapUpdateLock = Lock();
   final _queueLock = Lock(reentrant: true);
+  bool updatingMap = false;
 
   //Variable holding the route traversed
   LineString _routeTraversed = LineString(coordinates: []);
@@ -137,17 +135,13 @@ class TrackingModeClass implements ModeHandler {
       final animation = tween.animate(
         CurvedAnimation(parent: _controller, curve: Curves.ease),
       );
+      int frameCount = 0;
       void listener() {
-        personGeoFeature?.geometry = animation.value.toGeojsonPoint();
-        final routeData = calculateUpdatedRoute(
-            animation.value.toGeojsonPoint(),
-            routeGeoFeature.geometry as GeoJSONLineString);
-        if (routeData != null && routeData.updatedRoute != null) {
-          routeGeoFeature.geometry = routeData.updatedRoute;
-          if (routeData.routeChanged) {
-            _updateMapVisualization();
-          }
-        }
+        if (frameCount++ % 3 != 0) return;
+
+        _updateGeojson(animation.value.toGeojsonPoint());
+
+        _updateMapVisualization();
       }
 
       animation.addListener(listener);
@@ -156,69 +150,32 @@ class TrackingModeClass implements ModeHandler {
         await _controller.forward(from: 0);
       } finally {
         animation.removeListener(listener);
+        _logger.info(
+            "_animateLocationUpdate: Animation completed for: ${update.location.toJson()}");
       }
-
-      // _logger
-      //     .info("_animateLocationUpdate: Location Update animation completed");
     } catch (e) {
       _logger
           .warning("_animateLocationUpdate: Error animating person marker: $e");
-      personGeoFeature!.geometry = update.location.toGeojsonPoint();
-      final routeData = calculateUpdatedRoute(update.location.toGeojsonPoint(),
-          routeGeoFeature.geometry as GeoJSONLineString);
-      if (routeData != null) {
-        routeGeoFeature.geometry = routeData.updatedRoute;
-      }
+      _updateGeojson(update.location.toGeojsonPoint());
       await _updateMapVisualization();
     }
   }
 
-  /// Calculates route updates in a separate isolate to avoid blocking the main thread
-  ///
-  /// Returns a map with route update information or null if no update is needed
-  Future<RouteCalculationData?> _calculateRouteInIsolate(
-      LocationUpdate update) async {
-    try {
-      _logger.info("Starting route calculation in isolate");
+  void _updateGeojson(GeoJSONPoint point) {
+    final geom = routeGeoFeature.geometry as GeoJSONLineString;
 
-      // Create a ReceivePort for receiving the result
-      final receivePort = ReceivePort();
-
-      // Convert the planned route to GeoJSON coordinates
-      final routeCoordinates = routeGeoLineString!.coordinates;
-
-      // Create the message to send to the isolate
-      final message = RouteCalculationMessage(
-        update: update,
-        routeCoordinates: routeCoordinates,
-        sendPort: receivePort.sendPort,
-      );
-
-      // Start the isolate
-      final isolate = await Isolate.spawn(routeCalculationIsolate, message);
-
-      // Wait for the result from the isolate
-      final result = await receivePort.first as RouteCalculationResult;
-
-      // Clean up the isolate
-      isolate.kill(priority: Isolate.immediate);
-      receivePort.close();
-
-      // Handle the result
-      if (result.success) {
-        _logger.info("Route calculation completed successfully in isolate");
-        return result.routeData;
-      } else {
-        _logger.warning(
-            "Error in route calculation isolate: ${result.errorMessage}");
-        throw Exception(result.errorMessage);
-      }
-    } catch (e) {
-      _logger.severe("Error running route calculation isolate: $e");
-      _logger.info("Falling back to main thread calculation");
-      return calculateUpdatedRoute(update.location.toGeojsonPoint(),
-          routeGeoFeature.geometry as GeoJSONLineString);
+    personGeoFeature?.geometry = point;
+    final check = isUserOnRoute(point, routeGeoLineString!);
+    if (check.isOnRoute) {
+      geom.coordinates = trimRouteFromProjection(routeGeoLineString!, check)
+          .toLineString()!
+          .coordinates;
+    } else {
+      final coords = geom.coordinates.reversed.toList();
+      coords.add(point.coordinates);
+      geom.coordinates = coords.reversed.toList();
     }
+    routeGeoFeature.geometry = geom;
   }
 
   /// Creates a route using LineLayer and GeoJsonSource for the planned route
@@ -298,6 +255,7 @@ class TrackingModeClass implements ModeHandler {
   /// This updates both the person marker and route in a single operation
   Future<void> _updateMapVisualization() async {
     try {
+      updatingMap = true;
       if (!_layersAdded) {
         final personLayerExists =
             await _map.style.styleLayerExists(_personLayerId);
@@ -312,6 +270,7 @@ class TrackingModeClass implements ModeHandler {
         'data',
         featureCollection.toMap(),
       );
+      updatingMap = false;
     } catch (e) {
       _logger.severe(
           "_updateMapVisualization: Error updating map visualization: $e");
