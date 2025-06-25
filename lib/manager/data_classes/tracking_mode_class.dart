@@ -4,7 +4,6 @@ import 'package:geojson_vi/geojson_vi.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
-import 'package:map_manager_mapbox/utils/geojson_extensions.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -46,7 +45,6 @@ class TrackingModeClass implements ModeHandler {
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
   final _queueLock = Lock(reentrant: true);
-  bool updatingMap = false;
 
   //Variable holding the route traversed
   LineString _routeTraversed = LineString(coordinates: []);
@@ -108,7 +106,18 @@ class TrackingModeClass implements ModeHandler {
       try {
         final current = _queue.removeAt(0);
         _logger.info("Processing queue item ${current.location.toJson()}");
-        await _animateLocationUpdate(current);
+        final tween = PointTween(
+          begin: lastKnownLoc?.location ?? current.location,
+          end: current.location,
+        );
+        await Future.delayed(const Duration(milliseconds: 10), () async {
+          for (var i = 0; i < 40; i++) {
+            _updateGeojson(tween.lerp(i / 100).toGeojsonPoint());
+            _updateMapVisualization();
+          }
+        });
+        _updateGeojson(current.location.toGeojsonPoint());
+        await _updateMapVisualization();
         lastKnownLoc = current;
       } catch (e) {
         _logger.severe("Error processing location queue: $e");
@@ -135,14 +144,7 @@ class TrackingModeClass implements ModeHandler {
       final animation = tween.animate(
         CurvedAnimation(parent: _controller, curve: Curves.ease),
       );
-      int frameCount = 0;
-      void listener() {
-        if (frameCount++ % 3 != 0) return;
-
-        _updateGeojson(animation.value.toGeojsonPoint());
-
-        _updateMapVisualization();
-      }
+      void listener() {}
 
       await moveMapCamTo(_map, update.location);
       animation.addListener(listener);
@@ -164,17 +166,17 @@ class TrackingModeClass implements ModeHandler {
 
   void _updateGeojson(GeoJSONPoint point) {
     final geom = routeGeoFeature.geometry as GeoJSONLineString;
-
-    personGeoFeature?.geometry = point;
     final check = isUserOnRoute(point, routeGeoLineString!);
     if (check.isOnRoute) {
       final res = shrinkRoute(check.projectedPoint, check.segmentIndex,
           check.projectionRatio, routeGeoLineString!);
+      personGeoFeature?.geometry = check.projectedPoint;
       if (res.hasChanged) {
         geom.coordinates = res.updatedRoute.coordinates;
       }
     } else {
-      final res = growRoute(check.projectedPoint, routeGeoLineString!);
+      personGeoFeature?.geometry = point;
+      final res = growRoute(point, routeGeoLineString!);
       if (res.hasChanged) {
         geom.coordinates = res.updatedRoute.coordinates;
       }
@@ -259,7 +261,6 @@ class TrackingModeClass implements ModeHandler {
   /// This updates both the person marker and route in a single operation
   Future<void> _updateMapVisualization() async {
     try {
-      updatingMap = true;
       if (!_layersAdded) {
         final personLayerExists =
             await _map.style.styleLayerExists(_personLayerId);
@@ -274,7 +275,6 @@ class TrackingModeClass implements ModeHandler {
         'data',
         featureCollection.toMap(),
       );
-      updatingMap = false;
     } catch (e) {
       _logger.severe(
           "_updateMapVisualization: Error updating map visualization: $e");
