@@ -1,7 +1,7 @@
 name: map_manager_mapbox
-description: "A new Flutter package project."
+description: "A powerful Flutter package providing an intuitive abstraction layer over mapbox_maps_flutter with mode-based architecture, real-time tracking, smooth animations, and advanced route management capabilities."
 version: 0.0.1
-homepage:
+homepage: https://github.com/yourusername/map_manager_mapbox
 
 environment:
   sdk: ^3.5.4
