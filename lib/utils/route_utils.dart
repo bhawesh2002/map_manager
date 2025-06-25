@@ -347,6 +347,20 @@ RouteCheckResult isUserOnRoute(
       projectionRatio: closestRatio);
 }
 
+List<GeoJSONPoint> trimRouteFromProjection(
+  GeoJSONLineString route,
+  RouteCheckResult result,
+) {
+  final all = route.points;
+  final i = result.segmentIndex;
+  final p = result.projectedPoint;
+
+  if (i < 0 || i >= all.length - 1) return [p];
+
+  // Keep only the projected point and points ahead
+  return [p, ...all.sublist(i + 1)];
+}
+
 /// Modifies a route by shrinking it based on the user's projected position.
 ///
 /// Creates a new route starting from the projected point and including all
