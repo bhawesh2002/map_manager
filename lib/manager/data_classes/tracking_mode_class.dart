@@ -144,6 +144,7 @@ class TrackingModeClass implements ModeHandler {
         _updateMapVisualization();
       }
 
+      await moveMapCamTo(_map, update.location);
       animation.addListener(listener);
 
       try {
@@ -167,13 +168,16 @@ class TrackingModeClass implements ModeHandler {
     personGeoFeature?.geometry = point;
     final check = isUserOnRoute(point, routeGeoLineString!);
     if (check.isOnRoute) {
-      geom.coordinates = trimRouteFromProjection(routeGeoLineString!, check)
-          .toLineString()!
-          .coordinates;
+      final res = shrinkRoute(check.projectedPoint, check.segmentIndex,
+          check.projectionRatio, routeGeoLineString!);
+      if (res.hasChanged) {
+        geom.coordinates = res.updatedRoute.coordinates;
+      }
     } else {
-      final coords = geom.coordinates.reversed.toList();
-      coords.add(point.coordinates);
-      geom.coordinates = coords.reversed.toList();
+      final res = growRoute(check.projectedPoint, routeGeoLineString!);
+      if (res.hasChanged) {
+        geom.coordinates = res.updatedRoute.coordinates;
+      }
     }
     routeGeoFeature.geometry = geom;
   }
