@@ -15,13 +15,9 @@ class TrackingModeClass implements ModeHandler {
 
   static late final AnimationController _controller;
   static bool _controllerSet = false;
-
-  // Feature collection source and layer IDs
   static const String _featureCollectionSourceId = 'tracking-features-source';
   static const String _routeLayerId = 'tracking-route-layer';
   static const String _personLayerId = 'tracking-person-layer';
-
-  // Cached features
   GeoJSONFeature? personGeoFeature;
   late GeoJSONFeature routeGeoFeature;
 
@@ -31,12 +27,8 @@ class TrackingModeClass implements ModeHandler {
   GeoJSONLineString? get routeGeoLineString => routeGeoFeature.geometry != null
       ? GeoJSONLineString.fromMap(routeGeoFeature.geometry!.toMap())
       : null;
-
-  // Combined feature collection
   GeoJSONFeatureCollection get featureCollection => GeoJSONFeatureCollection(
       [if (personGeoFeature != null) personGeoFeature!, routeGeoFeature]);
-
-  //Variables for live location tracking
   late GeoJSONLineString _plannedRoute;
   GeoJSONLineString get plannedRoute => _plannedRoute;
   ValueNotifier<LocationUpdate?>? _locNotifier;
@@ -44,8 +36,6 @@ class TrackingModeClass implements ModeHandler {
   final List<LocationUpdate> _queue = [];
   bool _isAnimating = false;
   bool _isProcessing = false;
-
-  //Variable holding the route traversed
   LineString _routeTraversed = LineString(coordinates: []);
   LineString get routeTraversed => _routeTraversed;
 
@@ -78,7 +68,6 @@ class TrackingModeClass implements ModeHandler {
     _logger.info("Tracking Ride Route");
   }
 
-  // This method handles the location updates from the ValueNotifier
   void _addToUpdateQueue() async {
     final update = _locNotifier?.value;
     if (update == null) return;
@@ -92,15 +81,13 @@ class TrackingModeClass implements ModeHandler {
       ...routeTraversed.coordinates,
       update.location.coordinates
     ]);
-
-    // Start processing if not already processing
     if (!_isProcessing) {
       _processQueue();
     }
   }
 
   void _processQueue() async {
-    if (_isProcessing) return; // Prevent multiple processing loops
+    if (_isProcessing) return;
 
     _isProcessing = true;
     _logger.info("_processQueue: Entered, queue length: ${_queue.length}");
@@ -127,9 +114,6 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  /// Animates the person marker from its current position to the new location
-  ///
-  /// Creates a smooth animation using a tween and the animation controller
   Future<void> _animateLocationUpdate(LocationUpdate update) async {
     try {
       _logger.info(
@@ -195,27 +179,14 @@ class TrackingModeClass implements ModeHandler {
 
   void _updateGeojson(GeoJSONPoint point) {
     final geom = routeGeoFeature.geometry as GeoJSONLineString;
-    final check = isUserOnRoute(point, routeGeoLineString!);
     personGeoFeature?.geometry = point;
-
-    if (check.isOnRoute) {
-      final res = shrinkRoute(point, check.segmentIndex, check.projectionRatio,
-          routeGeoLineString!);
-      if (res.hasChanged) {
-        geom.coordinates = res.updatedRoute.coordinates;
-      }
-    } else {
-      personGeoFeature?.geometry = point;
-      final res = growRoute(point, routeGeoLineString!);
-      if (res.hasChanged) {
-        geom.coordinates = res.updatedRoute.coordinates;
-      }
+    final newCoordinates = updateRouteGeojson(point, geom.coordinates);
+    if (newCoordinates != null) {
+      geom.coordinates = newCoordinates;
     }
     routeGeoFeature.geometry = geom;
   }
 
-  /// Creates a route using LineLayer and GeoJsonSource for the planned route
-  /// Either provide a LineString route OR a GeoJSON map, but not both
   Future<void> _addRouteLayer(
       {required Map<String, dynamic> geojson, List<Point>? waypoints}) async {
     try {
@@ -287,8 +258,6 @@ class TrackingModeClass implements ModeHandler {
     await _updateMapVisualization();
   }
 
-  /// Updates the map visualization with the combined feature collection
-  /// This updates both the person marker and route in a single operation
   Future<void> _updateMapVisualization() async {
     final startTime = DateTime.now();
     try {
