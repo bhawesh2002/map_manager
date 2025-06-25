@@ -272,9 +272,9 @@ class TrackingModeClass implements ModeHandler {
     final circleLayer = CircleLayer(
         id: _personLayerId,
         sourceId: _featureCollectionSourceId,
-        circleRadius: 10.0,
+        circleRadius: 12.5,
         circleColor: 0xFF0078D4, // Blue color
-        circleStrokeWidth: 2.0,
+        circleStrokeWidth: 3.0,
         circleStrokeColor: 0xFFFFFFFF, // White border
         circlePitchAlignment: CirclePitchAlignment.MAP,
         filter: [
