@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_manager_mapbox/manager/map_exceptions.dart';
+import 'package:map_manager_mapbox/utils/enums.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 part 'map_mode.freezed.dart';
@@ -18,8 +19,10 @@ class MapMode with _$MapMode {
   factory MapMode.route({LineString? route, Map<String, dynamic>? geojson}) =
       RouteMode;
   factory MapMode.tracking(
-      {required Map<String, dynamic> geojson,
-      List<Point>? waypoints}) = TrackingMode;
+          {required Map<String, dynamic> geojson,
+          List<Point>? waypoints,
+          @Default(RouteTraversalSource.user) RouteTraversalSource source}) =
+      TrackingMode;
 
   const MapMode._();
 }
