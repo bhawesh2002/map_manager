@@ -14,13 +14,13 @@ class GeolocatorUtils {
 
   static Position? get position => positionValueNotifier.value;
 
-  static bool _started = false;
+  bool get _started => _subscription != null || _subscription?.isPaused != true;
 
   final Logger _logger = Logger("GeolocatorUtils");
 
   static void startLocationUpdates() async {
     final GeolocatorUtils utils = GeolocatorUtils();
-    if (_started == true) return;
+    if (utils._started == true) return;
     final lastKnown = await Geolocator.getLastKnownPosition();
     positionValueNotifier.value = lastKnown;
     lastKnown != null ? _streamController.sink.add(lastKnown) : null;
@@ -32,7 +32,6 @@ class GeolocatorUtils {
     }, onError: (err) {
       utils._subscription!.cancel();
     });
-    _started = true;
     utils._logger.info("Location updates started ");
   }
 }
