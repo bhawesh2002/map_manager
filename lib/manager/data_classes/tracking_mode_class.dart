@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:logging/logging.dart';
+import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
+import 'package:map_manager_mapbox/utils/geojson_extensions.dart';
+import 'package:map_manager_mapbox/utils/geolocator_utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../tweens/point_tween.dart';
@@ -18,6 +21,11 @@ class TrackingModeClass implements ModeHandler {
   static const String _featureCollectionSourceId = 'tracking-features-source';
   static const String _routeLayerId = 'tracking-route-layer';
   static const String _personLayerId = 'tracking-person-layer';
+  static const String _userFeatureSourceId = 'user-feature-source';
+  static const String _userLayerId = 'user-layer';
+  static const String _personLocImageId = 'person-loc-image';
+
+  late final GeoJSONFeature userGeoFeature = GeoJSONFeature(null);
   GeoJSONFeature? personGeoFeature;
   late GeoJSONFeature routeGeoFeature;
 
@@ -54,9 +62,11 @@ class TrackingModeClass implements ModeHandler {
       AnimationController animController) async {
     TrackingModeClass cls = TrackingModeClass(mode, map);
     cls.setAnimController(animController);
-    await map.location.updateSettings(LocationComponentSettings(enabled: true));
+
     await map.style.addSource(
         GeoJsonSource(id: _featureCollectionSourceId, lineMetrics: true));
+    await map.style.addSource(GeoJsonSource(id: _userFeatureSourceId));
+    await cls._addUserLayer();
     await cls._addRouteLayer(geojson: mode.geojson, waypoints: mode.waypoints);
     return cls;
   }
@@ -200,22 +210,52 @@ class TrackingModeClass implements ModeHandler {
     } else {
       personGeoFeature!.properties = {'type': 'person'};
     }
+    await _map.style.addStyleImage(
+        _personLocImageId,
+        1.0,
+        MbxImage(width: 100, height: 139, data: MapAssets.personLoc),
+        false,
+        [],
+        [],
+        null);
+    await _map.style.addLayer(
+      SymbolLayer(
+          id: _personLayerId,
+          sourceId: _featureCollectionSourceId,
+          iconImage: _personLocImageId,
+          iconSize: 0.45,
+          iconOffset: [
+            0,
+            -64
+          ],
+          filter: [
+            "==",
+            ["get", "type"],
+            "person"
+          ]),
+    );
+
+    await _updateMapVisualization();
+  }
+
+  Future<void> _addUserLayer() async {
+    GeolocatorUtils.startLocationUpdates();
     final circleLayer = CircleLayer(
-        id: _personLayerId,
-        sourceId: _featureCollectionSourceId,
-        circleRadius: 12.5,
-        circleColor: 0xFF0078D4, // Blue color
-        circleStrokeWidth: 3.0,
-        circleStrokeColor: 0xFFFFFFFF, // White border
-        circlePitchAlignment: CirclePitchAlignment.MAP,
-        filter: [
-          "==",
-          ["get", "type"],
-          "person"
-        ]);
+      id: _userLayerId,
+      sourceId: _userFeatureSourceId,
+      circleRadius: 8,
+      circleColor: 0xFF0078D4,
+      circleStrokeWidth: 4.0,
+      circleStrokeColor: 0xFFFFFFFF,
+      circlePitchAlignment: CirclePitchAlignment.MAP,
+    );
 
     await _map.style.addLayer(circleLayer);
-    await _updateMapVisualization();
+    GeolocatorUtils.positionValueNotifier.addListener(() async {
+      userGeoFeature.geometry = GeolocatorUtils.position?.geojsonPoint;
+      await _map.style.setStyleSourceProperty(
+          _userFeatureSourceId, 'data', userGeoFeature.toMap());
+    });
   }
 
   Future<void> _updateMapVisualization() async {
@@ -244,6 +284,15 @@ class TrackingModeClass implements ModeHandler {
       }
       if (await _map.style.styleSourceExists(_featureCollectionSourceId)) {
         await _map.style.removeStyleSource(_featureCollectionSourceId);
+      }
+      if (await _map.style.styleLayerExists(_userLayerId)) {
+        await _map.style.removeStyleLayer(_userLayerId);
+      }
+      if (await _map.style.styleSourceExists(_userFeatureSourceId)) {
+        await _map.style.removeStyleSource(_userFeatureSourceId);
+      }
+      if (await _map.style.hasStyleImage(_personLocImageId)) {
+        await _map.style.removeStyleImage(_personLocImageId);
       }
     } catch (e) {
       _logger.warning("Error removing feature collection layers/source: $e");
