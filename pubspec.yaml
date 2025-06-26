@@ -35,6 +35,8 @@ flutter:
   assets:
     - assets/
     - assets/person-loc.png
+    - assets/selected-loc.png
+
   #
   # For details regarding assets in packages, see
   # https://flutter.dev/to/asset-from-package
