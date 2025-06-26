@@ -62,10 +62,9 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> startTracking(ValueNotifier<LocationUpdate?> personLoc) async {
-    _logger.info("Starting tracking");
     _locNotifier = personLoc;
     _locNotifier!.addListener(_addToUpdateQueue);
-    _logger.info("Tracking Ride Route");
+    _logger.info("Now tracking ride route");
   }
 
   void _addToUpdateQueue() async {
@@ -76,7 +75,6 @@ class TrackingModeClass implements ModeHandler {
       _layersAdded = true;
     }
     _queue.add(update);
-    _logger.info("Adding location update to queue at ${_queue.length}");
     _routeTraversed = LineString(coordinates: [
       ...routeTraversed.coordinates,
       update.location.coordinates
@@ -88,25 +86,14 @@ class TrackingModeClass implements ModeHandler {
 
   void _processQueue() async {
     if (_isProcessing) return;
-
     _isProcessing = true;
-    _logger.info("_processQueue: Entered, queue length: ${_queue.length}");
-
     try {
       while (_queue.isNotEmpty) {
         final current = _queue.removeAt(0);
-        _logger.info("Processing queue item ${current.location.toJson()}");
-        final startTime = DateTime.now();
         _isAnimating = false;
         await _animateLocationUpdate(current);
-        final endTime = DateTime.now();
-        final duration = endTime.difference(startTime).inMilliseconds;
-        _logger.info("_processQueue: Animation took ${duration}ms");
         lastKnownLoc = current;
-        _logger.info(
-            "_processQueue: About to process next item, queue length: ${_queue.length}");
       }
-      _logger.info("_processQueue: All items processed");
     } catch (e) {
       _logger.severe("Error processing location queue: $e");
     } finally {
@@ -116,15 +103,9 @@ class TrackingModeClass implements ModeHandler {
 
   Future<void> _animateLocationUpdate(LocationUpdate update) async {
     try {
-      _logger.info(
-          "_animateLocationUpdate: Starting animation for ${update.location.toJson()}");
-      if (_isAnimating) {
-        _logger.warning("_animateLocationUpdate: Already animating, skipping");
-        return;
-      }
-      _isAnimating = true;
-      final setupStartTime = DateTime.now();
+      if (_isAnimating) return;
 
+      _isAnimating = true;
       final tween = PointTween(
         begin: lastKnownLoc?.location ?? update.location,
         end: update.location,
@@ -143,35 +124,14 @@ class TrackingModeClass implements ModeHandler {
       }
 
       animation.addListener(listener);
-      final setupEndTime = DateTime.now();
-      final setupDuration =
-          setupEndTime.difference(setupStartTime).inMilliseconds;
-      _logger.info("_animateLocationUpdate: Setup took ${setupDuration}ms");
 
       try {
-        final animationStartTime = DateTime.now();
         await _controller.forward(from: 0);
-        final animationEndTime = DateTime.now();
-        final animationDuration =
-            animationEndTime.difference(animationStartTime).inMilliseconds;
-        _logger.info(
-            "_animateLocationUpdate: Controller animation took ${animationDuration}ms");
-
-        final cameraStartTime = DateTime.now();
         await moveMapCamTo(_map, update.location);
-        final cameraEndTime = DateTime.now();
-        final cameraDuration =
-            cameraEndTime.difference(cameraStartTime).inMilliseconds;
-        _logger.info(
-            "_animateLocationUpdate: Camera movement took ${cameraDuration}ms");
       } finally {
         animation.removeListener(listener);
-        _logger.info(
-            "_animateLocationUpdate: Animation completed for: ${update.location.toJson()}");
       }
     } catch (e) {
-      _logger
-          .warning("_animateLocationUpdate: Error animating person marker: $e");
       _updateGeojson(update.location.toGeojsonPoint());
       await _updateMapVisualization();
     }
@@ -259,16 +219,12 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _updateMapVisualization() async {
-    final startTime = DateTime.now();
     try {
       await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId,
         'data',
         featureCollection.toMap(),
       );
-      final endTime = DateTime.now();
-      final duration = endTime.difference(startTime).inMilliseconds;
-      _logger.info("_updateMapVisualization: Map update took ${duration}ms");
     } catch (e) {
       _logger.severe(
           "_updateMapVisualization: Error updating map visualization: $e");
@@ -279,9 +235,7 @@ class TrackingModeClass implements ModeHandler {
   Future<void> dispose() async {
     _logger.info("Cleaning Tracking Mode Data");
     _map.setOnMapTapListener(null);
-
     try {
-      // Clean up the feature collection source and layers
       if (await _map.style.styleLayerExists(_routeLayerId)) {
         await _map.style.removeStyleLayer(_routeLayerId);
       }
@@ -291,11 +245,9 @@ class TrackingModeClass implements ModeHandler {
       if (await _map.style.styleSourceExists(_featureCollectionSourceId)) {
         await _map.style.removeStyleSource(_featureCollectionSourceId);
       }
-      _logger.info("Removed feature collection source and layers");
     } catch (e) {
       _logger.warning("Error removing feature collection layers/source: $e");
     }
-
     _controller.reset();
     _locNotifier?.removeListener(_addToUpdateQueue);
     _locNotifier = null;
