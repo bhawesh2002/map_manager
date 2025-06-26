@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/manager/map_mode.dart';
 import 'package:map_manager_mapbox/manager/mode_handler.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -29,7 +30,7 @@ class MapManager extends ChangeNotifier {
             "ManagerLogger ${log.loggerName} : ${log.level} : ${log.message} : ${log.time} ");
       });
     }
-
+    await MapAssets.init();
     mode = mode ?? MapMode.basic();
     final manager = MapManager._(mapboxMap, mode, animController);
     await manager.changeMode(mode);
