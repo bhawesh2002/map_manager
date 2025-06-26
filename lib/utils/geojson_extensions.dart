@@ -1,4 +1,5 @@
 import 'package:geojson_vi/geojson_vi.dart';
+import 'package:geolocator/geolocator.dart' as geolocator;
 
 extension GeoJSONLineStringExtensions on GeoJSONLineString {
   /// Returns the coordinates as a list of GeoJSONPoint objects
@@ -33,4 +34,8 @@ extension GeoJSONPointListExtensions on List<GeoJSONPoint> {
     }
     return GeoJSONLineString(map((point) => point.coordinates).toList());
   }
+}
+
+extension GeolocatorPosition on geolocator.Position {
+  GeoJSONPoint get geojsonPoint => GeoJSONPoint([longitude, latitude]);
 }
