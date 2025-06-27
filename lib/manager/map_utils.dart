@@ -2,7 +2,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:logging/logging.dart';
 
 Future<void> moveMapCamTo(MapboxMap map, Point point, {int? duration}) async {
-  await map.flyTo(CameraOptions(center: point, zoom: 16, pitch: 50),
+  await map.flyTo(CameraOptions(center: point, zoom: 16),
       MapAnimationOptions(duration: duration ?? 500));
 }
 
@@ -117,14 +117,14 @@ double calculateOptimalZoomLevel(
   // These values are empirically determined for good map viewing
   if (maxDiff < 0.0001) return 18.0; // Very close points (within ~10 meters)
   if (maxDiff < 0.0005) return 17.0; // Close points (within ~50 meters)
-  if (maxDiff < 0.001) return 16.0;  // Nearby points (within ~100 meters)
-  if (maxDiff < 0.005) return 15.0;  // Local area (within ~500 meters)
-  if (maxDiff < 0.01) return 14.0;   // Neighborhood (within ~1 km)
-  if (maxDiff < 0.05) return 13.0;   // District (within ~5 km)
-  if (maxDiff < 0.1) return 12.0;    // City area (within ~10 km)
-  if (maxDiff < 0.5) return 11.0;    // Metropolitan area
-  if (maxDiff < 1.0) return 10.0;    // Large city/region
-  if (maxDiff < 5.0) return 9.0;     // State/province level
+  if (maxDiff < 0.001) return 16.0; // Nearby points (within ~100 meters)
+  if (maxDiff < 0.005) return 15.0; // Local area (within ~500 meters)
+  if (maxDiff < 0.01) return 14.0; // Neighborhood (within ~1 km)
+  if (maxDiff < 0.05) return 13.0; // District (within ~5 km)
+  if (maxDiff < 0.1) return 12.0; // City area (within ~10 km)
+  if (maxDiff < 0.5) return 11.0; // Metropolitan area
+  if (maxDiff < 1.0) return 10.0; // Large city/region
+  if (maxDiff < 5.0) return 9.0; // State/province level
 
   return 8.0; // Country/continent level
 }
