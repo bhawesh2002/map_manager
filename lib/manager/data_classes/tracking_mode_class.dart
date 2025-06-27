@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:logging/logging.dart';
@@ -194,15 +195,18 @@ class TrackingModeClass implements ModeHandler {
           ? routeGeoFeature.properties!['type'] = 'route'
           : routeGeoFeature.properties = {'type': 'route'};
       await _map.style.addLayer(LineLayer(
-          id: _routeLayerId,
-          sourceId: _featureCollectionSourceId,
-          filter: [
-            "==",
-            ["get", "type"],
-            "route"
-          ]));
+        id: _routeLayerId,
+        sourceId: _featureCollectionSourceId,
+        filter: [
+          "==",
+          ["get", "type"],
+          "route"
+        ],
+      ));
       await _map.style
-          .setStyleLayerProperties(_routeLayerId, routeLayerProps.toString());
+          .setStyleLayerProperties(_routeLayerId, json.encode(routeLayerProps));
+      await _map.style.setStyleSourceProperty(
+          _featureCollectionSourceId, 'data', featureCollection.toMap());
       _routeLayerExists = true;
       _logger.info("Route layer added successfully");
     } catch (e) {
@@ -236,7 +240,7 @@ class TrackingModeClass implements ModeHandler {
           ]),
     );
     await _map.style.setStyleLayerProperties(
-        _personLayerId, personLayerProps('${_personLayerId}_img'));
+        _personLayerId, jsonEncode(personLayerProps('${_personLayerId}_img')));
     _personLayerExists = true;
     _logger.info("Person layer added successfully");
   }
@@ -248,7 +252,7 @@ class TrackingModeClass implements ModeHandler {
       sourceId: _userFeatureSourceId,
     ));
     await _map.style
-        .setStyleLayerProperties(_userLayerId, userLayerProps.toString());
+        .setStyleLayerProperties(_userLayerId, jsonEncode(userLayerProps));
     _userLayerExists = true;
     _logger.info("User layer added successfully");
   }
@@ -294,9 +298,8 @@ class TrackingModeClass implements ModeHandler {
     final update = GeolocatorUtils.update;
     if (update == null) return;
     if (!_userLayerExists) await _addUserLayer();
-    updatingUserLoc
-        ? _userLocUpdateQueue.add(update)
-        : _updateUserVisualization();
+    _userLocUpdateQueue.add(update);
+    !updatingUserLoc ? _updateUserVisualization() : null;
   }
 
   Future<void> _updatePersonLocation() async {
@@ -305,9 +308,8 @@ class TrackingModeClass implements ModeHandler {
     if (!_personLayerExists) {
       await _addPersonLayer(update.location.toGeojsonPoint());
     }
-    updatingPersonLoc
-        ? _personLocUpdateQueue.add(update)
-        : _updatePersonVisualization();
+    _personLocUpdateQueue.add(update);
+    (!updatingPersonLoc) ? _updatePersonVisualization() : null;
   }
 
   Future<void> _updateUserVisualization() async {
@@ -339,12 +341,11 @@ class TrackingModeClass implements ModeHandler {
         final tween = PointTween(
             begin: personGeoPoint?.toMbPoint() ?? update.location,
             end: update.location);
-        personGeoFeature.geometry = update.location.toGeojsonPoint();
         for (var i = 0; i < 80; i++) {
           final lerp = tween.lerp(i / 80);
-          userGeoFeature.geometry = lerp.toGeojsonPoint();
+          personGeoFeature.geometry = lerp.toGeojsonPoint();
           await _map.style.setStyleSourceProperty(
-              _userFeatureSourceId, 'data', userGeoFeature.toMap());
+              _personFeatureSourceId, 'data', personGeoFeature.toMap());
         }
       }
       updatingPersonLoc = false;
