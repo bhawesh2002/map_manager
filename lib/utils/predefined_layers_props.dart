@@ -1,11 +1,9 @@
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-
-const Map<String, dynamic> routeLayerProps = {
-  'lineWidth': 8.0,
-  'lineCap': LineCap.ROUND,
-  'lineJoin': LineJoin.ROUND,
-  'lineOpacity': 0.9,
-  'lineGradientExpression': [
+Map<String, dynamic> routeLayerProps = {
+  'line-width': 8.0,
+  'line-opacity': 0.9,
+  'line-cap': "round",
+  'line-join': "round",
+  'line-gradient': [
     'interpolate',
     ['linear'],
     ['line-progress'],
@@ -18,22 +16,24 @@ const Map<String, dynamic> routeLayerProps = {
     1.0,
     "#890BE3",
   ],
-  'lineBlur': 0.0,
-  'lineZOffset': -1.0
+  'line-blur': 0.0,
+  'line-z-offset': -1.0
 };
 
-const Map<String, dynamic> userLayerProps = {
-  'circleRadius': 8,
-  'circleColor': 0xFF0078D4,
-  'circleStrokeWidth': 4.0,
-  'circleStrokeColor': 0xFFFFFFFF,
-  'circlePitchAlignment': CirclePitchAlignment.MAP,
+Map<String, dynamic> userLayerProps = {
+  'circle-radius': 8,
+  'circle-color': "#0078D4",
+  'circle-stroke-width': 4.0,
+  'circle-stroke-color': "#FFFFFF",
+  'circle-pitch-alignment': "map",
 };
 
-String personLayerProps(String iconImg) =>
-    (_personSymbolLayerPropsMap['iconImage'] = iconImg).toString();
+Map<String, dynamic> personLayerProps(String iconImg) {
+  _personSymbolLayerPropsMap['icon-image'] = iconImg;
+  return _personSymbolLayerPropsMap;
+}
 
-const Map<String, dynamic> _personSymbolLayerPropsMap = {
-  'iconSize': 0.45,
-  'iconOffset': [0, -64],
+Map<String, dynamic> _personSymbolLayerPropsMap = {
+  'icon-size': 0.45,
+  'icon-offset': [0, -64],
 };
