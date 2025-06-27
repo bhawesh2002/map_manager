@@ -1,5 +1,6 @@
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 extension GeoJSONLineStringExtensions on GeoJSONLineString {
   /// Returns the coordinates as a list of GeoJSONPoint objects
@@ -38,4 +39,8 @@ extension GeoJSONPointListExtensions on List<GeoJSONPoint> {
 
 extension GeolocatorPosition on geolocator.Position {
   GeoJSONPoint get geojsonPoint => GeoJSONPoint([longitude, latitude]);
+}
+
+extension MapboxPoint on geolocator.Position {
+  Point get mapboxPoint => Point(coordinates: Position(longitude, latitude));
 }
