@@ -4,6 +4,7 @@ import 'package:geojson_vi/geojson_vi.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
+import 'package:map_manager_mapbox/utils/enums.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
 import 'package:map_manager_mapbox/utils/geolocator_utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -73,8 +74,15 @@ class TrackingModeClass implements ModeHandler {
     return cls;
   }
 
-  Future<void> startTracking(ValueNotifier<LocationUpdate?> personLoc) async {
-    _locNotifier = personLoc;
+  Future<void> startTracking(
+      {RouteTraversalSource source = RouteTraversalSource.user,
+      ValueNotifier<LocationUpdate?>? personLoc}) async {
+    assert(source == RouteTraversalSource.person && personLoc == null,
+        'personLoc cannot be null if route traversal source is person');
+    _locNotifier = source == RouteTraversalSource.person
+        ? personLoc
+        : GeolocatorUtils.positionValueNotifier;
+
     _locNotifier!.addListener(_addToUpdateQueue);
     _logger.info("Now tracking ride route");
   }
