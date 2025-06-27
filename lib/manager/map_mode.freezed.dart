@@ -23,8 +23,11 @@ mixin _$MapMode {
         locationSel,
     required TResult Function(LineString? route, Map<String, dynamic>? geojson)
         route,
-    required TResult Function(Map<String, dynamic> geojson,
-            List<Point>? waypoints, RouteTraversalSource source)
+    required TResult Function(
+            Map<String, dynamic> geojson,
+            List<Point>? waypoints,
+            RouteTraversalSource source,
+            DisplayMode displayMode)
         tracking,
   }) =>
       throw _privateConstructorUsedError;
@@ -35,7 +38,7 @@ mixin _$MapMode {
         locationSel,
     TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
   }) =>
       throw _privateConstructorUsedError;
@@ -46,7 +49,7 @@ mixin _$MapMode {
         locationSel,
     TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
     required TResult orElse(),
   }) =>
@@ -173,8 +176,11 @@ class _$BasicMapModeImpl extends BasicMapMode {
         locationSel,
     required TResult Function(LineString? route, Map<String, dynamic>? geojson)
         route,
-    required TResult Function(Map<String, dynamic> geojson,
-            List<Point>? waypoints, RouteTraversalSource source)
+    required TResult Function(
+            Map<String, dynamic> geojson,
+            List<Point>? waypoints,
+            RouteTraversalSource source,
+            DisplayMode displayMode)
         tracking,
   }) {
     return basic(trackUserLoc);
@@ -188,7 +194,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
         locationSel,
     TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
   }) {
     return basic?.call(trackUserLoc);
@@ -202,7 +208,7 @@ class _$BasicMapModeImpl extends BasicMapMode {
         locationSel,
     TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
     required TResult orElse(),
   }) {
@@ -363,8 +369,11 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
         locationSel,
     required TResult Function(LineString? route, Map<String, dynamic>? geojson)
         route,
-    required TResult Function(Map<String, dynamic> geojson,
-            List<Point>? waypoints, RouteTraversalSource source)
+    required TResult Function(
+            Map<String, dynamic> geojson,
+            List<Point>? waypoints,
+            RouteTraversalSource source,
+            DisplayMode displayMode)
         tracking,
   }) {
     return locationSel(maxSelections, preSelectedLocs);
@@ -378,7 +387,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
         locationSel,
     TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
   }) {
     return locationSel?.call(maxSelections, preSelectedLocs);
@@ -392,7 +401,7 @@ class _$LocationSelectionModeImpl extends LocationSelectionMode {
         locationSel,
     TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
     required TResult orElse(),
   }) {
@@ -549,8 +558,11 @@ class _$RouteModeImpl extends RouteMode {
         locationSel,
     required TResult Function(LineString? route, Map<String, dynamic>? geojson)
         route,
-    required TResult Function(Map<String, dynamic> geojson,
-            List<Point>? waypoints, RouteTraversalSource source)
+    required TResult Function(
+            Map<String, dynamic> geojson,
+            List<Point>? waypoints,
+            RouteTraversalSource source,
+            DisplayMode displayMode)
         tracking,
   }) {
     return route(this.route, geojson);
@@ -564,7 +576,7 @@ class _$RouteModeImpl extends RouteMode {
         locationSel,
     TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
   }) {
     return route?.call(this.route, geojson);
@@ -578,7 +590,7 @@ class _$RouteModeImpl extends RouteMode {
         locationSel,
     TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
     required TResult orElse(),
   }) {
@@ -651,7 +663,8 @@ abstract class _$$TrackingModeImplCopyWith<$Res> {
   $Res call(
       {Map<String, dynamic> geojson,
       List<Point>? waypoints,
-      RouteTraversalSource source});
+      RouteTraversalSource source,
+      DisplayMode displayMode});
 }
 
 /// @nodoc
@@ -670,6 +683,7 @@ class __$$TrackingModeImplCopyWithImpl<$Res>
     Object? geojson = null,
     Object? waypoints = freezed,
     Object? source = null,
+    Object? displayMode = null,
   }) {
     return _then(_$TrackingModeImpl(
       geojson: null == geojson
@@ -684,6 +698,10 @@ class __$$TrackingModeImplCopyWithImpl<$Res>
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as RouteTraversalSource,
+      displayMode: null == displayMode
+          ? _value.displayMode
+          : displayMode // ignore: cast_nullable_to_non_nullable
+              as DisplayMode,
     ));
   }
 }
@@ -694,7 +712,8 @@ class _$TrackingModeImpl extends TrackingMode {
   _$TrackingModeImpl(
       {required final Map<String, dynamic> geojson,
       final List<Point>? waypoints,
-      this.source = RouteTraversalSource.user})
+      this.source = RouteTraversalSource.user,
+      this.displayMode = DisplayMode.showAll})
       : _geojson = geojson,
         _waypoints = waypoints,
         super._();
@@ -720,10 +739,13 @@ class _$TrackingModeImpl extends TrackingMode {
   @override
   @JsonKey()
   final RouteTraversalSource source;
+  @override
+  @JsonKey()
+  final DisplayMode displayMode;
 
   @override
   String toString() {
-    return 'MapMode.tracking(geojson: $geojson, waypoints: $waypoints, source: $source)';
+    return 'MapMode.tracking(geojson: $geojson, waypoints: $waypoints, source: $source, displayMode: $displayMode)';
   }
 
   @override
@@ -734,7 +756,9 @@ class _$TrackingModeImpl extends TrackingMode {
             const DeepCollectionEquality().equals(other._geojson, _geojson) &&
             const DeepCollectionEquality()
                 .equals(other._waypoints, _waypoints) &&
-            (identical(other.source, source) || other.source == source));
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.displayMode, displayMode) ||
+                other.displayMode == displayMode));
   }
 
   @override
@@ -742,7 +766,8 @@ class _$TrackingModeImpl extends TrackingMode {
       runtimeType,
       const DeepCollectionEquality().hash(_geojson),
       const DeepCollectionEquality().hash(_waypoints),
-      source);
+      source,
+      displayMode);
 
   /// Create a copy of MapMode
   /// with the given fields replaced by the non-null parameter values.
@@ -760,11 +785,14 @@ class _$TrackingModeImpl extends TrackingMode {
         locationSel,
     required TResult Function(LineString? route, Map<String, dynamic>? geojson)
         route,
-    required TResult Function(Map<String, dynamic> geojson,
-            List<Point>? waypoints, RouteTraversalSource source)
+    required TResult Function(
+            Map<String, dynamic> geojson,
+            List<Point>? waypoints,
+            RouteTraversalSource source,
+            DisplayMode displayMode)
         tracking,
   }) {
-    return tracking(geojson, waypoints, source);
+    return tracking(geojson, waypoints, source, displayMode);
   }
 
   @override
@@ -775,10 +803,10 @@ class _$TrackingModeImpl extends TrackingMode {
         locationSel,
     TResult? Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult? Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
   }) {
-    return tracking?.call(geojson, waypoints, source);
+    return tracking?.call(geojson, waypoints, source, displayMode);
   }
 
   @override
@@ -789,12 +817,12 @@ class _$TrackingModeImpl extends TrackingMode {
         locationSel,
     TResult Function(LineString? route, Map<String, dynamic>? geojson)? route,
     TResult Function(Map<String, dynamic> geojson, List<Point>? waypoints,
-            RouteTraversalSource source)?
+            RouteTraversalSource source, DisplayMode displayMode)?
         tracking,
     required TResult orElse(),
   }) {
     if (tracking != null) {
-      return tracking(geojson, waypoints, source);
+      return tracking(geojson, waypoints, source, displayMode);
     }
     return orElse();
   }
@@ -841,12 +869,14 @@ abstract class TrackingMode extends MapMode {
   factory TrackingMode(
       {required final Map<String, dynamic> geojson,
       final List<Point>? waypoints,
-      final RouteTraversalSource source}) = _$TrackingModeImpl;
+      final RouteTraversalSource source,
+      final DisplayMode displayMode}) = _$TrackingModeImpl;
   TrackingMode._() : super._();
 
   Map<String, dynamic> get geojson;
   List<Point>? get waypoints;
   RouteTraversalSource get source;
+  DisplayMode get displayMode;
 
   /// Create a copy of MapMode
   /// with the given fields replaced by the non-null parameter values.

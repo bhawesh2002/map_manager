@@ -19,10 +19,10 @@ class MapMode with _$MapMode {
   factory MapMode.route({LineString? route, Map<String, dynamic>? geojson}) =
       RouteMode;
   factory MapMode.tracking(
-          {required Map<String, dynamic> geojson,
-          List<Point>? waypoints,
-          @Default(RouteTraversalSource.user) RouteTraversalSource source}) =
-      TrackingMode;
+      {required Map<String, dynamic> geojson,
+      List<Point>? waypoints,
+      @Default(RouteTraversalSource.user) RouteTraversalSource source,
+      @Default(DisplayMode.showAll) DisplayMode displayMode}) = TrackingMode;
 
   const MapMode._();
 }
