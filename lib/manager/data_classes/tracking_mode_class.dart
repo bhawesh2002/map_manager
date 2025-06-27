@@ -5,7 +5,6 @@ import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
 import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 import 'package:map_manager_mapbox/utils/extensions.dart';
-import 'package:map_manager_mapbox/utils/geojson_extensions.dart';
 import 'package:map_manager_mapbox/utils/geolocator_utils.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -29,6 +28,9 @@ class TrackingModeClass implements ModeHandler {
   GeoJSONFeature? personGeoFeature;
   late GeoJSONFeature routeGeoFeature;
 
+  GeoJSONPoint? get userGeoPoint => userGeoFeature.geometry != null
+      ? GeoJSONPoint.fromMap(userGeoFeature.geometry!.toMap())
+      : null;
   GeoJSONPoint? get personGeoPoint => personGeoFeature != null
       ? GeoJSONPoint.fromMap(personGeoFeature!.geometry!.toMap())
       : null;
@@ -239,7 +241,7 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _addUserLayer() async {
-    GeolocatorUtils.startLocationUpdates();
+    await GeolocatorUtils.startLocationUpdates();
     final circleLayer = CircleLayer(
       id: _userLayerId,
       sourceId: _userFeatureSourceId,
@@ -252,9 +254,21 @@ class TrackingModeClass implements ModeHandler {
 
     await _map.style.addLayer(circleLayer);
     GeolocatorUtils.positionValueNotifier.addListener(() async {
-      userGeoFeature.geometry = GeolocatorUtils.position?.geojsonPoint;
-      await _map.style.setStyleSourceProperty(
-          _userFeatureSourceId, 'data', userGeoFeature.toMap());
+      if (GeolocatorUtils.update != null) {
+        final tween = PointTween(
+            begin:
+                userGeoPoint?.toMbPoint() ?? GeolocatorUtils.update!.location,
+            end: GeolocatorUtils.update!.location);
+        for (var i = 0; i < 80; i++) {
+          final lerp = tween.lerp(i / 80);
+          userGeoFeature.geometry = lerp.toGeojsonPoint();
+          await _map.style.setStyleSourceProperty(
+              _userFeatureSourceId, 'data', userGeoFeature.toMap());
+        }
+        await _map.style.setStyleSourceProperty(
+            _userFeatureSourceId, 'data', userGeoFeature.toMap());
+        await moveMapCamTo(_map, GeolocatorUtils.update!.location);
+      }
     });
   }
 
