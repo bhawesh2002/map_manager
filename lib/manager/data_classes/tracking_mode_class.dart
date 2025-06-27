@@ -326,6 +326,8 @@ class TrackingModeClass implements ModeHandler {
           await _map.style.setStyleSourceProperty(
               _userFeatureSourceId, 'data', userGeoFeature.toMap());
         }
+        await _map.style.setStyleSourceProperty(
+            _userFeatureSourceId, 'data', userGeoFeature.toMap());
       }
       updatingUserLoc = false;
     } catch (e) {
@@ -347,7 +349,10 @@ class TrackingModeClass implements ModeHandler {
           await _map.style.setStyleSourceProperty(
               _personFeatureSourceId, 'data', personGeoFeature.toMap());
         }
+        await _map.style.setStyleSourceProperty(
+            _personFeatureSourceId, 'data', personGeoFeature.toMap());
       }
+
       updatingPersonLoc = false;
     } catch (e) {
       _logger.warning("Error updating person visualization: $e");
