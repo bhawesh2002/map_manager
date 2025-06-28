@@ -125,6 +125,8 @@ class TrackingModeClass implements ModeHandler {
         stopPersonTracking(force: true);
         if (!_personLayerExists) await _addPersonLayer();
     }
+    _logger.info(
+        "setRouteTrackingMode(): Active source feature is:${activeSourceFeature.properties!['type']}");
   }
 
   void _addToUpdateQueue() async {
