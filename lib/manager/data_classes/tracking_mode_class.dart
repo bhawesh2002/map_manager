@@ -121,9 +121,15 @@ class TrackingModeClass implements ModeHandler {
       case RouteTraversalSource.user:
         _locUpdateQueue.addAll(_userLocUpdateQueue);
         _stopUserTracking(force: true);
+        if (!_userLayerExists) await _addUserLayer();
+        await _map.style.setStyleLayerProperty(
+            _userLayerId, 'source', _featureCollectionSourceId);
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
+        if (!_personLayerExists) await _addPersonLayer();
+        await _map.style.setStyleLayerProperty(
+            _personLayerId, 'source', _featureCollectionSourceId);
     }
   }
 
@@ -238,7 +244,7 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  Future<void> _addPersonLayer(GeoJSONPoint point) async {
+  Future<void> _addPersonLayer({GeoJSONPoint? point}) async {
     if (_personLayerExists) return;
     personGeoFeature.geometry = point;
     personGeoFeature.properties != null
@@ -320,7 +326,6 @@ class TrackingModeClass implements ModeHandler {
   Future<void> _updateUserLocation() async {
     final update = GeolocatorUtils.update;
     if (update == null) return;
-    if (!_userLayerExists) await _addUserLayer();
     _userLocUpdateQueue.add(update);
     !updatingUserLoc ? _updateUserVisualization() : null;
   }
@@ -329,7 +334,7 @@ class TrackingModeClass implements ModeHandler {
     final update = _personNotifier?.value;
     if (update == null) return;
     if (!_personLayerExists) {
-      await _addPersonLayer(update.location.toGeojsonPoint());
+      await _addPersonLayer(point: update.location.toGeojsonPoint());
     }
     _personLocUpdateQueue.add(update);
     (!updatingPersonLoc) ? _updatePersonVisualization() : null;
