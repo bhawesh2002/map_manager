@@ -53,8 +53,8 @@ class TrackingModeClass implements ModeHandler {
   GeoJSONPoint? get activeSourceLoc => activeSourceFeature.geometry != null
       ? GeoJSONPoint.fromMap(activeSourceFeature.geometry!.toMap())
       : null;
-  GeoJSONFeatureCollection get featureCollection =>
-      GeoJSONFeatureCollection([activeSourceFeature, routeGeoFeature]);
+  GeoJSONFeatureCollection get featureCollection => GeoJSONFeatureCollection(
+      [if (activeSourceLoc != null) activeSourceFeature, routeGeoFeature]);
 
   ValueNotifier<LocationUpdate?>? _personNotifier;
   ValueNotifier<LocationUpdate?> get activeNotifier =>
@@ -97,6 +97,7 @@ class TrackingModeClass implements ModeHandler {
     await map.style.addSource(GeoJsonSource(id: _personFeatureSourceId));
 
     await cls._addRouteLayer();
+    await cls._addUserToTracking();
     return cls;
   }
 
@@ -286,6 +287,7 @@ class TrackingModeClass implements ModeHandler {
 
   Future<void> _addUserToTracking() async {
     if (_userLocationListener != null) _stopUserTracking();
+    if (!_userLayerExists) await _addUserLayer();
     await GeolocatorUtils.startLocationUpdates();
     _userLocationListener = _updateUserLocation;
     GeolocatorUtils.positionValueNotifier.addListener(_userLocationListener!);
