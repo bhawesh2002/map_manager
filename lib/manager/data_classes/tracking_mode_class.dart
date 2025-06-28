@@ -270,9 +270,17 @@ class TrackingModeClass implements ModeHandler {
 
   Future<void> _addUserLayer() async {
     if (_userLayerExists) return;
+    userGeoFeature.properties != null
+        ? userGeoFeature.properties!['type'] = 'user'
+        : userGeoFeature.properties = {'type': 'user'};
     await _map.style.addLayer(CircleLayer(
       id: _userLayerId,
       sourceId: _userFeatureSourceId,
+      filter: [
+        "==",
+        ["get", "type"],
+        "user"
+      ],
     ));
     await _map.style
         .setStyleLayerProperties(_userLayerId, jsonEncode(userLayerProps));
