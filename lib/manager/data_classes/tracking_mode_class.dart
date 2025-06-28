@@ -119,14 +119,10 @@ class TrackingModeClass implements ModeHandler {
         _locUpdateQueue.addAll(_userLocUpdateQueue);
         _stopUserTracking(force: true);
         if (!_userLayerExists) await _addUserLayer();
-        await _map.style.setStyleLayerProperty(
-            _userLayerId, 'source', _featureCollectionSourceId);
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
         if (!_personLayerExists) await _addPersonLayer();
-        await _map.style.setStyleLayerProperty(
-            _personLayerId, 'source', _featureCollectionSourceId);
     }
   }
 
