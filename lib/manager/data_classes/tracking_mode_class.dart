@@ -175,9 +175,9 @@ class TrackingModeClass implements ModeHandler {
       final animation = tween.animate(
         CurvedAnimation(parent: _controller, curve: Curves.linear),
       );
-      int frameCount = 0;
+      // int frameCount = 0;
       void listener() {
-        if (frameCount++ % 3 != 0) return;
+        // if (frameCount++ % 3 != 0) return;
         _updateGeojson(animation.value.toGeojsonPoint());
         Future.delayed(const Duration(milliseconds: 16), () async {
           await _map.style.setStyleSourceProperty(
@@ -208,10 +208,7 @@ class TrackingModeClass implements ModeHandler {
 
   void _updateGeojson(GeoJSONPoint point) {
     final geom = routeGeoFeature.geometry as GeoJSONLineString;
-    _logger.info("Before: ${activeSourceFeature.geometry}");
     activeSourceFeature.geometry = point;
-    _logger.info("After: ${activeSourceFeature.geometry}");
-
     final newCoordinates = updateRouteGeojson(point, geom.coordinates);
     if (newCoordinates != null) geom.coordinates = newCoordinates;
     routeGeoFeature.geometry = geom;
@@ -297,6 +294,7 @@ class TrackingModeClass implements ModeHandler {
   Future<void> addPersonToTracking(
       ValueNotifier<LocationUpdate?> personNotifier) async {
     if (_personLocationListener != null) await stopPersonTracking();
+    if (!_personLayerExists) await _addPersonLayer();
     _personNotifier = personNotifier;
     _personLocationListener = _updatePersonLocation;
     _personNotifier!.addListener(_personLocationListener!);
@@ -320,7 +318,6 @@ class TrackingModeClass implements ModeHandler {
       if (force) _personLocUpdateQueue.clear();
       if (removePersonLayer) await _removePersonLayer();
     }
-    _personNotifier = null;
   }
 
   Future<void> _updateUserLocation() async {
@@ -333,9 +330,6 @@ class TrackingModeClass implements ModeHandler {
   Future<void> _updatePersonLocation() async {
     final update = _personNotifier?.value;
     if (update == null) return;
-    if (!_personLayerExists) {
-      await _addPersonLayer(point: update.location.toGeojsonPoint());
-    }
     _personLocUpdateQueue.add(update);
     (!updatingPersonLoc) ? _updatePersonVisualization() : null;
   }
@@ -456,6 +450,7 @@ class TrackingModeClass implements ModeHandler {
     _personLayerExists = false;
     updatingPersonLoc = false;
     updatingUserLoc = false;
+    _personNotifier = null;
 
     await _map.location.updateSettings(
       LocationComponentSettings(enabled: false),
