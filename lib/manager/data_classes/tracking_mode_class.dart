@@ -45,22 +45,25 @@ class TrackingModeClass implements ModeHandler {
   GeoJSONPoint? get personGeoPoint => personGeoFeature.geometry != null
       ? GeoJSONPoint.fromMap(personGeoFeature.geometry!.toMap())
       : null;
-  GeoJSONLineString? get routeGeoLineString => routeGeoFeature.geometry != null
-      ? GeoJSONLineString.fromMap(routeGeoFeature.geometry!.toMap())
-      : null;
 
   GeoJSONFeature get activeSourceFeature =>
       mode.source == RouteTraversalSource.person
           ? personGeoFeature
           : userGeoFeature;
-  GeoJSONFeatureCollection get featureCollection => GeoJSONFeatureCollection([
-        if (activeSourceFeature.geometry != null) activeSourceFeature,
-        routeGeoFeature
-      ]);
+  GeoJSONPoint? get activeSourceLoc => activeSourceFeature.geometry != null
+      ? GeoJSONPoint.fromMap(activeSourceFeature.geometry!.toMap())
+      : null;
+  GeoJSONFeatureCollection get featureCollection => GeoJSONFeatureCollection(
+      [if (activeSourceLoc != null) activeSourceFeature, routeGeoFeature]);
 
-  VoidCallback? _userLocationListener;
   ValueNotifier<LocationUpdate?>? _personNotifier;
-  LocationUpdate? personLastKnownLoc;
+  ValueNotifier<LocationUpdate?> get activeNotifier =>
+      mode.source == RouteTraversalSource.person
+          ? _personNotifier!
+          : GeolocatorUtils.positionValueNotifier;
+
+  VoidCallback? _activeNotifierListener;
+  VoidCallback? _userLocationListener;
   VoidCallback? _personLocationListener;
 
   final List<LocationUpdate> _locUpdateQueue = [];
@@ -105,10 +108,28 @@ class TrackingModeClass implements ModeHandler {
         !(mode.source == RouteTraversalSource.person &&
             _personNotifier == null),
         'you must first add person to tracking mode');
+    await setRouteTrackingMode(mode.source);
+    _activeNotifierListener = _addToUpdateQueue;
+    activeNotifier.addListener(_activeNotifierListener!);
     _logger.info("Now tracking ride route");
   }
 
-  void _addToUpdateQueue(LocationUpdate update) async {
+  Future<void> setRouteTrackingMode(RouteTraversalSource source) async {
+    _locUpdateQueue.clear();
+    mode = mode.copyWith(source: source);
+    switch (source) {
+      case RouteTraversalSource.user:
+        _locUpdateQueue.addAll(_userLocUpdateQueue);
+        _stopUserTracking(force: true);
+      case RouteTraversalSource.person:
+        _locUpdateQueue.addAll(_personLocUpdateQueue);
+        stopPersonTracking(force: true);
+    }
+  }
+
+  void _addToUpdateQueue() async {
+    final update = activeNotifier.value;
+    if (update == null) return;
     _locUpdateQueue.add(update);
     _routeTraversed = LineString(coordinates: [
       ...routeTraversed.coordinates,
@@ -127,7 +148,6 @@ class TrackingModeClass implements ModeHandler {
         final current = _locUpdateQueue.removeAt(0);
         _isAnimating = false;
         await _animateLocationUpdate(current);
-        personLastKnownLoc = current;
       }
     } catch (e) {
       _logger.severe("Error processing location queue: $e");
@@ -142,7 +162,7 @@ class TrackingModeClass implements ModeHandler {
 
       _isAnimating = true;
       final tween = PointTween(
-        begin: personLastKnownLoc?.location ?? update.location,
+        begin: activeSourceLoc?.toMbPoint() ?? update.location,
         end: update.location,
       );
 
@@ -182,7 +202,10 @@ class TrackingModeClass implements ModeHandler {
 
   void _updateGeojson(GeoJSONPoint point) {
     final geom = routeGeoFeature.geometry as GeoJSONLineString;
+    _logger.info("Before: ${activeSourceFeature.geometry}");
     activeSourceFeature.geometry = point;
+    _logger.info("After: ${activeSourceFeature.geometry}");
+
     final newCoordinates = updateRouteGeojson(point, geom.coordinates);
     if (newCoordinates != null) geom.coordinates = newCoordinates;
     routeGeoFeature.geometry = geom;
@@ -288,7 +311,7 @@ class TrackingModeClass implements ModeHandler {
     if (_personLocationListener != null) {
       _personNotifier?.removeListener(_personLocationListener!);
       _personLocationListener = null;
-      if (force) _userLocUpdateQueue.clear();
+      if (force) _personLocUpdateQueue.clear();
       if (removePersonLayer) await _removePersonLayer();
     }
     _personNotifier = null;
@@ -413,12 +436,15 @@ class TrackingModeClass implements ModeHandler {
       await stopPersonTracking();
       await _removeLayers(routeLayer: true, userLayer: true, personLayer: true);
       await _removeSources(featureSrc: true, userSrc: true, personSrc: true);
+      if (_activeNotifierListener != null) {
+        activeNotifier.removeListener(_activeNotifierListener!);
+      }
+      _activeNotifierListener = null;
     } catch (e) {
       _logger.warning("Error removing feature collection layers/source: $e");
     }
     _controller.reset();
 
-    personLastKnownLoc = null;
     _locUpdateQueue.clear();
     _isAnimating = false;
     _userLayerExists = false;
