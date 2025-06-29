@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:logging/logging.dart';
 import 'package:map_manager_mapbox/manager/map_assets.dart';
@@ -123,8 +125,10 @@ class TrackingModeClass implements ModeHandler {
         if (!_userLayerExists) await _addUserLayer();
         await _map.style.setStyleLayerProperties(
             _userLayerId,
-            jsonEncode(
-                {'source': _featureCollectionSourceId, 'icon-size': 0.31}));
+            jsonEncode({
+              'source': _featureCollectionSourceId,
+              'model-scale': [0.31, 0.31, 0.31]
+            }));
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
@@ -290,36 +294,22 @@ class TrackingModeClass implements ModeHandler {
         ? userGeoFeature.properties!['type'] = 'user'
         : userGeoFeature.properties = {'type': 'user'};
 
-    // Add user icon to the map style
-    await _map.style.addStyleImage(
-        '${_userLayerId}_img',
-        1.0,
-        MbxImage(
-            width: MapAssets.selectedLocWidth,
-            height: MapAssets.selectedLocHeight,
-            data: MapAssets.selectedLoc),
-        false,
-        [],
-        [],
-        null);
+    // Add 3D sports car model to the map style
+    await _map.style.addStyleModel('${_userLayerId}_model',
+        'https://github.com/KhronosGroup/glTF-Sample-Models/raw/d7a3cc8e51d7c573771ae77a57f16b0662a905c6/2.0/Buggy/glTF/Buggy.gltf');
 
-    await _map.style.addLayer(SymbolLayer(
-      id: _userLayerId,
-      sourceId: _userFeatureSourceId,
-      filter: [
-        "==",
-        ["get", "type"],
-        "user"
-      ],
-    ));
-    await _map.style.setStyleLayerProperties(
-        _userLayerId,
-        jsonEncode({
-          'icon-image': '${_userLayerId}_img',
-          'icon-size': 0.3,
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true
-        }));
+    await _map.style.addLayer(ModelLayer(
+        id: _userLayerId,
+        sourceId: _userFeatureSourceId,
+        modelId: '${_userLayerId}_model',
+        modelScale: [0.3, 0.3, 0.3],
+        modelRotation: [0.0, 0.0, 0.0],
+        filter: [
+          "==",
+          ["get", "type"],
+          "user"
+        ],
+        modelType: ModelType.COMMON_3D));
     _userLayerExists = true;
     _logger.info("User layer added successfully");
   }
