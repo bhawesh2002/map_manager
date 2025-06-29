@@ -115,11 +115,22 @@ class TrackingModeClass implements ModeHandler {
 
   Future<void> setRouteTrackingMode(RouteTraversalSource source) async {
     _locUpdateQueue.clear();
+
+    // Remove current active listener before switching
+    if (_activeNotifierListener != null) {
+      activeNotifier.removeListener(_activeNotifierListener!);
+    }
+
     mode = mode.copyWith(source: source);
     switch (source) {
       case RouteTraversalSource.user:
         _locUpdateQueue.addAll(_userLocUpdateQueue);
         _stopUserTracking(force: true);
+        // User becomes active, so ensure person continues independent tracking
+        if (_personNotifier != null && _personLocationListener == null) {
+          _personLocationListener = _updatePersonLocation;
+          _personNotifier!.addListener(_personLocationListener!);
+        }
         if (!_userLayerExists) await _addUserLayer();
         await _map.style.setStyleLayerProperties(
             _userLayerId,
@@ -127,13 +138,25 @@ class TrackingModeClass implements ModeHandler {
                 {'source': _featureCollectionSourceId, 'icon-size': 0.23}));
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
-        stopPersonTracking(force: true);
+        await stopPersonTracking(force: true);
+        // Person becomes active, so ensure user continues independent tracking
+        if (_userLocationListener == null) {
+          _userLocationListener = _updateUserLocation;
+          GeolocatorUtils.positionValueNotifier
+              .addListener(_userLocationListener!);
+        }
         if (!_personLayerExists) await _addPersonLayer();
         await _map.style.setStyleLayerProperties(
             _personLayerId,
             jsonEncode(
                 {'source': _featureCollectionSourceId, 'icon-size': 0.46}));
     }
+
+    // Re-add active listener for the new source
+    if (_activeNotifierListener != null) {
+      activeNotifier.addListener(_activeNotifierListener!);
+    }
+
     if (activeSourceLoc != null) _updateGeojson(activeSourceLoc!);
     await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId, 'data', featureCollection.toMap());
