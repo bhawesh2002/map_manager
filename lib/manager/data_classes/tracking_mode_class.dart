@@ -123,15 +123,24 @@ class TrackingModeClass implements ModeHandler {
         if (!_userLayerExists) await _addUserLayer();
         await _map.style.setStyleLayerProperty(
             _userLayerId, 'source', _featureCollectionSourceId);
+        await _map.style
+            .setStyleLayerProperty(_userLayerId, 'circle-radius', 8.1);
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
         if (!_personLayerExists) await _addPersonLayer();
-        await _map.style.setStyleLayerProperty(
-            _personLayerId, 'source', _featureCollectionSourceId);
+        await _map.style.setStyleLayerProperties(
+            _personLayerId,
+            jsonEncode(
+                {'source': _featureCollectionSourceId, 'icon-size': 0.46}));
     }
     await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId, 'data', featureCollection.toMap());
+    final currentCamera = await _map.getCameraState();
+    await _map.setCamera(CameraOptions(
+      center: activeSourceLoc?.toMbPoint() ?? currentCamera.center,
+      zoom: currentCamera.zoom + 0.01,
+    ));
   }
 
   void _addToUpdateQueue() async {
