@@ -95,7 +95,7 @@ class TrackingModeClass implements ModeHandler {
         GeoJsonSource(id: _featureCollectionSourceId, lineMetrics: true));
     await map.style.addSource(GeoJsonSource(id: _userFeatureSourceId));
     await map.style.addSource(GeoJsonSource(id: _personFeatureSourceId));
-
+    await GeolocatorUtils.startLocationUpdates();
     await cls._addRouteLayer();
     await cls._addUserToTracking();
     return cls;
@@ -107,6 +107,7 @@ class TrackingModeClass implements ModeHandler {
             _personNotifier == null),
         'you must first add person to tracking mode');
     await setRouteTrackingMode(mode.source);
+
     _activeNotifierListener = _addToUpdateQueue;
     activeNotifier.addListener(_activeNotifierListener!);
     _logger.info("Now tracking ride route");
@@ -120,13 +121,17 @@ class TrackingModeClass implements ModeHandler {
         _locUpdateQueue.addAll(_userLocUpdateQueue);
         _stopUserTracking(force: true);
         if (!_userLayerExists) await _addUserLayer();
+        await _map.style.setStyleLayerProperty(
+            _userLayerId, 'source', _featureCollectionSourceId);
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
         if (!_personLayerExists) await _addPersonLayer();
+        await _map.style.setStyleLayerProperty(
+            _personLayerId, 'source', _featureCollectionSourceId);
     }
-    _logger.info(
-        "setRouteTrackingMode(): Active source feature is:${activeSourceFeature.properties!['type']}");
+    await _map.style.setStyleSourceProperty(
+        _featureCollectionSourceId, 'data', featureCollection.toMap());
   }
 
   void _addToUpdateQueue() async {
@@ -188,7 +193,6 @@ class TrackingModeClass implements ModeHandler {
 
       try {
         await _controller.forward(from: 0);
-        await moveMapCamTo(_map, update.location);
       } finally {
         animation.removeListener(listener);
       }
@@ -290,7 +294,6 @@ class TrackingModeClass implements ModeHandler {
   Future<void> _addUserToTracking() async {
     if (_userLocationListener != null) _stopUserTracking();
     if (!_userLayerExists) await _addUserLayer();
-    await GeolocatorUtils.startLocationUpdates();
     _userLocationListener = _updateUserLocation;
     GeolocatorUtils.positionValueNotifier.addListener(_userLocationListener!);
     _logger.info("User location tracking started");
