@@ -124,7 +124,7 @@ class TrackingModeClass implements ModeHandler {
         await _map.style.setStyleLayerProperties(
             _userLayerId,
             jsonEncode(
-                {'source': _featureCollectionSourceId, 'icon-size': 0.31}));
+                {'source': _featureCollectionSourceId, 'icon-size': 0.23}));
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
@@ -316,7 +316,7 @@ class TrackingModeClass implements ModeHandler {
         _userLayerId,
         jsonEncode({
           'icon-image': '${_userLayerId}_img',
-          'icon-size': 0.3,
+          'icon-size': 0.22,
           'icon-allow-overlap': true,
           'icon-ignore-placement': true
         }));
