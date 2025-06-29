@@ -34,6 +34,8 @@ flutter:
   # To add assets to your package, add an assets section, like this:
   assets:
     - assets/
+    - assets/3d_models/
+    - assets/3d_models/sportcar.glb
     - assets/person-loc.png
     - assets/selected-loc.png
 
