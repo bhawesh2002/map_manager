@@ -38,6 +38,7 @@ flutter:
     - assets/3d_models/sportcar.glb
     - assets/person-loc.png
     - assets/selected-loc.png
+    - assets/circle.png
 
   #
   # For details regarding assets in packages, see
