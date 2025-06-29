@@ -124,7 +124,7 @@ class TrackingModeClass implements ModeHandler {
         await _map.style.setStyleLayerProperties(
             _userLayerId,
             jsonEncode(
-                {'source': _featureCollectionSourceId, 'circle-radius': 8.1}));
+                {'source': _featureCollectionSourceId, 'icon-size': 0.31}));
       case RouteTraversalSource.person:
         _locUpdateQueue.addAll(_personLocUpdateQueue);
         stopPersonTracking(force: true);
@@ -134,6 +134,7 @@ class TrackingModeClass implements ModeHandler {
             jsonEncode(
                 {'source': _featureCollectionSourceId, 'icon-size': 0.46}));
     }
+    if (activeSourceLoc != null) _updateGeojson(activeSourceLoc!);
     await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId, 'data', featureCollection.toMap());
     final currentCamera = await _map.getCameraState();
@@ -259,7 +260,10 @@ class TrackingModeClass implements ModeHandler {
     await _map.style.addStyleImage(
         '${_personLayerId}_img',
         1.0,
-        MbxImage(width: 100, height: 139, data: MapAssets.personLoc),
+        MbxImage(
+            width: MapAssets.personLocWidth,
+            height: MapAssets.personLocHeight,
+            data: MapAssets.personLoc),
         false,
         [],
         [],
@@ -285,7 +289,21 @@ class TrackingModeClass implements ModeHandler {
     userGeoFeature.properties != null
         ? userGeoFeature.properties!['type'] = 'user'
         : userGeoFeature.properties = {'type': 'user'};
-    await _map.style.addLayer(CircleLayer(
+
+    // Add user icon to the map style
+    await _map.style.addStyleImage(
+        '${_userLayerId}_img',
+        1.0,
+        MbxImage(
+            width: MapAssets.selectedLocWidth,
+            height: MapAssets.selectedLocHeight,
+            data: MapAssets.selectedLoc),
+        false,
+        [],
+        [],
+        null);
+
+    await _map.style.addLayer(SymbolLayer(
       id: _userLayerId,
       sourceId: _userFeatureSourceId,
       filter: [
@@ -294,8 +312,14 @@ class TrackingModeClass implements ModeHandler {
         "user"
       ],
     ));
-    await _map.style
-        .setStyleLayerProperties(_userLayerId, jsonEncode(userLayerProps));
+    await _map.style.setStyleLayerProperties(
+        _userLayerId,
+        jsonEncode({
+          'icon-image': '${_userLayerId}_img',
+          'icon-size': 0.3,
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true
+        }));
     _userLayerExists = true;
     _logger.info("User layer added successfully");
   }
