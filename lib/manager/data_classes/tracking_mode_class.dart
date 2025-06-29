@@ -97,7 +97,7 @@ class TrackingModeClass implements ModeHandler {
     await map.style.addSource(GeoJsonSource(id: _personFeatureSourceId));
     await GeolocatorUtils.startLocationUpdates();
     await cls._addRouteLayer();
-    await cls._addUserToTracking();
+    await cls.setRouteTrackingMode(mode.source);
     return cls;
   }
 
@@ -106,8 +106,6 @@ class TrackingModeClass implements ModeHandler {
         !(mode.source == RouteTraversalSource.person &&
             _personNotifier == null),
         'you must first add person to tracking mode');
-    await setRouteTrackingMode(mode.source);
-
     _activeNotifierListener = _addToUpdateQueue;
     activeNotifier.addListener(_activeNotifierListener!);
     _logger.info("Now tracking ride route");
@@ -152,14 +150,13 @@ class TrackingModeClass implements ModeHandler {
                 {'source': _featureCollectionSourceId, 'icon-size': 0.46}));
     }
 
-    // Re-add active listener for the new source
+    if (activeSourceLoc != null) _updateGeojson(activeSourceLoc!);
+
+    await _map.style.setStyleSourceProperty(
+        _featureCollectionSourceId, 'data', featureCollection.toMap());
     if (_activeNotifierListener != null) {
       activeNotifier.addListener(_activeNotifierListener!);
     }
-
-    if (activeSourceLoc != null) _updateGeojson(activeSourceLoc!);
-    await _map.style.setStyleSourceProperty(
-        _featureCollectionSourceId, 'data', featureCollection.toMap());
     final currentCamera = await _map.getCameraState();
     await _map.setCamera(CameraOptions(
       center: activeSourceLoc?.toMbPoint() ?? currentCamera.center,
@@ -345,14 +342,6 @@ class TrackingModeClass implements ModeHandler {
         }));
     _userLayerExists = true;
     _logger.info("User layer added successfully");
-  }
-
-  Future<void> _addUserToTracking() async {
-    if (_userLocationListener != null) _stopUserTracking();
-    if (!_userLayerExists) await _addUserLayer();
-    _userLocationListener = _updateUserLocation;
-    GeolocatorUtils.positionValueNotifier.addListener(_userLocationListener!);
-    _logger.info("User location tracking started");
   }
 
   Future<void> addPersonToTracking(
