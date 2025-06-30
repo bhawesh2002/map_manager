@@ -32,3 +32,10 @@ Future<Uint8List> fetchImageFromNetworkImage(String imageUrl) async {
     rethrow;
   }
 }
+
+Future<ui.Image> decodeImageFromByteData(ByteData byteData) async {
+  final Uint8List bytes = byteData.buffer.asUint8List();
+  final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+  final ui.FrameInfo frameInfo = await codec.getNextFrame();
+  return frameInfo.image;
+}
