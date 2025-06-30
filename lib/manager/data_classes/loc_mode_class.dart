@@ -57,7 +57,9 @@ class LocationModeClass implements ModeHandler {
   Future<void> addPoint(Point pt, {bool zoom = false, ByteData? asset}) async {
     final anno = await _pointAnnotationManager.create(PointAnnotationOptions(
       geometry: pt,
-      image: asset != null ? addImageFromAsset(asset) : MapAssets.selectedLoc,
+      image: asset != null
+          ? addImageFromAsset(asset)
+          : MapAssets.selectedLoc.asset,
       iconOffset: [
         0,
         -28 //calculated value. Only compatible with selectedLoc MapAsset. DO NOT MODIFY!
