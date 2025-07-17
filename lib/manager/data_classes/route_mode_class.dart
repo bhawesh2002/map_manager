@@ -328,7 +328,7 @@ class RouteModeClass implements ModeHandler {
         sourceId: _routeSourceId,
 
         // Geometry Styling (Uber's characteristics)
-        lineWidth: 14.0, // Bold but not overwhelming
+        lineWidth: 12.0, // Bold but not overwhelming
         lineCap: LineCap.ROUND, // Smooth rounded ends
         lineJoin: LineJoin.ROUND, // Smooth rounded corners
         lineOpacity: 0.95, // Slightly transparent for blend
