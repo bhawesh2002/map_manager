@@ -381,6 +381,39 @@ class TrackingModeClass implements ModeHandler {
     _logger.info("Active source tracking stopped");
   }
 
+  /// Updates the route in real-time with new coordinates
+  Future<void> updateRoute(Map<String, dynamic> newRouteGeoJson) async {
+    try {
+      await stopActiveSourceTracking();
+      mode = mode.copyWith(geojson: newRouteGeoJson);
+
+      routeGeoFeature.geometry =
+          GeoJSONLineString.fromMap(newRouteGeoJson['geometry']);
+      routeGeoFeature.properties != null
+          ? routeGeoFeature.properties!['type'] = 'route'
+          : routeGeoFeature.properties = {'type': 'route'};
+
+      _routeTraversed = LineString(coordinates: []);
+
+      await _map.style.setStyleSourceProperty(
+          _featureCollectionSourceId, 'data', featureCollection.toMap());
+
+      final newRoute = GeoJSONLineString.fromMap(newRouteGeoJson['geometry']);
+      if (newRoute.coordinates.isNotEmpty) {
+        final firstPoint = newRoute.coordinates.first;
+        await _map.setCamera(CameraOptions(
+          center: Point(coordinates: Position(firstPoint[0], firstPoint[1])),
+          zoom: 14.0,
+        ));
+      }
+
+      _logger.info("Route updated successfully.");
+    } catch (e) {
+      _logger.severe("Error updating route: $e");
+      rethrow;
+    }
+  }
+
   void _stopUserTracking({bool force = false}) {
     if (_userLocationListener != null) {
       GeolocatorUtils.positionValueNotifier
