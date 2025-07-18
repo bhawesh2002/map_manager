@@ -114,7 +114,6 @@ class TrackingModeClass implements ModeHandler {
   Future<void> setRouteTrackingMode(RouteTraversalSource source) async {
     _locUpdateQueue.clear();
 
-    // Remove current active listener before switching
     if (_activeNotifierListener != null) {
       activeNotifier.removeListener(_activeNotifierListener!);
     }
@@ -129,6 +128,7 @@ class TrackingModeClass implements ModeHandler {
           _personLocationListener = _updatePersonLocation;
           _personNotifier!.addListener(_personLocationListener!);
         }
+        _logger.info("Route Traversal Source is User");
         if (!_userLayerExists) await _addUserLayer();
         await _map.style.setStyleLayerProperties(
             _userLayerId,
