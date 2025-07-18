@@ -77,15 +77,6 @@ class BasicModeClass implements ModeHandler {
         enabled: true,
         puckBearingEnabled: enableBearing,
         puckBearing: puckBearing,
-        locationPuck: LocationPuck(
-          locationPuck3D: LocationPuck3D(
-            modelUri:
-                "https://github.com/bhawesh2002/map_manager_mapbox/raw/refs/heads/main/assets/3d_models/sportcar.glb",
-            position: [0.0, 0.0, 0.0],
-            modelRotation: [0.0, 0.0, 0.0],
-            modelScale: [12, 12, 12],
-          ),
-        ),
       ),
     );
     _map.setOnMapMoveListener((gestureContext) {
