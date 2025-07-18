@@ -483,6 +483,7 @@ class TrackingModeClass implements ModeHandler {
   @override
   Future<void> dispose() async {
     _logger.info("Cleaning Tracking Mode Data");
+    _locUpdateQueue.clear();
     _map.setOnMapTapListener(null);
     try {
       _stopUserTracking();
@@ -498,7 +499,6 @@ class TrackingModeClass implements ModeHandler {
     }
     _controller.reset();
 
-    _locUpdateQueue.clear();
     _isAnimating = false;
     _userLayerExists = false;
     _personLayerExists = false;
