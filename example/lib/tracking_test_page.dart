@@ -433,7 +433,9 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
 
     // Note: You might need to add a stopTracking method to TrackingModeClass
     // For now, we'll just reset the state
-
+    _mapManager!.whenTrackingMode((mode) async {
+      await mode.stopActiveSourceTracking();
+    });
     setState(() {
       _isRouteTrackingActive = false;
       _currentActiveSource = null;

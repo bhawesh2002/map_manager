@@ -355,6 +355,32 @@ class TrackingModeClass implements ModeHandler {
     _logger.info("Person location tracking started");
   }
 
+  /// Immediately stops tracking of the active source
+  Future<void> stopActiveSourceTracking() async {
+    // Remove the active listener to stop adding new updates to queue
+    if (_activeNotifierListener != null) {
+      activeNotifier.removeListener(_activeNotifierListener!);
+      _activeNotifierListener = null;
+    }
+
+    // Clear the main location update queue to stop processing
+    _locUpdateQueue.clear();
+
+    // Stop tracking based on current active source
+    switch (mode.source) {
+      case RouteTraversalSource.user:
+        _stopUserTracking(force: true);
+        _logger.info("User location tracking stopped immediately");
+        break;
+      case RouteTraversalSource.person:
+        await stopPersonTracking(force: true);
+        _logger.info("Person location tracking stopped immediately");
+        break;
+    }
+
+    _logger.info("Active source tracking stopped");
+  }
+
   void _stopUserTracking({bool force = false}) {
     if (_userLocationListener != null) {
       GeolocatorUtils.positionValueNotifier
@@ -483,7 +509,7 @@ class TrackingModeClass implements ModeHandler {
   @override
   Future<void> dispose() async {
     _logger.info("Cleaning Tracking Mode Data");
-    _locUpdateQueue.clear();
+    await stopActiveSourceTracking();
     _map.setOnMapTapListener(null);
     try {
       _stopUserTracking();
