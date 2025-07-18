@@ -20,6 +20,25 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
   bool _isRouteTrackingActive = false;
   bool _hasPersonTracking = false;
   RouteTraversalSource? _currentActiveSource;
+  int _currentRouteIndex = 0; // Track which route is currently active
+
+  // Define multiple routes for switching
+  static const List<List<List<double>>> _availableRoutes = [
+    routeCoordinates, // Original route from sample_data.dart
+    [
+      // Alternative route (example - you can replace with your own)
+      [79.641000, 21.164000],
+      [79.640800, 21.163800],
+      [79.640600, 21.163600],
+      [79.640400, 21.163400],
+      [79.640200, 21.163200],
+      [79.640000, 21.163000],
+      [79.639800, 21.162800],
+      [79.639600, 21.162600],
+      [79.639400, 21.162400],
+      [79.639200, 21.162200],
+    ],
+  ];
 
   @override
   void initState() {
@@ -82,6 +101,10 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
 
           // Source Switching Section
           _buildSourceSwitchingSection(),
+          const SizedBox(height: 16),
+
+          // Route Management Section
+          _buildRouteManagementSection(),
         ],
       ),
     );
@@ -108,6 +131,8 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
             Text(
                 'Person Tracking: ${_hasPersonTracking ? 'Connected' : 'Not Connected'}'),
             Text('Active Source: ${_currentActiveSource?.name ?? 'None'}'),
+            Text(
+                'Current Route: Route ${_currentRouteIndex + 1} of ${_availableRoutes.length}'),
             if (_simulator?.locationNotifier != null)
               ValueListenableBuilder(
                 valueListenable: _simulator!.locationNotifier,
@@ -341,16 +366,76 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     );
   }
 
+  Widget _buildRouteManagementSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('5. Real-time Route Management',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(
+                'Current: Route ${_currentRouteIndex + 1} of ${_availableRoutes.length}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isTrackingModeActive && _currentRouteIndex > 0
+                        ? _switchToPreviousRoute
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo[600]),
+                    child: const Text("Previous Route"),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isTrackingModeActive &&
+                            _currentRouteIndex < _availableRoutes.length - 1
+                        ? _switchToNextRoute
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo[600]),
+                    child: const Text("Next Route"),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed:
+                  _isTrackingModeActive ? _demonstrateRouteSwapping : null,
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.teal[600]),
+              child: const Text("Demo: Auto Route Switching"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Mode Management
   Future<void> _activateTrackingMode() async {
     if (_mapManager == null) return;
 
     await _mapManager!.changeMode(MapMode.tracking(geojson: {
       "type": "Feature",
-      "geometry": {"type": "LineString", "coordinates": routeCoordinates},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": _availableRoutes[_currentRouteIndex]
+      },
       "properties": {
-        "name": "Test Tracking Route",
-        "description": "Example GeoJSON route for tracking"
+        "name": "Route ${_currentRouteIndex + 1}",
+        "description": "Initial tracking route"
       }
     }));
     await _startRouteTracking();
@@ -481,5 +566,67 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
         await _switchToUserTracking();
       }
     }
+  }
+
+  // Route Management Methods
+  Future<void> _switchToPreviousRoute() async {
+    if (_currentRouteIndex > 0) {
+      _currentRouteIndex--;
+      await _updateCurrentRoute();
+    }
+  }
+
+  Future<void> _switchToNextRoute() async {
+    if (_currentRouteIndex < _availableRoutes.length - 1) {
+      _currentRouteIndex++;
+      await _updateCurrentRoute();
+    }
+  }
+
+  Future<void> _updateCurrentRoute() async {
+    if (_mapManager == null) return;
+
+    final newRouteGeoJson = {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": _availableRoutes[_currentRouteIndex]
+      },
+      "properties": {
+        "name": "Route ${_currentRouteIndex + 1}",
+        "description": "Real-time switched route"
+      }
+    };
+
+    _mapManager!.whenTrackingMode((mode) async {
+      await mode.updateRoute(newRouteGeoJson);
+      await mode.startTracking();
+    });
+
+    setState(() {
+      // UI will reflect the route change
+    });
+  }
+
+  Future<void> _demonstrateRouteSwapping() async {
+    if (_mapManager == null) return;
+
+    final originalIndex = _currentRouteIndex;
+
+    // Switch between routes every 4 seconds
+    for (int i = 0; i < 4; i++) {
+      await Future.delayed(const Duration(seconds: 4));
+
+      // Alternate between routes
+      if (_currentRouteIndex == 0 && _availableRoutes.length > 1) {
+        await _switchToNextRoute();
+      } else if (_currentRouteIndex > 0) {
+        await _switchToPreviousRoute();
+      }
+    }
+
+    // Return to original route
+    _currentRouteIndex = originalIndex;
+    await _updateCurrentRoute();
   }
 }
