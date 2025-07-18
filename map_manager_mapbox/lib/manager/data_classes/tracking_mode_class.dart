@@ -185,6 +185,7 @@ class TrackingModeClass implements ModeHandler {
         final current = _locUpdateQueue.removeAt(0);
         _isAnimating = false;
         await _animateLocationUpdate(current);
+        await moveMapCamTo(_map, current.location, duration: 200);
       }
     } catch (e) {
       _logger.severe("Error processing location queue: $e");
