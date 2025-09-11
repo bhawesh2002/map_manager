@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
-import 'package:map_manager/utils/manager_logger.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapManagerMapbox extends ChangeNotifier {
   MapMode _mode;
   final MapboxMap _mapboxMap;
   late final AnimationController _animationController;
-  ModeHandler? _currentModeHandler;
-
   MapManagerMapbox._(this._mapboxMap, this._mode, this._animationController);
 
   static Future<MapManagerMapbox> init(
@@ -25,6 +22,8 @@ class MapManagerMapbox extends ChangeNotifier {
   }
 
   final ManagerLogger _logger = ManagerLogger("MapManagerMapbox");
+
+  ModeHandler? _currentModeHandler;
 
   MapMode get mapMode => _mode;
   MapboxMap get mapboxMap => _mapboxMap;
