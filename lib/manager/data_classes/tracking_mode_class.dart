@@ -4,14 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
-import 'package:map_manager/utils/enums.dart';
-import 'package:map_manager/utils/extensions.dart';
-import 'package:map_manager/utils/geolocator_utils.dart';
-import 'package:map_manager/utils/manager_logger.dart';
-import 'package:map_manager/utils/predefined_layers_props.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-
-import '../tweens/point_tween.dart';
 
 class TrackingModeClass implements ModeHandler {
   TrackingMode mode;

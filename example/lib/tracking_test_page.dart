@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:map_manager/map_manager.dart';
-import 'package:map_manager/utils/enums.dart';
 import 'package:map_manager_mapbox_example/app_map.dart';
 import 'package:map_manager_mapbox_example/sample_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';

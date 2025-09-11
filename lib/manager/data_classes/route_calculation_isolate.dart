@@ -1,7 +1,6 @@
 import 'dart:isolate';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/map_manager.dart';
-import 'package:map_manager/utils/extensions.dart';
 
 /// Message sent to the isolate for route calculation
 class RouteCalculationMessage {

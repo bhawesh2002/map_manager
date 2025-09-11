@@ -1,7 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
-import 'package:map_manager/utils/manager_logger.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class LocationModeClass implements ModeHandler {
