@@ -1,5 +1,5 @@
-import 'package:example/map_testing_page.dart';
 import 'package:flutter/material.dart';
+import 'package:map_manager_mapbox_example/map_testing_page.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 

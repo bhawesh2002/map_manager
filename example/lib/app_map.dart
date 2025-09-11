@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:map_manager_mapbox/map_manager_mapbox.dart';
+import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class AppMap extends StatefulWidget {
   final MapMode? initialMode;
-  final Function(MapManager manager)? onMapCreated;
+  final Function(MapManagerMapbox manager)? onMapCreated;
   const AppMap({super.key, this.initialMode, this.onMapCreated});
 
   @override
@@ -12,7 +12,7 @@ class AppMap extends StatefulWidget {
 }
 
 class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
-  MapManager? manager;
+  MapManagerMapbox? manager;
   MapboxMap? mapboxMap;
   late AnimationController _animController;
   @override
@@ -36,7 +36,7 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
         await controller.attribution.updateSettings(
             AttributionSettings(position: OrnamentPosition.BOTTOM_LEFT));
 
-        manager = await MapManager.init(controller, _animController,
+        manager = await MapManagerMapbox.init(controller, _animController,
             mode: widget.initialMode);
 
         if (widget.onMapCreated != null) {

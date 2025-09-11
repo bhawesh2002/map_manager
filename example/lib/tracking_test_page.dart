@@ -1,9 +1,9 @@
-import 'package:example/app_map.dart';
-import 'package:example/sample_data.dart';
 import 'package:flutter/material.dart';
-import 'package:map_manager_mapbox/utils/enums.dart';
+import 'package:map_manager/map_manager.dart';
+import 'package:map_manager/utils/enums.dart';
+import 'package:map_manager_mapbox_example/app_map.dart';
+import 'package:map_manager_mapbox_example/sample_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-import 'package:map_manager_mapbox/map_manager_mapbox.dart';
 
 class TrackingTestPage extends StatefulWidget {
   const TrackingTestPage({super.key});
@@ -13,7 +13,7 @@ class TrackingTestPage extends StatefulWidget {
 }
 
 class _TrackingTestPageState extends State<TrackingTestPage> {
-  MapManager? _mapManager;
+  MapManagerMapbox? _mapManager;
   LocationSimulator? _simulator;
   bool _isSimulating = false;
   bool _isTrackingModeActive = false;

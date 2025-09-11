@@ -1,8 +1,7 @@
-import 'package:example/app_map.dart';
-import 'package:example/tracking_test_page.dart';
 import 'package:flutter/material.dart';
-import 'package:map_manager_mapbox/manager/map_manager.dart';
-import 'package:map_manager_mapbox/manager/map_mode.dart';
+import 'package:map_manager/map_manager.dart';
+import 'package:map_manager_mapbox_example/app_map.dart';
+import 'package:map_manager_mapbox_example/tracking_test_page.dart';
 
 class MapTestingPage extends StatefulWidget {
   const MapTestingPage({super.key});
@@ -12,7 +11,7 @@ class MapTestingPage extends StatefulWidget {
 }
 
 class _MapTestingPageState extends State<MapTestingPage> {
-  MapManager? _mapManager;
+  MapManagerMapbox? _mapManager;
   MapMode _currentMode = MapMode.basic();
 
   void _onMapCreated(manager) {

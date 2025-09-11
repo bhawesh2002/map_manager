@@ -1,4 +1,4 @@
-# Map Manager Mapbox
+# Map Manager
 
 **Alpha Release v0.0.1**
 
