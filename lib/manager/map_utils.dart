@@ -1,4 +1,5 @@
-import 'package:map_manager/utils/manager_logger.dart';
+import 'package:geojson_vi/geojson_vi.dart';
+import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 Future<void> moveMapCamTo(MapboxMap map, Point point, {int? duration}) async {
@@ -40,17 +41,20 @@ Future<void> moveMapBy(MapboxMap map, double x, double y) async {
 /// ```
 Future<void> zoomToFitPoints(
   MapboxMap map,
-  List<Point> points, {
+  List<GeoJSONPoint> points, {
   double paddingPixels = 50.0,
   int animationDuration = 1000,
   double singlePointZoom = 16.0,
   ManagerLogger? logger,
 }) async {
-  if (points.isEmpty) return;
+  List<Point> mbPoints =
+      points.map((e) => e.toMbPoint()).cast<List<Point>>().toList()
+          as List<Point>;
+  if (mbPoints.isEmpty) return;
 
   // If there's only one point, zoom to that point
-  if (points.length == 1) {
-    await moveMapCamTo(map, points.first);
+  if (mbPoints.length == 1) {
+    await moveMapCamTo(map, mbPoints.first);
     return;
   }
 
@@ -60,7 +64,7 @@ Future<void> zoomToFitPoints(
   double minLat = double.infinity;
   double maxLat = -double.infinity;
 
-  for (final point in points) {
+  for (final point in mbPoints) {
     final lng = point.coordinates.lng as double;
     final lat = point.coordinates.lat as double;
 
