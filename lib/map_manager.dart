@@ -8,11 +8,8 @@ library;
 export 'manager/map_manager_mapbox.dart';
 
 // Export map modes
-export 'manager/map_mode.dart';
-export 'manager/mode_handler.dart';
-export 'manager/map_utils.dart';
-export 'manager/map_exceptions.dart';
-export 'manager/location_update.dart';
+export 'manager/map_modes/map_mode.dart';
+export 'manager/map_modes/supported_modes.dart';
 
 // Export data classes
 export 'manager/data_classes/basic_mode_class.dart';
