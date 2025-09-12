@@ -48,16 +48,13 @@ class BasicModeClass implements ModeHandler {
     BasicMapMode mode,
   ) async {
     final cls = BasicModeClass._(mode, map);
-    if (mode.trackUserLoc) {
-      await cls.enableLocTracking();
-    } else {
-      await cls.disableLocTracking();
-    }
+    mode.trackUserLoc
+        ? await cls.enableLocTracking()
+        : await cls.disableLocTracking();
     return cls;
   }
 
   /// Logger instance for this class.
-
   final ManagerLogger _logger = ManagerLogger("BasicModeClass");
 
   /// Enables location tracking on the map.
@@ -77,10 +74,16 @@ class BasicModeClass implements ModeHandler {
         enabled: true,
         puckBearingEnabled: enableBearing,
         puckBearing: puckBearing,
+        locationPuck: LocationPuck(
+          locationPuck3D: LocationPuck3D(
+            modelUri: "packages/map_manager/assets/3d_models/extruded_disk.glb",
+          ),
+        ),
       ),
     );
-    _map.setOnMapMoveListener((gestureContext) {
+    _map.setOnMapMoveListener((gestureContext) async {
       mapMoved.value = true;
+      await stopFollowingUserLocation();
     });
     await followUserLocation();
   }
