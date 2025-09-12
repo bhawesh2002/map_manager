@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:map_manager_mapbox_example/app_map.dart';
 import 'package:map_manager_mapbox_example/tracking_test_page.dart';
@@ -26,33 +27,22 @@ class _MapTestingPageState extends State<MapTestingPage> {
 
   final _mapModesMap = <Map<String, dynamic>>[
     {'name': 'Basic Mode', 'config': BasicMapMode(trackUserLoc: true)},
-    {
-      'name': "Location Selection",
-      'config': LocationSelectionMode(maxSelections: 4)
-    },
+    {'name': "Location Selection", 'config': LocSelMode(maxSelections: 4)},
     {
       'name': "Route Mode",
       'config': RouteMode(
-        geojson: {
-          "type": "Feature",
-          "geometry": {
-            "type": "LineString",
-            "coordinates": [
-              [-122.420679, 37.772537],
-              [-122.420247, 37.773245],
-              [-122.419198, 37.773662],
-              [-122.418640, 37.774097],
-              [-122.417961, 37.774357],
-              [-122.417297, 37.774674],
-              [-122.416289, 37.775180],
-              [-122.415389, 37.775596],
-              [-122.414331, 37.776005],
-              [-122.413467, 37.776335]
-            ]
-          },
-          "properties": {}
-        },
-      )
+          route: GeoJSONFeature(GeoJSONLineString([
+        [-122.420679, 37.772537],
+        [-122.420247, 37.773245],
+        [-122.419198, 37.773662],
+        [-122.418640, 37.774097],
+        [-122.417961, 37.774357],
+        [-122.417297, 37.774674],
+        [-122.416289, 37.775180],
+        [-122.415389, 37.775596],
+        [-122.414331, 37.776005],
+        [-122.413467, 37.776335]
+      ])))
     },
     {'name': "Tracking Mode", 'config': 'move'}
   ];

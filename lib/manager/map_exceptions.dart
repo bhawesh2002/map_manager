@@ -1,4 +1,4 @@
-import 'map_mode.dart';
+import 'package:map_manager/map_manager.dart';
 
 class MapModeException implements Exception {
   final String message;

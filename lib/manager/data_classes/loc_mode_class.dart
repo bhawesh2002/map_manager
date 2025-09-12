@@ -4,7 +4,7 @@ import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class LocationModeClass implements ModeHandler {
-  final LocationSelectionMode mode;
+  final LocSelMode mode;
   final MapboxMap _map;
   LocationModeClass(this.mode, this._map);
 
@@ -20,7 +20,7 @@ class LocationModeClass implements ModeHandler {
       pointsNotifier.value.isNotEmpty ? pointsNotifier.value.last : null;
 
   static Future<LocationModeClass> initialize(
-    LocationSelectionMode mode,
+    LocSelMode mode,
     MapboxMap map,
   ) async {
     LocationModeClass cls = LocationModeClass(mode, map);
@@ -43,13 +43,13 @@ class LocationModeClass implements ModeHandler {
   }
 
   Future<void> _addInitialPointAnnotations() async {
-    if (mode.preSelectedLocs != null && mode.preSelectedLocs!.isNotEmpty) {
-      for (var pt in mode.preSelectedLocs!.take(mode.maxSelections).toList()) {
-        await addPoint(pt);
+    if (mode.preselected != null && mode.preselected!.isNotEmpty) {
+      for (var pt in mode.preselected!.take(mode.maxSelections).toList()) {
+        await addPoint(pt.toMbPoint());
       }
 
       // Zoom to the bounding box of pre-selected locations
-      if (mode.preSelectedLocs!.isNotEmpty) {
+      if (mode.preselected!.isNotEmpty) {
         await zoomToBounds();
       }
     }

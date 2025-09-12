@@ -10,6 +10,7 @@ export 'manager/map_manager_mapbox.dart';
 // Export map modes
 export 'manager/map_modes/map_mode.dart';
 export 'manager/map_modes/supported_modes.dart';
+export 'manager/mode_handler.dart';
 
 // Export data classes
 export 'manager/data_classes/basic_mode_class.dart';
@@ -39,3 +40,8 @@ export 'utils/geojson_extensions.dart';
 export 'utils/geolocator_utils.dart';
 export 'utils/manager_logger.dart';
 export 'utils/predefined_layers_props.dart';
+
+export 'manager/map_utils.dart';
+export 'manager/location_update.dart';
+
+export 'manager/map_exceptions.dart';

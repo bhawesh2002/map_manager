@@ -69,8 +69,8 @@ class MapManagerMapbox extends ChangeNotifier {
     _logger.info('Mode changed to Basic Map Mode');
   }
 
-  Future<void> _handleLocSelMode(LocationSelectionMode locSel) async {
-    _mode.ensureMode<LocationSelectionMode>();
+  Future<void> _handleLocSelMode(LocSelMode locSel) async {
+    _mode.ensureMode<LocSelMode>();
     _currentModeHandler = await LocationModeClass.initialize(
       locSel,
       _mapboxMap,

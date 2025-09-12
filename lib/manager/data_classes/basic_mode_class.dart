@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
-import 'package:map_manager/manager/map_mode.dart';
-import 'package:map_manager/manager/map_utils.dart';
-import 'package:map_manager/manager/mode_handler.dart';
-import 'package:map_manager/utils/manager_logger.dart';
+import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 /// A class that manages the basic map mode functionality.

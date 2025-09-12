@@ -1,9 +1,6 @@
-import 'package:map_manager/utils/manager_logger.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-
-import '../map_mode.dart';
-import '../map_utils.dart';
-import '../mode_handler.dart';
+import 'package:map_manager/map_manager.dart';
 
 /// Different styling profiles for route lines.
 ///
@@ -195,19 +192,10 @@ class RouteModeClass implements ModeHandler {
     // This prevents crashes from stale tap listeners when switching modes
     cls._map.setOnMapTapListener((context) {});
 
-    if (cls._routeMode.route != null || cls._routeMode.geojson != null) {
+    if (cls._routeMode.route != null || cls._routeMode.route != null) {
       try {
-        if (cls._routeMode.route != null) {
-          cls._logger.info(
-            "Adding route from LineString with ${cls._routeMode.route!.coordinates.length} coordinates",
-          );
-        } else {
-          cls._logger.info("Adding route from GeoJSON data");
-        }
-        await cls.addLineString(
-          route: cls._routeMode.route,
-          geojson: cls._routeMode.geojson,
-        );
+        final route = cls._routeMode.route!.geometry as GeoJSONLineString;
+        await cls.addLineString(route: route.toMbLineString());
       } catch (e) {
         cls._logger.warning("Error adding route: $e");
       }

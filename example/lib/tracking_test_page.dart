@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:map_manager_mapbox_example/app_map.dart';
 import 'package:map_manager_mapbox_example/sample_data.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 
 class TrackingTestPage extends StatefulWidget {
   const TrackingTestPage({super.key});
@@ -425,18 +428,12 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
   // Mode Management
   Future<void> _activateTrackingMode() async {
     if (_mapManager == null) return;
-
-    await _mapManager!.changeMode(MapMode.tracking(geojson: {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": _availableRoutes[_currentRouteIndex]
-      },
-      "properties": {
-        "name": "Route ${_currentRouteIndex + 1}",
-        "description": "Initial tracking route"
-      }
-    }));
+    await _mapManager!.changeMode(
+      MapMode.tracking(
+          route: GeoJSONFeature(
+        GeoJSONLineString(_availableRoutes[_currentRouteIndex]),
+      )),
+    );
     await _startRouteTracking();
 
     setState(() {
@@ -598,7 +595,8 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
     };
 
     _mapManager!.whenTrackingMode((mode) async {
-      await mode.updateRoute(newRouteGeoJson);
+      await mode
+          .updateRoute(GeoJSONFeature.fromJSON(jsonEncode(newRouteGeoJson)));
       await mode.startTracking();
     });
 

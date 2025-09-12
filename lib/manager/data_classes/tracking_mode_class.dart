@@ -30,7 +30,7 @@ class TrackingModeClass implements ModeHandler {
   bool _routeLayerExists = false;
 
   GeoJSONLineString get plannedRoute =>
-      GeoJSONLineString.fromMap(mode.geojson['geometry']);
+      mode.route!.geometry as GeoJSONLineString;
 
   GeoJSONPoint? get userGeoPoint => userGeoFeature.geometry != null
       ? GeoJSONPoint.fromMap(userGeoFeature.geometry!.toMap())
@@ -404,14 +404,12 @@ class TrackingModeClass implements ModeHandler {
   }
 
   /// Updates the route in real-time with new coordinates
-  Future<void> updateRoute(Map<String, dynamic> newRouteGeoJson) async {
+  Future<void> updateRoute(GeoJSONFeature newRouteGeoJson) async {
     try {
       await stopActiveSourceTracking();
-      mode = mode.copyWith(geojson: newRouteGeoJson);
+      mode = mode.copyWith(route: newRouteGeoJson);
 
-      routeGeoFeature.geometry = GeoJSONLineString.fromMap(
-        newRouteGeoJson['geometry'],
-      );
+      routeGeoFeature.geometry = newRouteGeoJson.geometry as GeoJSONLineString;
       routeGeoFeature.properties != null
           ? routeGeoFeature.properties!['type'] = 'route'
           : routeGeoFeature.properties = {'type': 'route'};
@@ -424,7 +422,7 @@ class TrackingModeClass implements ModeHandler {
         featureCollection.toMap(),
       );
 
-      final newRoute = GeoJSONLineString.fromMap(newRouteGeoJson['geometry']);
+      final newRoute = newRouteGeoJson.geometry as GeoJSONLineString;
       if (newRoute.coordinates.isNotEmpty) {
         final firstPoint = newRoute.coordinates.first;
         await _map.setCamera(
