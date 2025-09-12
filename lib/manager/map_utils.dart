@@ -51,9 +51,7 @@ Future<void> zoomToFitPoints(
   double singlePointZoom = 16.0,
   ManagerLogger? logger,
 }) async {
-  List<Point> mbPoints =
-      points.map((e) => e.toMbPoint()).cast<List<Point>>().toList()
-          as List<Point>;
+  List<Point> mbPoints = points.map((e) => e.toMbPoint()).toList();
   if (mbPoints.isEmpty) return;
 
   // If there's only one point, zoom to that point
