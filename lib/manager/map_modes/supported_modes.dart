@@ -6,6 +6,66 @@ import 'package:map_manager/manager/map_modes/map_mode.dart';
 import 'package:map_manager/utils/enums.dart';
 
 class BasicMapMode extends MapMode {
+  @override
+  TResult when<TResult extends MapMode>({
+    required TResult Function(bool trackUserLoc) basic,
+    required TResult Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )
+    locSel,
+    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )
+    tracking,
+  }) {
+    return basic(trackUserLoc);
+  }
+
+  @override
+  TResult? whenOrNull<TResult extends MapMode>({
+    required TResult? Function(bool trackUserLoc)? basic,
+    required TResult? Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )?
+    locSel,
+    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )?
+    tracking,
+  }) {
+    return basic != null ? basic(trackUserLoc) : null;
+  }
+
+  @override
+  TResult map<TResult extends Object?>({
+    required TResult Function(BasicMapMode value) basic,
+    required TResult Function(LocSelMode value) locationSel,
+    required TResult Function(RouteMode value) route,
+    required TResult Function(TrackingMode value) tracking,
+  }) {
+    return basic(this);
+  }
+
+  @override
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(BasicMapMode value)? basic,
+    TResult? Function(LocSelMode value)? locationSel,
+    TResult? Function(RouteMode value)? route,
+    TResult? Function(TrackingMode value)? tracking,
+  }) {
+    return basic != null ? basic(this) : null as TResult;
+  }
+
   final bool trackUserLoc;
   BasicMapMode({this.trackUserLoc = true}) : super.internal();
 
@@ -28,6 +88,62 @@ class BasicMapMode extends MapMode {
 }
 
 class LocSelMode extends MapMode {
+  @override
+  TResult when<TResult extends MapMode>({
+    required TResult Function(bool trackUserLoc) basic,
+    required TResult Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )
+    locSel,
+    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )
+    tracking,
+  }) => locSel(maxSelections, preselected);
+
+  @override
+  TResult? whenOrNull<TResult extends MapMode>({
+    required TResult? Function(bool trackUserLoc)? basic,
+    required TResult? Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )?
+    locSel,
+    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )?
+    tracking,
+  }) => locSel != null ? locSel(maxSelections, preselected) : null;
+
+  @override
+  TResult map<TResult extends Object?>({
+    required TResult Function(BasicMapMode value) basic,
+    required TResult Function(LocSelMode value) locationSel,
+    required TResult Function(RouteMode value) route,
+    required TResult Function(TrackingMode value) tracking,
+  }) {
+    return locationSel(this);
+  }
+
+  @override
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(BasicMapMode value)? basic,
+    TResult? Function(LocSelMode value)? locationSel,
+    TResult? Function(RouteMode value)? route,
+    TResult? Function(TrackingMode value)? tracking,
+  }) {
+    return locationSel != null ? locationSel(this) : null as TResult;
+  }
+
   final int maxSelections;
   final List<GeoJSONPoint>? preselected;
   LocSelMode({this.maxSelections = 1, this.preselected}) : super.internal();
@@ -57,10 +173,70 @@ class LocSelMode extends MapMode {
 }
 
 class RouteMode extends MapMode {
-  final GeoJSONLineString? route;
+  @override
+  TResult when<TResult extends MapMode>({
+    required TResult Function(bool trackUserLoc) basic,
+    required TResult Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )
+    locSel,
+    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )
+    tracking,
+  }) {
+    return routeMode(route);
+  }
+
+  @override
+  TResult? whenOrNull<TResult extends MapMode>({
+    required TResult? Function(bool trackUserLoc)? basic,
+    required TResult? Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )?
+    locSel,
+    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )?
+    tracking,
+  }) {
+    return routeMode != null ? routeMode(route) : null;
+  }
+
+  @override
+  TResult map<TResult extends Object?>({
+    required TResult Function(BasicMapMode value) basic,
+    required TResult Function(LocSelMode value) locationSel,
+    required TResult Function(RouteMode value) route,
+    required TResult Function(TrackingMode value) tracking,
+  }) {
+    return route(this);
+  }
+
+  @override
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(BasicMapMode value)? basic,
+    TResult? Function(LocSelMode value)? locationSel,
+    TResult? Function(RouteMode value)? route,
+    TResult? Function(TrackingMode value)? tracking,
+  }) {
+    return route != null ? route(this) : null;
+  }
+
+  final GeoJSONFeature? route;
   RouteMode({this.route}) : super.internal();
 
-  RouteMode copyWith({GeoJSONLineString? route}) {
+  RouteMode copyWith({GeoJSONFeature? route}) {
     return RouteMode(route: route ?? this.route);
   }
 
@@ -79,7 +255,67 @@ class RouteMode extends MapMode {
 }
 
 class TrackingMode extends MapMode {
-  final GeoJSONLineString? route;
+  @override
+  TResult when<TResult extends MapMode>({
+    required TResult Function(bool trackUserLoc) basic,
+    required TResult Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )
+    locSel,
+    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )
+    tracking,
+  }) => tracking(route, waypoints, source, displayMode);
+
+  @override
+  TResult? whenOrNull<TResult extends MapMode>({
+    required TResult? Function(bool trackUserLoc)? basic,
+    required TResult? Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )?
+    locSel,
+    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )?
+    tracking,
+  }) {
+    return tracking != null
+        ? tracking(route, waypoints, source, displayMode)
+        : null;
+  }
+
+  @override
+  TResult map<TResult extends Object?>({
+    required TResult Function(BasicMapMode value) basic,
+    required TResult Function(LocSelMode value) locationSel,
+    required TResult Function(RouteMode value) route,
+    required TResult Function(TrackingMode value) tracking,
+  }) {
+    return tracking(this);
+  }
+
+  @override
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(BasicMapMode value)? basic,
+    TResult? Function(LocSelMode value)? locationSel,
+    TResult? Function(RouteMode value)? route,
+    TResult? Function(TrackingMode value)? tracking,
+  }) {
+    return tracking != null ? tracking(this) : null;
+  }
+
+  final GeoJSONFeature? route;
   final List<GeoJSONPoint>? waypoints;
   final RouteTraversalSource source;
   final DisplayMode displayMode;
@@ -91,7 +327,7 @@ class TrackingMode extends MapMode {
   }) : super.internal();
 
   TrackingMode copyWith({
-    GeoJSONLineString? route,
+    GeoJSONFeature? route,
     List<GeoJSONPoint>? waypoints,
     RouteTraversalSource? source,
     DisplayMode? displayMode,

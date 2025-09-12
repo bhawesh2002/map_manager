@@ -1,8 +1,64 @@
 import 'package:geojson_vi/geojson_vi.dart';
-import 'package:map_manager/manager/map_modes/supported_modes.dart';
-import 'package:map_manager/utils/enums.dart';
+import 'package:map_manager/map_manager.dart';
 
-abstract class MapMode {
+mixin _MapModeMixin {
+  TResult when<TResult extends MapMode>({
+    required TResult Function(bool trackUserLoc) basic,
+    required TResult Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )
+    locSel,
+    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )
+    tracking,
+  }) => throw UnimplementedError(
+    "when() not implemented for this MapMode subtype",
+  );
+
+  TResult? whenOrNull<TResult extends MapMode>({
+    required TResult? Function(bool trackUserLoc)? basic,
+    required TResult? Function(
+      int maxSelections,
+      List<GeoJSONPoint>? preselected,
+    )?
+    locSel,
+    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(
+      GeoJSONFeature? route,
+      List<GeoJSONPoint>? waypoints,
+      RouteTraversalSource source,
+      DisplayMode displayMode,
+    )?
+    tracking,
+  }) => throw UnimplementedError(
+    "whenOrNull() not implemented for this MapMode subtype",
+  );
+  TResult map<TResult extends Object?>({
+    required TResult Function(BasicMapMode value) basic,
+    required TResult Function(LocSelMode value) locationSel,
+    required TResult Function(RouteMode value) route,
+    required TResult Function(TrackingMode value) tracking,
+  }) => throw UnimplementedError(
+    "map() not implemented for this MapMode subtype",
+  );
+
+  TResult? mapOrNull<TResult extends Object?>({
+    required TResult? Function(BasicMapMode value)? basic,
+    required TResult? Function(LocSelMode value)? locationSel,
+    required TResult? Function(RouteMode value)? route,
+    required TResult? Function(TrackingMode value)? tracking,
+  }) => throw UnimplementedError(
+    "mapOrNull() not implemented for this MapMode subtype",
+  );
+}
+
+abstract class MapMode with _MapModeMixin {
   MapMode.internal();
 
   factory MapMode.basic({bool trackUserLocation = true}) =>
@@ -13,10 +69,10 @@ abstract class MapMode {
     List<GeoJSONPoint>? preselected,
   }) => LocSelMode(maxSelections: maxSelections, preselected: preselected);
 
-  factory MapMode.route({GeoJSONLineString? route}) => RouteMode(route: route);
+  factory MapMode.route({GeoJSONFeature? route}) => RouteMode(route: route);
 
   factory MapMode.tracking({
-    GeoJSONLineString? route,
+    GeoJSONFeature? route,
     List<GeoJSONPoint>? waypoints,
     RouteTraversalSource source = RouteTraversalSource.user,
     DisplayMode displayMode = DisplayMode.showAll,
@@ -26,4 +82,17 @@ abstract class MapMode {
     source: source,
     displayMode: displayMode,
   );
+}
+
+extension EnsureMapMode on MapMode {
+  bool ensureMode<T extends MapMode>() {
+    if (this is T) return true;
+    throw MapModeException(
+      message: 'Operation not allwoed in $this mode',
+      currentMode: this,
+      expectedMode: this,
+    );
+  }
+
+  bool checkMode<T extends MapMode>() => this is T;
 }
