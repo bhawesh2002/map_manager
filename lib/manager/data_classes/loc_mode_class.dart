@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
@@ -12,10 +11,15 @@ class LocationModeClass implements ModeHandler {
   final ManagerLogger _logger = ManagerLogger('LocationModeClass');
 
   final Map<String, GeoJSONPoint> _selectedPointsMap = {};
-  Map<String, GeoJSONPoint> get selectedPointsMap => _selectedPointsMap;
 
+  Map<String, GeoJSONPoint> get selectedPointsMap => _selectedPointsMap;
   List<GeoJSONPoint> get selectedPoints => _selectedPointsMap.values.toList();
   List<String> get pointIdentifiers => _selectedPointsMap.keys.toList();
+
+  final _featureCollection = GeoJSONFeatureCollection([]);
+
+  static const String _sourceId = 'location-selection-source';
+  static const String _layerId = 'location-selection-layer';
 
   GeoJSONPoint? get lastTapped => _selectedPointsMap.values.isNotEmpty
       ? _selectedPointsMap.values.last
@@ -27,6 +31,7 @@ class LocationModeClass implements ModeHandler {
   ) async {
     LocationModeClass cls = LocationModeClass(mode, map);
     await cls._addDefaultImage();
+    await cls._setupSource();
     cls._map.setOnMapTapListener(cls._onMapTapCallback);
     await cls._addInitialPointAnnotations();
     return cls;
@@ -34,15 +39,46 @@ class LocationModeClass implements ModeHandler {
 
   void _onMapTapCallback(MapContentGestureContext context) async {
     if (selectedPoints.length >= mode.maxSelections) {
-      await removeOldestAnnotation();
+      await removeOldestPoint();
     }
     await addPoint(context.point.toGeojsonPoint(), zoom: true);
+  }
+
+  Future<void> _setupSource() async {
+    await _map.style.addSource(
+      GeoJsonSource(id: _sourceId, data: _featureCollection.toJSON()),
+    );
+
+    await _map.style.addLayer(
+      SymbolLayer(
+        id: _layerId,
+        sourceId: _sourceId,
+        iconImage: 'def-locsel-img',
+        iconOffset: [0.0, -22.0],
+        iconAllowOverlap: true,
+        iconColor: 0xFF0DC8C8,
+      ),
+    );
+  }
+
+  Future<void> _updateSource() async {
+    final features = _selectedPointsMap.entries.map((entry) {
+      return GeoJSONFeature(entry.value, properties: {'id': entry.key});
+    }).toList();
+
+    final featureCollection = GeoJSONFeatureCollection(features);
+
+    await _map.style.setStyleSourceProperty(
+      _sourceId,
+      'data',
+      featureCollection.toJSON(),
+    );
   }
 
   Future<void> _addDefaultImage() async {
     await _map.style.addStyleImage(
       'def-locsel-img',
-      1.0,
+      2.5,
       MbxImage(
         width: MapAssets.selectedLoc.width,
         height: MapAssets.selectedLoc.height,
@@ -62,8 +98,12 @@ class LocationModeClass implements ModeHandler {
               .toList()
               .take(mode.maxSelections)
               .toList()) {
-        await addPoint(pt.value, id: pt.key);
+        _selectedPointsMap.putIfAbsent(pt.key, () => pt.value);
       }
+
+      // Update the source with preselected points
+      await _updateSource();
+
       // Zoom to the bounding box of pre-selected locations
       if (mode.preselected!.isNotEmpty) {
         await zoomToBounds();
@@ -71,41 +111,34 @@ class LocationModeClass implements ModeHandler {
     }
   }
 
+  static int pointsCount = 0;
+
   Future<void> addPoint(
     GeoJSONPoint point, {
     String? id,
-    MapAsset? image,
     bool zoom = false,
-    ByteData? asset,
   }) async {
-    id = id ?? "pointAt_${selectedPoints.length + 1}";
-    if (image != null) {
-      await _map.style
-          .addSource(
-            GeoJsonSource(id: '$id-src', data: GeoJSONFeature(point).toJSON()),
-          )
-          .then((_) {
-            _selectedPointsMap.putIfAbsent(id!, () => point);
-          });
-
-      await _map.style.addStyleImage(
-        '$id-img',
-        1.0,
-        MbxImage(width: image.width, height: image.height, data: image.asset),
-        true,
-        [],
-        [],
-        null,
-      );
-    }
-    await _map.style.addLayer(
-      SymbolLayer(
-        id: '$id-lyr',
-        sourceId: '$id-src',
-        iconImage: image == null ? 'def-locsel-img' : '$id-img',
-      ),
+    id = id ?? "pointAt_$pointsCount";
+    _selectedPointsMap.putIfAbsent(id, () {
+      pointsCount++;
+      return point;
+    });
+    _logger.info(
+      "${_selectedPointsMap.length} ${_selectedPointsMap.keys.toList()}",
     );
-    zoom ? await zoomToBounds() : null;
+    await _updateSource();
+
+    if (zoom) {
+      await zoomToBounds();
+    }
+  }
+
+  Future<void> removeOldestPoint() async {
+    if (_selectedPointsMap.isNotEmpty) {
+      final oldestKey = _selectedPointsMap.keys.first;
+      _selectedPointsMap.remove(oldestKey);
+      await _updateSource();
+    }
   }
 
   Future<void> removePoint(String identifier) async {
@@ -113,19 +146,12 @@ class LocationModeClass implements ModeHandler {
       throw Exception('Specified Identifier Was Not Found');
     }
     _selectedPointsMap.remove(identifier);
-    await _map.style.removeStyleLayer('$identifier-lyr');
-    await _map.style.removeStyleSource('$identifier-src');
-  }
-
-  Future<void> removeOldestAnnotation() async {
-    final identifier = _selectedPointsMap.keys.last;
-    await removePoint(identifier);
+    await _updateSource();
   }
 
   Future<void> clearAllAnnotations() async {
-    for (var key in pointIdentifiers) {
-      await removePoint(key);
-    }
+    _selectedPointsMap.clear();
+    await _updateSource();
   }
 
   /// Zooms the map camera to fit all selected points within the viewport.
@@ -153,7 +179,16 @@ class LocationModeClass implements ModeHandler {
   Future<void> dispose() async {
     _logger.info("Cleaning Location Mode Data");
     _map.setOnMapTapListener(null);
-    await clearAllAnnotations();
+
+    // Remove layer and source
+    try {
+      await _map.style.removeStyleLayer(_layerId);
+      await _map.style.removeStyleSource(_sourceId);
+    } catch (e) {
+      _logger.warning("Error removing style elements: $e");
+    }
+
+    _selectedPointsMap.clear();
     _logger.info("Location Mode Data Cleared");
   }
 }
