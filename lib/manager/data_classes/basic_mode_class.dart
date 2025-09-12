@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -74,17 +75,26 @@ class BasicModeClass implements ModeHandler {
         enabled: true,
         puckBearingEnabled: enableBearing,
         puckBearing: puckBearing,
-        locationPuck: LocationPuck(
-          locationPuck3D: LocationPuck3D(
-            modelUri: "packages/map_manager/assets/3d_models/extruded_disk.glb",
-          ),
-        ),
       ),
     );
-    _map.setOnMapMoveListener((gestureContext) async {
-      mapMoved.value = true;
-      await stopFollowingUserLocation();
+    _map.setOnMapMoveListener(onMapMoveClbk);
+    _map.setOnMapLongTapListener(onMapLongTapClbk);
+    await followUserLocation();
+  }
+
+  Timer? _mapMoveTimer;
+
+  void onMapMoveClbk(MapContentGestureContext gestureContext) async {
+    mapMoved.value = true;
+    _mapMoveTimer?.cancel();
+    _mapMoveTimer = Timer(Duration(seconds: 2), () {
+      mapMoved.value = false;
     });
+    await stopFollowingUserLocation();
+  }
+
+  void onMapLongTapClbk(MapContentGestureContext gestureContext) async {
+    mapMoved.value = false;
     await followUserLocation();
   }
 
@@ -101,14 +111,10 @@ class BasicModeClass implements ModeHandler {
   /// Subscription to the location updates stream.
   StreamSubscription? _locStreamSub;
 
-  /// Stream controller for broadcasting location updates.
-  StreamController<Point>? _streamController;
-
-  /// The user's last known location.
-  Point? _lastKnownLoc;
+  GeoJSONPoint? _lastKnownLoc;
 
   /// Getter for the user's last known location.
-  Point? get lastKnownLoc => _lastKnownLoc;
+  GeoJSONPoint? get lastKnownLoc => _lastKnownLoc;
 
   /// Tracks whether the user has manually moved the map.
   ///
@@ -153,15 +159,11 @@ class BasicModeClass implements ModeHandler {
     }
     if (perm == geolocator.LocationPermission.whileInUse ||
         perm == geolocator.LocationPermission.always) {
-      _locStreamSub = geolocator.Geolocator.getPositionStream().listen((
+      _locStreamSub ??= geolocator.Geolocator.getPositionStream().listen((
         position,
       ) async {
-        _streamController = StreamController.broadcast();
-        final point = Point(
-          coordinates: Position(position.longitude, position.latitude),
-        );
+        final point = position.toLatLng().toGeojsonPoint();
         _lastKnownLoc = point;
-        _streamController!.sink.add(point);
         followingUserLoc.value = true;
         await moveMapCamTo(_map, point);
       });
@@ -183,8 +185,6 @@ class BasicModeClass implements ModeHandler {
   Future<void> stopFollowingUserLocation() async {
     await _locStreamSub?.cancel();
     _locStreamSub = null;
-    await _streamController?.close();
-    _streamController = null;
     followingUserLoc.value = false;
   }
 
@@ -205,6 +205,8 @@ class BasicModeClass implements ModeHandler {
   Future<void> dispose() async {
     await disableLocTracking();
     _map.setOnMapMoveListener(null);
+    _map.setOnMapLongTapListener(null);
+    _mapMoveTimer?.cancel();
     _logger.info("Basic Mode data cleared");
   }
 }
