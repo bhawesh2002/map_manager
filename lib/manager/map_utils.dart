@@ -2,9 +2,13 @@ import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-Future<void> moveMapCamTo(MapboxMap map, Point point, {int? duration}) async {
+Future<void> moveMapCamTo(
+  MapboxMap map,
+  GeoJSONPoint point, {
+  int? duration,
+}) async {
   await map.flyTo(
-    CameraOptions(center: point, zoom: 16),
+    CameraOptions(center: point.toMbPoint(), zoom: 16),
     MapAnimationOptions(duration: duration ?? 500),
   );
 }
@@ -54,7 +58,7 @@ Future<void> zoomToFitPoints(
 
   // If there's only one point, zoom to that point
   if (mbPoints.length == 1) {
-    await moveMapCamTo(map, mbPoints.first);
+    await moveMapCamTo(map, points.first);
     return;
   }
 
