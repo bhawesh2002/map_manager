@@ -11,7 +11,7 @@ class BasicMapMode extends MapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
     required TResult Function(GeoJSONFeature? route) routeMode,
@@ -31,7 +31,7 @@ class BasicMapMode extends MapMode {
     required TResult? Function(bool trackUserLoc)? basic,
     required TResult? Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
     required TResult? Function(GeoJSONFeature? route)? routeMode,
@@ -88,12 +88,26 @@ class BasicMapMode extends MapMode {
 }
 
 class LocSelMode extends MapMode {
+  final int maxSelections;
+  final Map<String, GeoJSONPoint>? preselected;
+  LocSelMode({this.maxSelections = 1, this.preselected}) : super.internal();
+
+  LocSelMode copyWith({
+    int? maxSelections,
+    Map<String, GeoJSONPoint>? preselected,
+  }) {
+    return LocSelMode(
+      maxSelections: maxSelections ?? this.maxSelections,
+      preselected: preselected ?? this.preselected,
+    );
+  }
+
   @override
   TResult when<TResult extends MapMode>({
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
     required TResult Function(GeoJSONFeature? route) routeMode,
@@ -111,7 +125,7 @@ class LocSelMode extends MapMode {
     required TResult? Function(bool trackUserLoc)? basic,
     required TResult? Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
     required TResult? Function(GeoJSONFeature? route)? routeMode,
@@ -144,17 +158,6 @@ class LocSelMode extends MapMode {
     return locationSel != null ? locationSel(this) : null as TResult;
   }
 
-  final int maxSelections;
-  final List<GeoJSONPoint>? preselected;
-  LocSelMode({this.maxSelections = 1, this.preselected}) : super.internal();
-
-  LocSelMode copyWith({int? maxSelections, List<GeoJSONPoint>? preselected}) {
-    return LocSelMode(
-      maxSelections: maxSelections ?? this.maxSelections,
-      preselected: preselected ?? this.preselected,
-    );
-  }
-
   @override
   String toString() =>
       'LocSelMode(maxSelections: $maxSelections, preselected: $preselected)';
@@ -178,7 +181,7 @@ class RouteMode extends MapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
     required TResult Function(GeoJSONFeature? route) routeMode,
@@ -198,7 +201,7 @@ class RouteMode extends MapMode {
     required TResult? Function(bool trackUserLoc)? basic,
     required TResult? Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
     required TResult? Function(GeoJSONFeature? route)? routeMode,
@@ -260,7 +263,7 @@ class TrackingMode extends MapMode {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
     required TResult Function(GeoJSONFeature? route) routeMode,
@@ -278,7 +281,7 @@ class TrackingMode extends MapMode {
     required TResult? Function(bool trackUserLoc)? basic,
     required TResult? Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
     required TResult? Function(GeoJSONFeature? route)? routeMode,

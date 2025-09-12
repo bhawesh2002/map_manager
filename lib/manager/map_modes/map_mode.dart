@@ -6,7 +6,7 @@ mixin _MapModeMixin {
     required TResult Function(bool trackUserLoc) basic,
     required TResult Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
     required TResult Function(GeoJSONFeature? route) routeMode,
@@ -25,7 +25,7 @@ mixin _MapModeMixin {
     required TResult? Function(bool trackUserLoc)? basic,
     required TResult? Function(
       int maxSelections,
-      List<GeoJSONPoint>? preselected,
+      Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
     required TResult? Function(GeoJSONFeature? route)? routeMode,
@@ -66,7 +66,7 @@ abstract class MapMode with _MapModeMixin {
 
   factory MapMode.locSel({
     int maxSelections = 1,
-    List<GeoJSONPoint>? preselected,
+    Map<String, GeoJSONPoint>? preselected,
   }) => LocSelMode(maxSelections: maxSelections, preselected: preselected);
 
   factory MapMode.route({GeoJSONFeature? route}) => RouteMode(route: route);
