@@ -32,7 +32,7 @@ class RouteCalculationResult {
 void routeCalculationIsolate(RouteCalculationMessage message) {
   try {
     // Convert the user's location to GeoJSON point
-    final userLocation = message.update.location.toGeojsonPoint();
+    final userLocation = message.update.location;
 
     // Create GeoJSON LineString from the provided coordinates
     final geoRoute = GeoJSONLineString(message.routeCoordinates);

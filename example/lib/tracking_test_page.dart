@@ -140,7 +140,7 @@ class _TrackingTestPageState extends State<TrackingTestPage> {
                 valueListenable: _simulator!.locationNotifier,
                 builder: (context, locUpdate, child) {
                   return Text(
-                    'Simulated Position: ${locUpdate!.location.coordinates.lng.toStringAsFixed(4)}, ${locUpdate.location.coordinates.lat.toStringAsFixed(4)}',
+                    'Simulated Position: ${locUpdate!.location.coordinates[0].toStringAsFixed(4)}, ${locUpdate.location.coordinates[1].toStringAsFixed(4)}',
                     style: const TextStyle(fontSize: 12, color: Colors.blue),
                   );
                 },

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../manager/location_update.dart';
 
@@ -27,8 +28,10 @@ class LocationSimulator {
     this.updateInterval = const Duration(milliseconds: 200),
   }) {
     // Ensure route has at least 2 points
-    assert(route.coordinates.length >= 2,
-        "Route must have at least 2 coordinates for simulation");
+    assert(
+      route.coordinates.length >= 2,
+      "Route must have at least 2 coordinates for simulation",
+    );
   }
 
   /// Start the location simulation
@@ -42,7 +45,10 @@ class LocationSimulator {
     // Create initial location
     if (route.coordinates.isNotEmpty) {
       locationNotifier.value = LocationUpdate(
-        location: Point(coordinates: route.coordinates.first),
+        location: GeoJSONPoint([
+          route.coordinates.first.lng.toDouble(),
+          route.coordinates.first.lat.toDouble(),
+        ]),
         lastUpdated: DateTime.now(),
       );
     }
@@ -74,7 +80,10 @@ class LocationSimulator {
 
     // Create and emit location update
     final update = LocationUpdate(
-      location: Point(coordinates: route.coordinates[_currentIndex]),
+      location: GeoJSONPoint([
+        route.coordinates[_currentIndex].lng.toDouble(),
+        route.coordinates[_currentIndex].lat.toDouble(),
+      ]),
       lastUpdated: DateTime.now(),
     );
 

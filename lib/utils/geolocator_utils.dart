@@ -27,7 +27,7 @@ class GeolocatorUtils {
       (position) {
         _streamController.sink.add(position);
         positionValueNotifier.value = LocationUpdate(
-          location: position.mapboxPoint,
+          location: position.geojsonPoint,
           lastUpdated: DateTime.now(),
         );
       },
