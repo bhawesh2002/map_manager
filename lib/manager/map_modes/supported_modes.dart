@@ -6,36 +6,36 @@ import 'package:map_manager/manager/map_modes/map_mode.dart';
 import 'package:map_manager/utils/enums.dart';
 
 class BasicMapMode extends MapMode {
-  final bool trackUserLocl;
-  BasicMapMode(this.trackUserLocl) : super.internal();
+  final bool trackUserLoc;
+  BasicMapMode({this.trackUserLoc = true}) : super.internal();
 
-  BasicMapMode copyWith({bool? trackUserLocl}) {
-    return BasicMapMode(trackUserLocl ?? this.trackUserLocl);
+  BasicMapMode copyWith({bool? trackUserLoc}) {
+    return BasicMapMode(trackUserLoc: trackUserLoc ?? this.trackUserLoc);
   }
 
   @override
-  String toString() => 'BasicMapMode(trackUserLocl: $trackUserLocl)';
+  String toString() => 'BasicMapMode(trackUserLoc: $trackUserLoc)';
 
   @override
   bool operator ==(covariant BasicMapMode other) {
     if (identical(this, other)) return true;
 
-    return other.trackUserLocl == trackUserLocl;
+    return other.trackUserLoc == trackUserLoc;
   }
 
   @override
-  int get hashCode => trackUserLocl.hashCode;
+  int get hashCode => trackUserLoc.hashCode;
 }
 
 class LocSelMode extends MapMode {
   final int maxSelections;
   final List<GeoJSONPoint>? preselected;
-  LocSelMode(this.maxSelections, this.preselected) : super.internal();
+  LocSelMode({this.maxSelections = 1, this.preselected}) : super.internal();
 
   LocSelMode copyWith({int? maxSelections, List<GeoJSONPoint>? preselected}) {
     return LocSelMode(
-      maxSelections ?? this.maxSelections,
-      preselected ?? this.preselected,
+      maxSelections: maxSelections ?? this.maxSelections,
+      preselected: preselected ?? this.preselected,
     );
   }
 
@@ -58,10 +58,10 @@ class LocSelMode extends MapMode {
 
 class RouteMode extends MapMode {
   final GeoJSONLineString? route;
-  RouteMode(this.route) : super.internal();
+  RouteMode({this.route}) : super.internal();
 
   RouteMode copyWith({GeoJSONLineString? route}) {
-    return RouteMode(route ?? this.route);
+    return RouteMode(route: route ?? this.route);
   }
 
   @override
@@ -83,8 +83,12 @@ class TrackingMode extends MapMode {
   final List<GeoJSONPoint>? waypoints;
   final RouteTraversalSource source;
   final DisplayMode displayMode;
-  TrackingMode(this.route, this.waypoints, this.source, this.displayMode)
-    : super.internal();
+  TrackingMode({
+    this.route,
+    this.waypoints,
+    this.source = RouteTraversalSource.user,
+    this.displayMode = DisplayMode.showAll,
+  }) : super.internal();
 
   TrackingMode copyWith({
     GeoJSONLineString? route,
@@ -93,10 +97,10 @@ class TrackingMode extends MapMode {
     DisplayMode? displayMode,
   }) {
     return TrackingMode(
-      route ?? this.route,
-      waypoints ?? this.waypoints,
-      source ?? this.source,
-      displayMode ?? this.displayMode,
+      route: route ?? this.route,
+      waypoints: waypoints ?? this.waypoints,
+      source: source ?? this.source,
+      displayMode: displayMode ?? this.displayMode,
     );
   }
 
