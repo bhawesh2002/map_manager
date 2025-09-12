@@ -7,7 +7,9 @@ class ManagerLogger {
 
   void log(Object message, {Severity level = Severity.info}) {
     if (kDebugMode) {
-      print("${level.name}:${DateTime.now().toIso8601String()}:$name:$message");
+      print(
+        "MapManager: ${level.name}:${DateTime.now().toIso8601String()}:$name:$message",
+      );
     }
   }
 
