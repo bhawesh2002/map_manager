@@ -13,7 +13,7 @@ class MapTestingPage extends StatefulWidget {
 
 class _MapTestingPageState extends State<MapTestingPage> {
   MapManagerMapbox? _mapManager;
-  MapMode _currentMode = MapMode.basic();
+  String _currentModeType = 'Location Selection';
 
   void _onMapCreated(manager) {
     _mapManager = manager;
@@ -80,7 +80,7 @@ class _MapTestingPageState extends State<MapTestingPage> {
                         spacing: 6,
                         runSpacing: 6,
                         children: _mapModesMap.map((preset) {
-                          final isSelected = preset['config'] == _currentMode;
+                          final isSelected = preset['name'] == _currentModeType;
                           return GestureDetector(
                             onTap: () {
                               if (preset['name'] == "Tracking Mode") {
@@ -90,9 +90,9 @@ class _MapTestingPageState extends State<MapTestingPage> {
                                 return;
                               } else {
                                 setState(() {
-                                  _currentMode = preset['config'];
+                                  _currentModeType = preset['name'];
                                 });
-                                _changeMode(_currentMode);
+                                _changeMode(preset['config']);
                               }
                             },
                             child: Container(
