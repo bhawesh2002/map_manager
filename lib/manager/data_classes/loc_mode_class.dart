@@ -21,6 +21,8 @@ class LocationModeClass implements ModeHandler {
   static const String _sourceId = 'location-selection-source';
   static const String _layerId = 'location-selection-layer';
 
+  String get defImageId => 'def-locsel-img';
+
   GeoJSONPoint? get lastTapped => _selectedPointsMap.values.isNotEmpty
       ? _selectedPointsMap.values.last
       : null;
@@ -53,7 +55,7 @@ class LocationModeClass implements ModeHandler {
       SymbolLayer(
         id: _layerId,
         sourceId: _sourceId,
-        iconImage: 'def-locsel-img',
+        iconImage: defImageId,
         iconOffset: [0.0, -22.0],
         iconAllowOverlap: true,
         iconColor: 0xFF0DC8C8,
@@ -77,14 +79,14 @@ class LocationModeClass implements ModeHandler {
 
   Future<void> _addDefaultImage() async {
     await _map.style.addStyleImage(
-      'def-locsel-img',
+      defImageId,
       2.5,
       MbxImage(
         width: MapAssets.selectedLoc.width,
         height: MapAssets.selectedLoc.height,
         data: MapAssets.selectedLoc.asset,
       ),
-      true,
+      true, //sdf as true does not retains original png colors
       [],
       [],
       null,
