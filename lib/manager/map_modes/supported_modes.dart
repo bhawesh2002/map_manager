@@ -14,7 +14,8 @@ class BasicMapMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
-    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
+    routeMode,
     required TResult Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -34,7 +35,8 @@ class BasicMapMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
-    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
+    routeMode,
     required TResult? Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -110,7 +112,8 @@ class LocSelMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
-    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
+    routeMode,
     required TResult Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -128,7 +131,8 @@ class LocSelMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
-    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
+    routeMode,
     required TResult? Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -176,6 +180,15 @@ class LocSelMode extends MapMode {
 }
 
 class RouteMode extends MapMode {
+  final Map<String, GeoJSONFeature>? predefinedRoutes;
+  RouteMode({this.predefinedRoutes}) : super.internal();
+
+  RouteMode copyWith({Map<String, GeoJSONFeature>? predefinedRoutes}) {
+    return RouteMode(
+      predefinedRoutes: predefinedRoutes ?? this.predefinedRoutes,
+    );
+  }
+
   @override
   TResult when<TResult extends MapMode>({
     required TResult Function(bool trackUserLoc) basic,
@@ -184,7 +197,8 @@ class RouteMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
-    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
+    routeMode,
     required TResult Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -193,7 +207,7 @@ class RouteMode extends MapMode {
     )
     tracking,
   }) {
-    return routeMode(route);
+    return routeMode(predefinedRoutes);
   }
 
   @override
@@ -204,7 +218,8 @@ class RouteMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
-    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
+    routeMode,
     required TResult? Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -213,7 +228,7 @@ class RouteMode extends MapMode {
     )?
     tracking,
   }) {
-    return routeMode != null ? routeMode(route) : null;
+    return routeMode != null ? routeMode(predefinedRoutes) : null;
   }
 
   @override
@@ -236,25 +251,18 @@ class RouteMode extends MapMode {
     return route != null ? route(this) : null;
   }
 
-  final GeoJSONFeature? route;
-  RouteMode({this.route}) : super.internal();
-
-  RouteMode copyWith({GeoJSONFeature? route}) {
-    return RouteMode(route: route ?? this.route);
-  }
-
   @override
-  String toString() => 'RouteMode(route: $route)';
+  String toString() => 'RouteMode(route: $predefinedRoutes)';
 
   @override
   bool operator ==(covariant RouteMode other) {
     if (identical(this, other)) return true;
 
-    return other.route == route;
+    return other.predefinedRoutes == predefinedRoutes;
   }
 
   @override
-  int get hashCode => route.hashCode;
+  int get hashCode => predefinedRoutes.hashCode;
 }
 
 class TrackingMode extends MapMode {
@@ -266,7 +274,8 @@ class TrackingMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
-    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
+    routeMode,
     required TResult Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -284,7 +293,8 @@ class TrackingMode extends MapMode {
       Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
-    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
+    routeMode,
     required TResult? Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,

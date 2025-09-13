@@ -9,7 +9,8 @@ mixin _MapModeMixin {
       Map<String, GeoJSONPoint>? preselected,
     )
     locSel,
-    required TResult Function(GeoJSONFeature? route) routeMode,
+    required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
+    routeMode,
     required TResult Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -28,7 +29,8 @@ mixin _MapModeMixin {
       Map<String, GeoJSONPoint>? preselected,
     )?
     locSel,
-    required TResult? Function(GeoJSONFeature? route)? routeMode,
+    required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
+    routeMode,
     required TResult? Function(
       GeoJSONFeature? route,
       List<GeoJSONPoint>? waypoints,
@@ -69,7 +71,8 @@ abstract class MapMode with _MapModeMixin {
     Map<String, GeoJSONPoint>? preselected,
   }) => LocSelMode(maxSelections: maxSelections, preselected: preselected);
 
-  factory MapMode.route({GeoJSONFeature? route}) => RouteMode(route: route);
+  factory MapMode.route({Map<String, GeoJSONFeature>? predefinedRoutes}) =>
+      RouteMode(predefinedRoutes: predefinedRoutes);
 
   factory MapMode.tracking({
     GeoJSONFeature? route,
