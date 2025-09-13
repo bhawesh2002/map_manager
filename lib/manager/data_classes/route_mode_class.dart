@@ -195,31 +195,6 @@ class RouteModeClass implements ModeHandler {
           lineMetrics: true,
         ),
       );
-
-      await _map.style.addLayer(
-        LineLayer(
-          id: _routeLayerId,
-          sourceId: _routeSourceId,
-          lineWidth: 12.0,
-          lineCap: LineCap.ROUND,
-          lineJoin: LineJoin.ROUND,
-          lineOpacity: 0.95,
-          lineGradientExpression: [
-            'interpolate',
-            ['linear'],
-            ['line-progress'],
-            0.0,
-            "#FF1493",
-            1.0,
-            "#6A5ACD",
-          ],
-          lineBlur: 0.0,
-          lineBorderColor: 0xFFFFFFFF,
-          lineBorderWidth: 2.0,
-
-          lineZOffset: 0.0,
-        ),
-      );
     } catch (e) {
       _logger.severe("_setupSource(): $e");
     }
@@ -286,11 +261,23 @@ class RouteModeClass implements ModeHandler {
       identifier ??= 'route-$addCount';
       route.properties ??= {};
       route.properties!['active'] = setActive;
+      route.properties!['route_id'] = identifier;
       _addedRoutesMap.putIfAbsent(identifier, () {
         addCount++;
         return route;
       });
       await _updateRouteSource();
+      await _map.style.addLayer(
+        LineLayer(
+          id: _routeLayerId + identifier,
+          sourceId: _routeSourceId,
+          filter: [
+            "==",
+            ["get", "route_id"],
+            identifier,
+          ],
+        ),
+      );
       await zoomToRoute();
     } catch (e) {
       _logger.warning("addLineString(): $e");
@@ -342,6 +329,7 @@ class RouteModeClass implements ModeHandler {
     if (addedRoutesId.contains(identifier)) {
       try {
         _addedRoutesMap.remove(identifier);
+        await _map.style.removeStyleLayer(_routeLayerId + identifier);
         await _updateRouteSource();
       } catch (e) {
         _logger.warning("Error removing route layer/source: $e");
@@ -366,7 +354,6 @@ class RouteModeClass implements ModeHandler {
   }
 
   Future<void> _removeSource() async {
-    await _map.style.removeStyleLayer(_routeLayerId);
     await _map.style.removeStyleSource(_routeSourceId);
   }
 
