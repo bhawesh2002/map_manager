@@ -262,7 +262,7 @@ class RouteModeClass implements ModeHandler {
     try {
       identifier ??= 'route-$addCount';
       route.properties ??= {};
-      route.properties!['active'] = true;
+      route.properties!['active'] = setActive;
       route.properties!['route_id'] = identifier;
       _addedRoutesMap.putIfAbsent(identifier, () {
         addCount++;
@@ -407,20 +407,18 @@ class RouteModeClass implements ModeHandler {
   ///
   /// Note: This method does nothing if no route is currently set.
   Future<void> zoomToRoute({
+    GeoJSONLineString? route,
     double paddingPixels = 50.0,
     int animationDuration = 1000,
   }) async {
-    if (activeRoute == null || activeRoute!.coordinates.isEmpty) return;
-
-    // Convert route coordinates to Points for utility function
-    // final List<Point> routePoints = route!.coordinates
-    //     .map((coordinate) => Point(coordinates: coordinate))
-    //     .toList();
-
+    if (route == null &&
+        (activeRoute == null || activeRoute!.coordinates.isEmpty)) {
+      return;
+    }
     // Use shared utility for consistent camera behavior across modes
     await zoomToFitPoints(
       _map,
-      activeRoute!.points,
+      route?.points ?? activeRoute!.points,
       paddingPixels: paddingPixels,
       animationDuration: animationDuration,
       logger: _logger,
@@ -454,8 +452,6 @@ class RouteModeClass implements ModeHandler {
   Future<void> dispose() async {
     _logger.info("Cleaning Route Mode Data");
 
-    // Clear tap listener to prevent crashes from stale handlers
-    // This is critical for preventing "No manager found" errors
     _map.setOnMapTapListener(null);
 
     // Remove all route visualizations
