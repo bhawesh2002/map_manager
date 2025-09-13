@@ -101,12 +101,17 @@ class RouteModeClass implements ModeHandler {
   /// Private constructor to enforce factory initialization pattern.
   RouteModeClass._(this._routeMode, this._map);
 
+  final Map<String, GeoJSONFeature> _addedRoutesMap = {};
+
+  List<String> get addedRoutesId => _addedRoutesMap.keys.toList();
+
   /// The currently active route stored as a GeoJSONLineString.
   ///
   /// This is populated when a route is successfully added, either from
   /// a LineString input or extracted from GeoJSON data. It's used for
   /// camera operations and waypoint placement.
-  final _routeFeatureCollection = GeoJSONFeatureCollection([]);
+  GeoJSONFeatureCollection get _routeFeatureCollection =>
+      GeoJSONFeatureCollection([..._addedRoutesMap.values]);
 
   /// Unique identifier for the GeoJSON source containing route data.
   ///
@@ -118,20 +123,23 @@ class RouteModeClass implements ModeHandler {
   ///
   /// The layer references the GeoJSON source and applies styling
   /// including gradients, line width, and border effects.
-  static const String _routeLayerId = 'route-layer';
+  static String get _routeLayerId => 'route-layer';
 
   /// Gets the currently active route as a LineString.
   ///
   /// Returns `null` if no route is currently set. This getter provides
   /// access to route coordinates for camera operations and analysis.
-  GeoJSONLineString? get route =>
-      _routeFeatureCollection.features.firstWhere((f) {
-            if (f!.properties!.containsKey('active')) {
-              return true;
-            }
-            return false;
-          }, orElse: () => null)?.geometry
-          as GeoJSONLineString;
+  GeoJSONLineString? get activeRoute {
+    try {
+      return _routeFeatureCollection.features
+              .where((f) => f?.properties?['active'] == true)
+              .firstOrNull
+              ?.geometry
+          as GeoJSONLineString?;
+    } catch (e) {
+      return null;
+    }
+  }
 
   List<GeoJSONLineString> get allRoutes => _routeFeatureCollection.features
       .map((e) => e?.geometry as GeoJSONLineString)
@@ -166,8 +174,10 @@ class RouteModeClass implements ModeHandler {
     cls._map.setOnMapTapListener((context) {});
     try {
       await cls._setupSource();
-      if (cls._routeMode.route != null) {
-        await cls.addLineString(cls._routeMode.route!);
+      if (cls._routeMode.predefinedRoutes != null) {
+        for (var rt in mode.predefinedRoutes!.entries) {
+          await cls.addLineString(rt.value, identifier: rt.key);
+        }
       }
     } catch (e) {
       cls._logger.warning("Error adding route: $e");
@@ -214,6 +224,8 @@ class RouteModeClass implements ModeHandler {
       _logger.severe("_setupSource(): $e");
     }
   }
+
+  static int addCount = 0;
 
   /// Creates and displays a route using LineLayer and GeoJsonSource.
   ///
@@ -267,17 +279,34 @@ class RouteModeClass implements ModeHandler {
   /// Throws: Rethrows any critical errors that prevent route creation.
   Future<void> addLineString(
     GeoJSONFeature route, {
+    String? identifier,
     bool setActive = false,
   }) async {
     try {
+      identifier ??= 'route-$addCount';
       route.properties ??= {};
       route.properties!['active'] = setActive;
-      _routeFeatureCollection.features.add(route);
+      _addedRoutesMap.putIfAbsent(identifier, () {
+        addCount++;
+        return route;
+      });
       await _updateRouteSource();
       await zoomToRoute();
     } catch (e) {
       _logger.warning("addLineString(): $e");
       rethrow;
+    }
+  }
+
+  Future<void> setActiveRoute(String identifier) async {
+    if (addedRoutesId.contains(identifier)) {
+      for (var route in _addedRoutesMap.values) {
+        route.properties?['active'] = false;
+      }
+      _addedRoutesMap[identifier]?.properties?['active'] = true;
+      await _updateRouteSource();
+    } else {
+      throw Exception("Specified identifier was not found");
     }
   }
 
@@ -309,15 +338,16 @@ class RouteModeClass implements ModeHandler {
   ///
   /// Note: This method does not remove waypoint markers. Use [dispose]
   /// for complete cleanup including waypoints.
-  Future<void> removeRoute() async {
-    if (allRoutes.isNotEmpty) {
-      // Remove the line layer and source
+  Future<void> removeRoute(String identifier) async {
+    if (addedRoutesId.contains(identifier)) {
       try {
-        await _map.style.removeStyleLayer(_routeLayerId);
-        await _map.style.removeStyleSource(_routeSourceId);
+        _addedRoutesMap.remove(identifier);
+        await _updateRouteSource();
       } catch (e) {
         _logger.warning("Error removing route layer/source: $e");
       }
+    } else {
+      throw Exception("Specified identifier was not found");
     }
   }
 
@@ -330,7 +360,14 @@ class RouteModeClass implements ModeHandler {
   /// Future implementations may extend this to handle multiple
   /// concurrent routes with different styling or purposes.
   Future<void> removeAllRoutes() async {
-    await removeRoute();
+    for (var id in addedRoutesId) {
+      await removeRoute(id);
+    }
+  }
+
+  Future<void> _removeSource() async {
+    await _map.style.removeStyleLayer(_routeLayerId);
+    await _map.style.removeStyleSource(_routeSourceId);
   }
 
   /// Zooms the map camera to fit the entire route within the viewport.
@@ -366,7 +403,7 @@ class RouteModeClass implements ModeHandler {
     double paddingPixels = 50.0,
     int animationDuration = 1000,
   }) async {
-    if (route == null || route!.coordinates.isEmpty) return;
+    if (activeRoute == null || activeRoute!.coordinates.isEmpty) return;
 
     // Convert route coordinates to Points for utility function
     // final List<Point> routePoints = route!.coordinates
@@ -376,7 +413,7 @@ class RouteModeClass implements ModeHandler {
     // Use shared utility for consistent camera behavior across modes
     await zoomToFitPoints(
       _map,
-      route!.points,
+      activeRoute!.points,
       paddingPixels: paddingPixels,
       animationDuration: animationDuration,
       logger: _logger,
@@ -416,6 +453,7 @@ class RouteModeClass implements ModeHandler {
 
     // Remove all route visualizations
     await removeAllRoutes();
+    await _removeSource();
 
     _logger.info('Route Mode Data Cleared');
   }
