@@ -13,7 +13,7 @@ class MapTestingPage extends StatefulWidget {
 
 class _MapTestingPageState extends State<MapTestingPage> {
   MapManagerMapbox? _mapManager;
-  String _currentModeType = 'Location Selection';
+  String _currentModeType = 'Basic Mode';
 
   void _onMapCreated(manager) {
     _mapManager = manager;
@@ -30,19 +30,31 @@ class _MapTestingPageState extends State<MapTestingPage> {
     {'name': "Location Selection", 'config': LocSelMode(maxSelections: 4)},
     {
       'name': "Route Mode",
-      'config': RouteMode(
-          route: GeoJSONFeature(GeoJSONLineString([
-        [-122.420679, 37.772537],
-        [-122.420247, 37.773245],
-        [-122.419198, 37.773662],
-        [-122.418640, 37.774097],
-        [-122.417961, 37.774357],
-        [-122.417297, 37.774674],
-        [-122.416289, 37.775180],
-        [-122.415389, 37.775596],
-        [-122.414331, 37.776005],
-        [-122.413467, 37.776335]
-      ])))
+      'config': RouteMode(predefinedRoutes: {
+        'predefined': GeoJSONFeature(
+            properties: {
+              "styling": {
+                "line-color": "#FF5722",
+                "line-width": 6.0,
+                "line-opacity": 0.9,
+                "line-cap": "round",
+                "line-join": "round",
+                "line-dasharray": [5.0, 3.0]
+              }
+            },
+            GeoJSONLineString([
+              [-122.420679, 37.772537],
+              [-122.420247, 37.773245],
+              [-122.419198, 37.773662],
+              [-122.418640, 37.774097],
+              [-122.417961, 37.774357],
+              [-122.417297, 37.774674],
+              [-122.416289, 37.775180],
+              [-122.415389, 37.775596],
+              [-122.414331, 37.776005],
+              [-122.413467, 37.776335]
+            ]))
+      })
     },
     {'name': "Tracking Mode", 'config': 'move'}
   ];
