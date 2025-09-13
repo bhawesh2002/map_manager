@@ -1,6 +1,6 @@
 Map<String, dynamic> routeLayerProps = {
-  'line-width': 8.0,
-  'line-opacity': 0.9,
+  'line-width': 6.0,
+  'line-opacity': 1,
   'line-cap': "round",
   'line-join': "round",
   'line-gradient': [
@@ -9,15 +9,13 @@ Map<String, dynamic> routeLayerProps = {
     ['line-progress'],
     0.0,
     "#0BE3E3",
-    0.4,
-    "#0B69E3",
     0.6,
     "#0B4CE3",
     1.0,
     "#890BE3",
   ],
   'line-blur': 0.0,
-  'line-z-offset': -1.0
+  'line-z-offset': -1.0,
 };
 
 Map<String, dynamic> userLayerProps = {
