@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:map_manager/map_manager.dart';
@@ -260,13 +262,15 @@ class RouteModeClass implements ModeHandler {
     try {
       identifier ??= 'route-$addCount';
       route.properties ??= {};
-      route.properties!['active'] = setActive;
+      route.properties!['active'] = true;
       route.properties!['route_id'] = identifier;
       _addedRoutesMap.putIfAbsent(identifier, () {
         addCount++;
         return route;
       });
+
       await _updateRouteSource();
+
       await _map.style.addLayer(
         LineLayer(
           id: _routeLayerId + identifier,
@@ -278,10 +282,26 @@ class RouteModeClass implements ModeHandler {
           ],
         ),
       );
+      final styling = route.properties?['styling'] as Map<String, dynamic>?;
+      await applyRouteStyle(identifier, styling);
       await zoomToRoute();
     } catch (e) {
       _logger.warning("addLineString(): $e");
       rethrow;
+    }
+  }
+
+  Future<void> applyRouteStyle(
+    String identifier,
+    Map<String, dynamic>? styling,
+  ) async {
+    try {
+      await _map.style.setStyleLayerProperties(
+        _routeLayerId + identifier,
+        jsonEncode(styling ?? routeLayerProps),
+      );
+    } catch (e) {
+      _logger.severe("applyRouteStyle(): $e");
     }
   }
 
