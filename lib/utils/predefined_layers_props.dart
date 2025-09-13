@@ -18,6 +18,13 @@ Map<String, dynamic> routeLayerProps = {
   'line-z-offset': -1.0,
 };
 
+Map<String, dynamic> symbolLayerProps(String? imgId) => {
+  if (imgId != null) 'iconImage': imgId,
+  'iconOffset': [0.0, -22.0],
+  'iconAllowOverlap': true,
+  'iconColor': "#0DC8C8",
+};
+
 Map<String, dynamic> userLayerProps = {
   'circle-radius': 8,
   'circle-color': "#0078D4",
