@@ -12,9 +12,8 @@ mixin _MapModeMixin {
     required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
     routeMode,
     required TResult Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )
     tracking,
@@ -32,9 +31,8 @@ mixin _MapModeMixin {
     required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
     routeMode,
     required TResult? Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )?
     tracking,
@@ -75,14 +73,12 @@ abstract class MapMode with _MapModeMixin {
       RouteMode(predefinedRoutes: predefinedRoutes);
 
   factory MapMode.tracking({
-    GeoJSONFeature? route,
-    List<GeoJSONPoint>? waypoints,
-    RouteTraversalSource source = RouteTraversalSource.user,
+    Map<String, GeoJSONFeature>? initialRoutes,
+    Map<String, GeoJSONFeature>? initialWaypoints,
     DisplayMode displayMode = DisplayMode.showAll,
   }) => TrackingMode(
-    route: route,
-    waypoints: waypoints,
-    source: source,
+    initialRoutes: initialRoutes,
+    initialWaypoints: initialWaypoints,
     displayMode: displayMode,
   );
 }

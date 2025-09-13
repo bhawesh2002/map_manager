@@ -17,9 +17,8 @@ class BasicMapMode extends MapMode {
     required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
     routeMode,
     required TResult Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )
     tracking,
@@ -38,9 +37,8 @@ class BasicMapMode extends MapMode {
     required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
     routeMode,
     required TResult? Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )?
     tracking,
@@ -115,9 +113,8 @@ class LocSelMode extends MapMode {
     required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
     routeMode,
     required TResult Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )
     tracking,
@@ -134,9 +131,8 @@ class LocSelMode extends MapMode {
     required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
     routeMode,
     required TResult? Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )?
     tracking,
@@ -200,9 +196,8 @@ class RouteMode extends MapMode {
     required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
     routeMode,
     required TResult Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )
     tracking,
@@ -221,9 +216,8 @@ class RouteMode extends MapMode {
     required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
     routeMode,
     required TResult? Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )?
     tracking,
@@ -266,6 +260,28 @@ class RouteMode extends MapMode {
 }
 
 class TrackingMode extends MapMode {
+  final Map<String, GeoJSONFeature>? initialRoutes;
+  final Map<String, GeoJSONFeature>? initialWaypoints;
+  final DisplayMode displayMode;
+
+  TrackingMode({
+    this.initialRoutes,
+    this.initialWaypoints,
+    this.displayMode = DisplayMode.showAll,
+  }) : super.internal();
+
+  TrackingMode copyWith({
+    Map<String, GeoJSONFeature>? initialRoutes,
+    Map<String, GeoJSONFeature>? initialWaypoints,
+    DisplayMode? displayMode,
+  }) {
+    return TrackingMode(
+      initialRoutes: initialRoutes ?? this.initialRoutes,
+      initialWaypoints: initialWaypoints ?? this.initialWaypoints,
+      displayMode: displayMode ?? this.displayMode,
+    );
+  }
+
   @override
   TResult when<TResult extends MapMode>({
     required TResult Function(bool trackUserLoc) basic,
@@ -277,13 +293,12 @@ class TrackingMode extends MapMode {
     required TResult Function(Map<String, GeoJSONFeature>? predefinedRoutes)
     routeMode,
     required TResult Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )
     tracking,
-  }) => tracking(route, waypoints, source, displayMode);
+  }) => tracking(initialRoutes, initialWaypoints, displayMode);
 
   @override
   TResult? whenOrNull<TResult extends MapMode>({
@@ -296,15 +311,14 @@ class TrackingMode extends MapMode {
     required TResult? Function(Map<String, GeoJSONFeature>? predefinedRoutes)?
     routeMode,
     required TResult? Function(
-      GeoJSONFeature? route,
-      List<GeoJSONPoint>? waypoints,
-      RouteTraversalSource source,
+      Map<String, GeoJSONFeature>? initialRoutes,
+      Map<String, GeoJSONFeature>? initialWaypoints,
       DisplayMode displayMode,
     )?
     tracking,
   }) {
     return tracking != null
-        ? tracking(route, waypoints, source, displayMode)
+        ? tracking(initialRoutes, initialWaypoints, displayMode)
         : null;
   }
 
@@ -328,34 +342,9 @@ class TrackingMode extends MapMode {
     return tracking != null ? tracking(this) : null;
   }
 
-  final GeoJSONFeature? route;
-  final List<GeoJSONPoint>? waypoints;
-  final RouteTraversalSource source;
-  final DisplayMode displayMode;
-  TrackingMode({
-    this.route,
-    this.waypoints,
-    this.source = RouteTraversalSource.user,
-    this.displayMode = DisplayMode.showAll,
-  }) : super.internal();
-
-  TrackingMode copyWith({
-    GeoJSONFeature? route,
-    List<GeoJSONPoint>? waypoints,
-    RouteTraversalSource? source,
-    DisplayMode? displayMode,
-  }) {
-    return TrackingMode(
-      route: route ?? this.route,
-      waypoints: waypoints ?? this.waypoints,
-      source: source ?? this.source,
-      displayMode: displayMode ?? this.displayMode,
-    );
-  }
-
   @override
   String toString() {
-    return 'TrackingMode(route: $route, waypoints: $waypoints, source: $source, displayMode: $displayMode)';
+    return 'TrackingMode(initialRoutes: $initialRoutes, initialWaypoints: $initialWaypoints, displayMode: $displayMode)';
   }
 
   @override
@@ -363,17 +352,15 @@ class TrackingMode extends MapMode {
     if (identical(this, other)) return true;
     final listEquals = const DeepCollectionEquality().equals;
 
-    return other.route == route &&
-        listEquals(other.waypoints, waypoints) &&
-        other.source == source &&
+    return other.initialRoutes == initialRoutes &&
+        listEquals(other.initialRoutes, initialRoutes) &&
         other.displayMode == displayMode;
   }
 
   @override
   int get hashCode {
-    return route.hashCode ^
-        waypoints.hashCode ^
-        source.hashCode ^
+    return initialRoutes.hashCode ^
+        initialWaypoints.hashCode ^
         displayMode.hashCode;
   }
 }
