@@ -174,7 +174,10 @@ class TrackingModeClass implements ModeHandler {
     if (update == null) return;
     _locUpdateQueue.add(update);
     _routeTraversed = LineString(
-      coordinates: [...routeTraversed.coordinates, update.location.coordinates],
+      coordinates: [
+        ...routeTraversed.coordinates,
+        Position.fromJson(update.location.coordinates),
+      ],
     );
     if (!_isProcessing) {
       _processQueue();
@@ -204,8 +207,8 @@ class TrackingModeClass implements ModeHandler {
 
       _isAnimating = true;
       final tween = PointTween(
-        begin: activeSourceLoc?.toMbPoint() ?? update.location,
-        end: update.location,
+        begin: activeSourceLoc?.toMbPoint() ?? update.location.toMbPoint(),
+        end: update.location.toMbPoint(),
       );
 
       final animation = tween.animate(
@@ -232,7 +235,7 @@ class TrackingModeClass implements ModeHandler {
         animation.removeListener(listener);
       }
     } catch (e) {
-      _updateGeojson(update.location.toGeojsonPoint());
+      _updateGeojson(update.location);
       await _map.style.setStyleSourceProperty(
         _featureCollectionSourceId,
         'data',
@@ -482,8 +485,8 @@ class TrackingModeClass implements ModeHandler {
       while (_userLocUpdateQueue.isNotEmpty) {
         final update = _userLocUpdateQueue.removeAt(0);
         final tween = PointTween(
-          begin: userGeoPoint?.toMbPoint() ?? update.location,
-          end: update.location,
+          begin: userGeoPoint?.toMbPoint() ?? update.location.toMbPoint(),
+          end: update.location.toMbPoint(),
         );
         for (var i = 0; i < 80; i++) {
           final lerp = tween.lerp(i / 80);
@@ -512,8 +515,8 @@ class TrackingModeClass implements ModeHandler {
       while (_personLocUpdateQueue.isNotEmpty) {
         final update = _personLocUpdateQueue.removeAt(0);
         final tween = PointTween(
-          begin: personGeoPoint?.toMbPoint() ?? update.location,
-          end: update.location,
+          begin: personGeoPoint?.toMbPoint() ?? update.location.toMbPoint(),
+          end: update.location.toMbPoint(),
         );
         for (var i = 0; i < 80; i++) {
           final lerp = tween.lerp(i / 80);
