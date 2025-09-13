@@ -7,30 +7,6 @@ import 'package:map_manager/map_manager.dart';
 /// Each style represents a different visual approach inspired by popular
 /// navigation and ride-sharing applications.
 enum RouteStyle {
-  /// Uber + Lyft hybrid: Combines Uber's clean geometry with Lyft's vibrant gradient.
-  ///
-  /// Features:
-  /// - Clean rounded geometry (Uber-style)
-  /// - Pink to purple gradient (Lyft-style)
-  /// - Moderate line width with subtle glow
-  uberLyftHybrid,
-
-  /// Classic Uber style: Clean black line with minimal styling.
-  ///
-  /// Features:
-  /// - Solid black color
-  /// - Clean, professional appearance
-  /// - Moderate line width
-  uber,
-
-  /// Classic Lyft style: Bright pink to purple gradient.
-  ///
-  /// Features:
-  /// - Vibrant pink to purple gradient
-  /// - Bold, energetic appearance
-  /// - Slightly thicker line width
-  lyft,
-
   /// Navigation apps style: Blue gradient similar to Google Maps/Apple Maps.
   ///
   /// Features:
@@ -125,19 +101,12 @@ class RouteModeClass implements ModeHandler {
   /// Private constructor to enforce factory initialization pattern.
   RouteModeClass._(this._routeMode, this._map);
 
-  /// Point annotation manager for displaying route waypoints (start/end markers).
-  ///
-  /// This manager handles the creation and management of point annotations
-  /// that mark the beginning and end of routes. It's nullable to handle
-  /// cases where annotation creation fails.
-  PointAnnotationManager? _pointAnnotationManager;
-
-  /// The currently active route stored as a LineString.
+  /// The currently active route stored as a GeoJSONLineString.
   ///
   /// This is populated when a route is successfully added, either from
   /// a LineString input or extracted from GeoJSON data. It's used for
   /// camera operations and waypoint placement.
-  LineString? _route;
+  final _routeFeatureCollection = GeoJSONFeatureCollection([]);
 
   /// Unique identifier for the GeoJSON source containing route data.
   ///
@@ -155,7 +124,18 @@ class RouteModeClass implements ModeHandler {
   ///
   /// Returns `null` if no route is currently set. This getter provides
   /// access to route coordinates for camera operations and analysis.
-  LineString? get route => _route;
+  GeoJSONLineString? get route =>
+      _routeFeatureCollection.features.firstWhere((f) {
+            if (f!.properties!.containsKey('active')) {
+              return true;
+            }
+            return false;
+          }, orElse: () => null)?.geometry
+          as GeoJSONLineString;
+
+  List<GeoJSONLineString> get allRoutes => _routeFeatureCollection.features
+      .map((e) => e?.geometry as GeoJSONLineString)
+      .toList();
 
   /// Logger instance for debugging and error reporting.
   final ManagerLogger _logger = ManagerLogger('RouteModeClass');
@@ -181,47 +161,57 @@ class RouteModeClass implements ModeHandler {
   ) async {
     final cls = RouteModeClass._(mode, map);
 
-    // Create point annotation manager with error handling
-    try {
-      await cls._createPointAnnotationManager();
-    } catch (e) {
-      cls._logger.warning("Error creating point annotation manager: $e");
-    }
-
     // Set up tap listener to prevent issues with residual handlers
     // This prevents crashes from stale tap listeners when switching modes
     cls._map.setOnMapTapListener((context) {});
-
-    if (cls._routeMode.route != null || cls._routeMode.route != null) {
-      try {
-        final route = cls._routeMode.route!.geometry as GeoJSONLineString;
-        await cls.addLineString(route: route.toMbLineString());
-      } catch (e) {
-        cls._logger.warning("Error adding route: $e");
+    try {
+      await cls._setupSource();
+      if (cls._routeMode.route != null) {
+        await cls.addLineString(cls._routeMode.route!);
       }
-    } else {
-      cls._logger.info(
-        "No route or geojson data provided - route mode initialized without route",
-      );
+    } catch (e) {
+      cls._logger.warning("Error adding route: $e");
     }
 
     return cls;
   }
 
-  /// Creates and configures the point annotation manager for waypoint markers.
-  ///
-  /// This manager is used to display start and end point markers on routes.
-  /// The method includes error handling to gracefully handle creation failures
-  /// without breaking the overall route functionality.
-  ///
-  /// The manager is created with ID 'waypoint' for easy identification and cleanup.
-  Future<void> _createPointAnnotationManager() async {
+  Future<void> _setupSource() async {
     try {
-      _pointAnnotationManager ??= await _map.annotations
-          .createPointAnnotationManager(id: 'waypoint');
+      await _map.style.addSource(
+        GeoJsonSource(
+          id: _routeSourceId,
+          data: _routeFeatureCollection.toJSON(),
+          lineMetrics: true,
+        ),
+      );
+
+      await _map.style.addLayer(
+        LineLayer(
+          id: _routeLayerId,
+          sourceId: _routeSourceId,
+          lineWidth: 12.0,
+          lineCap: LineCap.ROUND,
+          lineJoin: LineJoin.ROUND,
+          lineOpacity: 0.95,
+          lineGradientExpression: [
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0.0,
+            "#FF1493",
+            1.0,
+            "#6A5ACD",
+          ],
+          lineBlur: 0.0,
+          lineBorderColor: 0xFFFFFFFF,
+          lineBorderWidth: 2.0,
+
+          lineZOffset: 0.0,
+        ),
+      );
     } catch (e) {
-      _logger.warning("Failed to create point annotation manager: $e");
-      _pointAnnotationManager = null;
+      _logger.severe("_setupSource(): $e");
     }
   }
 
@@ -251,10 +241,9 @@ class RouteModeClass implements ModeHandler {
   ///
   /// ## Parameters:
   /// - [route]: Optional LineString containing route coordinates
-  /// - [geojson]: Optional GeoJSON feature data
   ///
   /// ## Requirements:
-  /// - Exactly one of [route] or [geojson] must be provided
+  /// - Exactly one of [route] must be provided
   /// - GeoJSON data should contain LineString geometry for full functionality
   ///
   /// ## Technical Implementation:
@@ -276,116 +265,31 @@ class RouteModeClass implements ModeHandler {
   /// ```
   ///
   /// Throws: Rethrows any critical errors that prevent route creation.
-  Future<void> addLineString({
-    LineString? route,
-    Map<String, dynamic>? geojson,
+  Future<void> addLineString(
+    GeoJSONFeature route, {
+    bool setActive = false,
   }) async {
-    assert(
-      !(route == null && geojson == null),
-      "Either route or geojson must be provided",
-    );
-    assert(
-      !(route != null && geojson != null),
-      "Both route and geojson cannot be provided",
-    );
     try {
-      GeoJsonSource? geoJsonSource;
-      if (route != null) {
-        _route = route; // Store the route
-        final data = {
-          "type": "Feature",
-          "geometry": route.toJson(),
-          "properties": {},
-        };
-        // Create GeoJSON source with line metrics enabled for gradient support
-        geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
-        await _map.style.addSource(geoJsonSource);
-        await _map.style.setStyleSourceProperty(_routeSourceId, 'data', data);
-      } else {
-        // For geojson input, try to extract LineString if possible
-        if (geojson!['type'] == 'Feature' &&
-            geojson['geometry']?['type'] == 'LineString') {
-          _route = LineString.fromJson(geojson['geometry']);
-        }
-        // Create GeoJSON source with line metrics enabled for gradient support
-        geoJsonSource = GeoJsonSource(id: _routeSourceId, lineMetrics: true);
-        await _map.style.addSource(geoJsonSource);
-        await _map.style.setStyleSourceProperty(
-          _routeSourceId,
-          'data',
-          geojson,
-        );
-      }
-
-      // Create and add the line layer with Uber + Lyft hybrid styling
-      // This combines Uber's clean geometry with Lyft's vibrant gradient colors
-      final lineLayer = LineLayer(
-        id: _routeLayerId,
-        sourceId: _routeSourceId,
-
-        // Geometry Styling (Uber's characteristics)
-        lineWidth: 12.0, // Bold but not overwhelming
-        lineCap: LineCap.ROUND, // Smooth rounded ends
-        lineJoin: LineJoin.ROUND, // Smooth rounded corners
-        lineOpacity: 0.95, // Slightly transparent for blend
-        // Lyft-style vibrant gradient (requires lineMetrics: true)
-        // Uses line-progress from 0.0 (start) to 1.0 (end) for gradient positioning
-        lineGradientExpression: [
-          'interpolate', // Smooth color interpolation
-          ['linear'], // Linear interpolation method
-          ['line-progress'], // Use line progress (0.0 to 1.0)
-          0.0, "#FF1493", // Deep pink at start
-          0.2, "#FF69B4", // Hot pink
-          0.4, "#DA70D6", // Orchid
-          0.6, "#BA55D3", // Medium orchid
-          0.8, "#9932CC", // Dark orchid
-          1.0, "#6A5ACD", // Slate blue at end
-        ],
-
-        // Border and Glow Effects
-        lineBlur: 0.0, // Sharp edges (set >0 for softening)
-        lineBorderColor: 0xFFFFFFFF, // White border for contrast
-        lineBorderWidth: 2.0, // Subtle border width
-        // Z-positioning
-        lineZOffset: 0.0, // Keep at map level
-      );
-
-      // Add the configured line layer to the map style
-      await _map.style.addLayer(lineLayer);
-
-      // Add waypoint markers at start and end (only if annotation manager exists and route is available)
-      if (_pointAnnotationManager != null && _route != null) {
-        await _pointAnnotationManager!.createMulti([
-          // Start point marker
-          PointAnnotationOptions(
-            iconOffset: [0, -28], // Offset to center icon on point
-            geometry: Point(coordinates: _route!.coordinates.first),
-          ),
-          // End point marker
-          PointAnnotationOptions(
-            iconOffset: [0, -28], // Offset to center icon on point
-            geometry: Point(coordinates: _route!.coordinates.last),
-          ),
-        ]);
-
-        // Move camera to show the start of the route
-        moveMapCamTo(_map, Point(coordinates: _route!.coordinates.first));
-      } else {
-        // Log warnings for debugging if waypoint creation fails
-        if (_pointAnnotationManager == null) {
-          _logger.warning(
-            "Point annotation manager not available for waypoints",
-          );
-        }
-        if (_route == null) {
-          _logger.warning(
-            "No route coordinates available for camera positioning",
-          );
-        }
-      }
+      route.properties ??= {};
+      route.properties!['active'] = setActive;
+      _routeFeatureCollection.features.add(route);
+      await _updateRouteSource();
+      await zoomToRoute();
     } catch (e) {
-      _logger.warning("Error adding line string: $e");
+      _logger.warning("addLineString(): $e");
       rethrow;
+    }
+  }
+
+  Future<void> _updateRouteSource() async {
+    try {
+      await _map.style.setStyleSourceProperty(
+        _routeSourceId,
+        'data',
+        _routeFeatureCollection.toJSON(),
+      );
+    } catch (e) {
+      _logger.severe("_updateRouteSource(): $e");
     }
   }
 
@@ -406,7 +310,7 @@ class RouteModeClass implements ModeHandler {
   /// Note: This method does not remove waypoint markers. Use [dispose]
   /// for complete cleanup including waypoints.
   Future<void> removeRoute() async {
-    if (_route != null) {
+    if (allRoutes.isNotEmpty) {
       // Remove the line layer and source
       try {
         await _map.style.removeStyleLayer(_routeLayerId);
@@ -465,14 +369,14 @@ class RouteModeClass implements ModeHandler {
     if (route == null || route!.coordinates.isEmpty) return;
 
     // Convert route coordinates to Points for utility function
-    final List<Point> routePoints = route!.coordinates
-        .map((coordinate) => Point(coordinates: coordinate))
-        .toList();
+    // final List<Point> routePoints = route!.coordinates
+    //     .map((coordinate) => Point(coordinates: coordinate))
+    //     .toList();
 
     // Use shared utility for consistent camera behavior across modes
     await zoomToFitPoints(
       _map,
-      routePoints,
+      route!.points,
       paddingPixels: paddingPixels,
       animationDuration: animationDuration,
       logger: _logger,
@@ -512,17 +416,7 @@ class RouteModeClass implements ModeHandler {
 
     // Remove all route visualizations
     await removeAllRoutes();
-    _route = null;
 
-    // Remove annotation manager for waypoints with error handling
-    try {
-      await _map.annotations.removeAnnotationManagerById('waypoint');
-    } catch (e) {
-      _logger.warning("Error removing waypoint annotation manager: $e");
-    }
-
-    // Reset manager reference
-    _pointAnnotationManager = null;
     _logger.info('Route Mode Data Cleared');
   }
 }
