@@ -45,10 +45,12 @@ class LocationSimulator {
     // Create initial location
     if (route.coordinates.isNotEmpty) {
       locationNotifier.value = LocationUpdate(
-        location: GeoJSONPoint([
-          route.coordinates.first.lng.toDouble(),
-          route.coordinates.first.lat.toDouble(),
-        ]),
+        location: GeoJSONFeature(
+          GeoJSONPoint([
+            route.coordinates.first.lng.toDouble(),
+            route.coordinates.first.lat.toDouble(),
+          ]),
+        ),
         lastUpdated: DateTime.now(),
       );
     }
@@ -80,10 +82,12 @@ class LocationSimulator {
 
     // Create and emit location update
     final update = LocationUpdate(
-      location: GeoJSONPoint([
-        route.coordinates[_currentIndex].lng.toDouble(),
-        route.coordinates[_currentIndex].lat.toDouble(),
-      ]),
+      location: GeoJSONFeature(
+        GeoJSONPoint([
+          route.coordinates[_currentIndex].lng.toDouble(),
+          route.coordinates[_currentIndex].lat.toDouble(),
+        ]),
+      ),
       lastUpdated: DateTime.now(),
     );
 

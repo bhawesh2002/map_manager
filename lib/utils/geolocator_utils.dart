@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:geojson_vi/geojson_vi.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:map_manager/manager/location_update.dart';
 import 'package:map_manager/utils/geojson_extensions.dart';
@@ -27,7 +28,7 @@ class GeolocatorUtils {
       (position) {
         _streamController.sink.add(position);
         positionValueNotifier.value = LocationUpdate(
-          location: position.geojsonPoint,
+          location: GeoJSONFeature(position.geojsonPoint),
           lastUpdated: DateTime.now(),
         );
       },
