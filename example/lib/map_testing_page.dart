@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:map_manager_mapbox_example/app_map.dart';
-import 'package:map_manager_mapbox_example/tracking_test_page.dart';
+import 'package:map_manager_mapbox_example/simple_tracking_test.dart';
 
 class MapTestingPage extends StatefulWidget {
   const MapTestingPage({super.key});
@@ -98,7 +98,7 @@ class _MapTestingPageState extends State<MapTestingPage> {
                               if (preset['name'] == "Tracking Mode") {
                                 Navigator.of(context).push(MaterialPageRoute(
                                     builder: (context) =>
-                                        const TrackingTestPage()));
+                                        const SimpleTrackingTest()));
                                 return;
                               } else {
                                 setState(() {
