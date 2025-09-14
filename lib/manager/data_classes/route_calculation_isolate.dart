@@ -4,13 +4,13 @@ import 'package:map_manager/map_manager.dart';
 
 /// Message sent to the isolate for route calculation
 class RouteCalculationMessage {
-  final LocationUpdate update;
-  final List<List<double>> routeCoordinates;
+  final GeoJSONPoint update;
+  final GeoJSONLineString route;
   final SendPort sendPort;
 
   RouteCalculationMessage({
     required this.update,
-    required this.routeCoordinates,
+    required this.route,
     required this.sendPort,
   });
 }
@@ -32,13 +32,13 @@ class RouteCalculationResult {
 void routeCalculationIsolate(RouteCalculationMessage message) {
   try {
     // Convert the user's location to GeoJSON point
-    final userLocation = message.update.location;
+    final userLocation = message.update;
 
     // Create GeoJSON LineString from the provided coordinates
-    final geoRoute = GeoJSONLineString(message.routeCoordinates);
+    final geoRoute = GeoJSONLineString(message.route.coordinates);
 
     // Extra safeguard - ensure we have at least 2 coordinates for the LineString
-    if (message.routeCoordinates.length < 2) {
+    if (message.route.coordinates.length < 2) {
       message.sendPort.send(
         RouteCalculationResult(
           routeData: RouteCalculationData.error(),
