@@ -200,7 +200,10 @@ GeoJSONLineString pointsToLineString(List<GeoJSONPoint> points) {
 ///
 /// Returns a [ProjectionResult] containing the projected point and metadata.
 ProjectionResult projectPointOnSegment(
-    GeoJSONPoint point, GeoJSONPoint segmentStart, GeoJSONPoint segmentEnd) {
+  GeoJSONPoint point,
+  GeoJSONPoint segmentStart,
+  GeoJSONPoint segmentEnd,
+) {
   // Create segment vector
   double segmentX = segmentEnd.coordinates[0] - segmentStart.coordinates[0];
   double segmentY = segmentEnd.coordinates[1] - segmentStart.coordinates[1];
@@ -218,7 +221,10 @@ ProjectionResult projectPointOnSegment(
   // If segment is too short, return the start point
   if (segmentLengthSquared < 1e-10) {
     return ProjectionResult(
-        projectedPoint: segmentStart, onSegment: true, ratio: 0.0);
+      projectedPoint: segmentStart,
+      onSegment: true,
+      ratio: 0.0,
+    );
   }
 
   // Calculate projection ratio (t)
@@ -233,11 +239,14 @@ ProjectionResult projectPointOnSegment(
   // Calculate projected point
   GeoJSONPoint projectedPoint = GeoJSONPoint([
     segmentStart.coordinates[0] + clampedT * segmentX,
-    segmentStart.coordinates[1] + clampedT * segmentY
+    segmentStart.coordinates[1] + clampedT * segmentY,
   ]);
 
   return ProjectionResult(
-      projectedPoint: projectedPoint, onSegment: onSegment, ratio: clampedT);
+    projectedPoint: projectedPoint,
+    onSegment: onSegment,
+    ratio: clampedT,
+  );
 }
 
 /// Calculates the distance between two points using the Haversine formula.
@@ -262,7 +271,8 @@ double haversineDistance(GeoJSONPoint point1, GeoJSONPoint point2) {
   double dLat = lat2Rad - lat1Rad;
   double dLng = lng2Rad - lng1Rad;
 
-  double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+  double a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
       math.cos(lat1Rad) *
           math.cos(lat2Rad) *
           math.sin(dLng / 2) *
@@ -282,38 +292,47 @@ double haversineDistance(GeoJSONPoint point1, GeoJSONPoint point2) {
 ///
 /// Returns a [RouteCheckResult] with the outcome and detailed information.
 RouteCheckResult isUserOnRoute(
-    GeoJSONPoint userLocation, GeoJSONLineString route,
-    {double thresholdMeters = 15.0}) {
+  GeoJSONPoint userLocation,
+  GeoJSONLineString route, {
+  double thresholdMeters = 15.0,
+}) {
   // Convert route to points for processing
   List<GeoJSONPoint> routePoints = route.points;
 
   // Handle edge cases
   if (routePoints.length < 2) {
     return RouteCheckResult(
-        isOnRoute: false,
-        distance: double.infinity,
-        projectedPoint: userLocation,
-        segmentIndex: -1);
+      isOnRoute: false,
+      distance: double.infinity,
+      projectedPoint: userLocation,
+      segmentIndex: -1,
+    );
   }
 
   // Check each segment
   for (int i = 0; i < routePoints.length - 1; i++) {
     // Get projection of user location onto this segment
-    ProjectionResult projection =
-        projectPointOnSegment(userLocation, routePoints[i], routePoints[i + 1]);
+    ProjectionResult projection = projectPointOnSegment(
+      userLocation,
+      routePoints[i],
+      routePoints[i + 1],
+    );
 
     // Calculate distance using Haversine formula
-    double distance =
-        haversineDistance(userLocation, projection.projectedPoint);
+    double distance = haversineDistance(
+      userLocation,
+      projection.projectedPoint,
+    );
 
     // Early return if user is on route
     if (distance <= thresholdMeters) {
       return RouteCheckResult(
-          isOnRoute: true,
-          projectedPoint: projection.projectedPoint,
-          segmentIndex: i,
-          distance: distance,
-          projectionRatio: projection.ratio);
+        isOnRoute: true,
+        projectedPoint: projection.projectedPoint,
+        segmentIndex: i,
+        distance: distance,
+        projectionRatio: projection.ratio,
+      );
     }
   }
 
@@ -325,11 +344,16 @@ RouteCheckResult isUserOnRoute(
   double closestRatio = 0.0;
 
   for (int i = 0; i < routePoints.length - 1; i++) {
-    ProjectionResult projection =
-        projectPointOnSegment(userLocation, routePoints[i], routePoints[i + 1]);
+    ProjectionResult projection = projectPointOnSegment(
+      userLocation,
+      routePoints[i],
+      routePoints[i + 1],
+    );
 
-    double distance =
-        haversineDistance(userLocation, projection.projectedPoint);
+    double distance = haversineDistance(
+      userLocation,
+      projection.projectedPoint,
+    );
 
     if (distance < minDistance) {
       minDistance = distance;
@@ -340,11 +364,12 @@ RouteCheckResult isUserOnRoute(
   }
 
   return RouteCheckResult(
-      isOnRoute: false,
-      projectedPoint: closestPoint,
-      segmentIndex: closestSegmentIndex,
-      distance: minDistance,
-      projectionRatio: closestRatio);
+    isOnRoute: false,
+    projectedPoint: closestPoint,
+    segmentIndex: closestSegmentIndex,
+    distance: minDistance,
+    projectionRatio: closestRatio,
+  );
 }
 
 List<GeoJSONPoint> trimRouteFromProjection(
@@ -375,8 +400,12 @@ List<GeoJSONPoint> trimRouteFromProjection(
 ///
 /// Returns a [RouteUpdateResult] containing the updated route and information about
 /// which segment changed, to support animated transitions.
-RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
-    double projectionRatio, GeoJSONLineString route) {
+RouteUpdateResult shrinkRoute(
+  GeoJSONPoint projectedPoint,
+  int segmentIndex,
+  double projectionRatio,
+  GeoJSONLineString route,
+) {
   if (route.coordinates.length < 2 ||
       segmentIndex < 0 ||
       segmentIndex >= route.coordinates.length - 1) {
@@ -426,7 +455,7 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     // Capture the original and new segments
     originalSegment = [
       routePoints[segmentIndex - 1],
-      routePoints[segmentIndex]
+      routePoints[segmentIndex],
     ];
     newSegment = [routePoints[segmentIndex], routePoints[segmentIndex + 1]];
   }
@@ -454,11 +483,11 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
       // Capture original and new segments
       originalSegment = [
         routePoints[segmentIndex],
-        routePoints[segmentIndex + 1]
+        routePoints[segmentIndex + 1],
       ];
       newSegment = [
         routePoints[segmentIndex + 1],
-        routePoints[segmentIndex + 2]
+        routePoints[segmentIndex + 2],
       ];
     }
   }
@@ -471,7 +500,7 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
     // Capture original and new segments
     originalSegment = [
       routePoints[segmentIndex],
-      routePoints[segmentIndex + 1]
+      routePoints[segmentIndex + 1],
     ];
     newSegment = [projectedPoint, routePoints[segmentIndex + 1]];
   }
@@ -521,7 +550,9 @@ RouteUpdateResult shrinkRoute(GeoJSONPoint projectedPoint, int segmentIndex,
 /// Returns a [RouteUpdateResult] containing the updated route and information about
 /// the new segment added, to support animated transitions.
 RouteUpdateResult growRoute(
-    GeoJSONPoint userLocation, GeoJSONLineString route) {
+  GeoJSONPoint userLocation,
+  GeoJSONLineString route,
+) {
   // Use List<GeoJSONPoint> for internal route construction
   List<GeoJSONPoint> newRoutePoints = [userLocation];
 
@@ -558,17 +589,26 @@ RouteUpdateResult growRoute(
 /// Calculates an updated route based on the user's current location
 /// Returns a map with update information or null if no update is needed
 RouteCalculationData? calculateUpdatedRoute(
-    GeoJSONPoint point, GeoJSONLineString route) {
+  GeoJSONPoint point,
+  GeoJSONLineString route,
+) {
   try {
     final userLocation = point;
-    final checkResult =
-        isUserOnRoute(userLocation, route, thresholdMeters: 50.0);
+    final checkResult = isUserOnRoute(
+      userLocation,
+      route,
+      thresholdMeters: 50.0,
+    );
 
     RouteUpdateResult routeUpdateResult;
 
     if (checkResult.isOnRoute) {
-      routeUpdateResult = shrinkRoute(checkResult.projectedPoint,
-          checkResult.segmentIndex, checkResult.projectionRatio, route);
+      routeUpdateResult = shrinkRoute(
+        checkResult.projectedPoint,
+        checkResult.segmentIndex,
+        checkResult.projectionRatio,
+        route,
+      );
     } else {
       routeUpdateResult = growRoute(userLocation, route);
     }
@@ -587,35 +627,51 @@ RouteCalculationData? calculateUpdatedRoute(
       );
     } else {
       return RouteCalculationData.unchanged(
-          isOnRoute: checkResult.isOnRoute,
-          distanceFromRoute: checkResult.distance);
+        isOnRoute: checkResult.isOnRoute,
+        distanceFromRoute: checkResult.distance,
+      );
     }
   } catch (e) {
     rethrow;
   }
 }
 
-/// Calculates updated route coordinates by finding the current point's position and removing traversed segments
+/// Calculates updated route by splitting it into traversed and remaining segments
 ///
-/// This function efficiently calculates new route coordinates by:
+/// This function efficiently calculates both traversed and remaining routes by:
 /// 1. Finding where the current point projects onto the route
-/// 2. If point is close to route: Determining the projected point's position and returning coordinates from there onwards
-/// 3. If point is far from route: Adding the point to the beginning of the route to show a detour
+/// 2. If point is close to route: Split the route at the projected position
+/// 3. If point is far from route: Add detour segment and keep original route as remaining
 ///
-/// This approach is much faster than recalculating the entire route structure
-/// and provides smoother animation performance.
+/// This approach provides both parts of the route for comprehensive tracking visualization.
 ///
 /// Parameters:
 /// - [currentPoint]: The current location point
-/// - [routeCoordinates]: The original route coordinates
+/// - [originalRoute]: The original route as a GeoJSONLineString
 ///
 /// Returns:
-/// - [List<List<double>>?]: New route coordinates starting from the current position,
-///   or with the current point added to the beginning if it's far from the route.
-///   Returns null only if the original route is invalid (less than 2 points).
-List<List<double>>? updateRouteGeojson(
-    GeoJSONPoint currentPoint, List<List<double>> routeCoordinates) {
-  if (routeCoordinates.length < 2) return null;
+/// - [GeoJSONFeatureCollection]: Collection containing two features:
+///   - Feature with property 'route-type': 'traversed' (the completed portion)
+///   - Feature with property 'route-type': 'remaining' (the upcoming portion)
+GeoJSONFeatureCollection updateRouteGeojson(
+  GeoJSONPoint currentPoint,
+  GeoJSONLineString originalRoute,
+) {
+  final routeCoordinates = originalRoute.coordinates;
+
+  // Handle invalid route
+  if (routeCoordinates.length < 2) {
+    // Return empty traversed and minimal remaining route
+    final traversedRoute = GeoJSONFeature(
+      GeoJSONLineString([currentPoint.coordinates, currentPoint.coordinates]),
+      properties: {'route-type': 'traversed'},
+    );
+    final remainingRoute = GeoJSONFeature(
+      GeoJSONLineString([currentPoint.coordinates, currentPoint.coordinates]),
+      properties: {'route-type': 'remaining'},
+    );
+    return GeoJSONFeatureCollection([traversedRoute, remainingRoute]);
+  }
 
   // Find the best insertion point and projection
   double minDistance = double.infinity;
@@ -628,8 +684,11 @@ List<List<double>>? updateRouteGeojson(
     final segmentStart = GeoJSONPoint(routeCoordinates[i]);
     final segmentEnd = GeoJSONPoint(routeCoordinates[i + 1]);
 
-    final projection =
-        projectPointOnSegment(currentPoint, segmentStart, segmentEnd);
+    final projection = projectPointOnSegment(
+      currentPoint,
+      segmentStart,
+      segmentEnd,
+    );
     final distance = haversineDistance(currentPoint, projection.projectedPoint);
 
     if (distance < minDistance) {
@@ -640,53 +699,86 @@ List<List<double>>? updateRouteGeojson(
     }
   }
 
+  List<List<double>> traversedCoords = [];
+  List<List<double>> remainingCoords = [];
+
   // If point is too far from route, add it to the beginning without removing others
   if (minDistance > 50.0 || projectedCoords == null) {
-    // Point is too far from route, add current point to the start of the route
-    List<List<double>> newCoordinates = [currentPoint.coordinates];
-    newCoordinates.addAll(routeCoordinates);
-    return newCoordinates;
-  }
+    // Point is too far from route - no traversed portion, add current point to start of remaining
+    traversedCoords = [currentPoint.coordinates, currentPoint.coordinates];
+    remainingCoords = [currentPoint.coordinates];
+    remainingCoords.addAll(routeCoordinates);
+  } else {
+    // Point is on or near the route - split accordingly
 
-  // Create new coordinate list
-  List<List<double>> newCoordinates = [];
+    // Build traversed route (from start to current position)
+    if (bestSegmentIndex > 0 || bestRatio > 0.01) {
+      // Add coordinates from start up to the segment where we are
+      if (bestSegmentIndex > 0) {
+        traversedCoords.addAll(
+          routeCoordinates.sublist(0, bestSegmentIndex + 1),
+        );
+      } else {
+        traversedCoords.add(routeCoordinates[0]);
+      }
 
-  // If we're at the beginning of a segment (ratio close to 0), start from that segment
-  if (bestRatio <= 0.01) {
-    // Add coordinates from the segment start onwards
-    newCoordinates.addAll(routeCoordinates.sublist(bestSegmentIndex));
-  }
-  // If we're at the end of a segment (ratio close to 1), start from next segment
-  else if (bestRatio >= 0.99) {
-    // Add coordinates from the next segment onwards
-    if (bestSegmentIndex + 1 < routeCoordinates.length) {
-      newCoordinates.addAll(routeCoordinates.sublist(bestSegmentIndex + 1));
-    } else {
-      // We're at the very end - create a minimal route with just the destination
-      newCoordinates.add(routeCoordinates.last);
-      newCoordinates.add(
-          routeCoordinates.last); // Duplicate to maintain LineString validity
+      // Add projected point if we're not at the start of a segment
+      if (bestRatio > 0.01) {
+        traversedCoords.add(projectedCoords);
+      }
+    }
+
+    // Ensure traversed route has at least 2 points
+    if (traversedCoords.length < 2) {
+      if (traversedCoords.isEmpty) {
+        traversedCoords = [routeCoordinates[0], routeCoordinates[0]];
+      } else {
+        traversedCoords.add(traversedCoords.last);
+      }
+    }
+
+    // Build remaining route (from current position to end)
+    // If we're at the beginning of a segment (ratio close to 0), start from that segment
+    if (bestRatio <= 0.01) {
+      remainingCoords.addAll(routeCoordinates.sublist(bestSegmentIndex));
+    }
+    // If we're at the end of a segment (ratio close to 1), start from next segment
+    else if (bestRatio >= 0.99) {
+      if (bestSegmentIndex + 1 < routeCoordinates.length) {
+        remainingCoords.addAll(routeCoordinates.sublist(bestSegmentIndex + 1));
+      } else {
+        // We're at the very end
+        remainingCoords.add(routeCoordinates.last);
+        remainingCoords.add(routeCoordinates.last);
+      }
+    }
+    // We're in the middle of a segment
+    else {
+      remainingCoords.add(projectedCoords);
+      if (bestSegmentIndex + 1 < routeCoordinates.length) {
+        remainingCoords.addAll(routeCoordinates.sublist(bestSegmentIndex + 1));
+      }
+    }
+
+    // Ensure remaining route has at least 2 points
+    if (remainingCoords.length < 2) {
+      if (remainingCoords.isEmpty) {
+        remainingCoords = [routeCoordinates.last, routeCoordinates.last];
+      } else {
+        remainingCoords.add(remainingCoords.last);
+      }
     }
   }
-  // We're in the middle of a segment
-  else {
-    // Add the projected point as the first coordinate
-    newCoordinates.add(projectedCoords);
-    // Add remaining coordinates from the next point onwards
-    if (bestSegmentIndex + 1 < routeCoordinates.length) {
-      newCoordinates.addAll(routeCoordinates.sublist(bestSegmentIndex + 1));
-    }
-  }
 
-  // Ensure we have at least 2 coordinates for a valid LineString
-  if (newCoordinates.length < 2) {
-    if (newCoordinates.isNotEmpty) {
-      newCoordinates.add(newCoordinates.last); // Duplicate the last point
-    } else {
-      // Fallback: return null if we can't create valid coordinates
-      return null;
-    }
-  }
+  // Create features with proper properties
+  final traversedRoute = GeoJSONFeature(
+    GeoJSONLineString(traversedCoords),
+    properties: {'route-type': 'traversed'},
+  );
+  final remainingRoute = GeoJSONFeature(
+    GeoJSONLineString(remainingCoords),
+    properties: {'route-type': 'remaining'},
+  );
 
-  return newCoordinates;
+  return GeoJSONFeatureCollection([traversedRoute, remainingRoute]);
 }
