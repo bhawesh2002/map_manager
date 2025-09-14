@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
+import 'package:map_manager/models/traversal_pair.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class TrackingModeClass implements ModeHandler {
@@ -14,67 +15,28 @@ class TrackingModeClass implements ModeHandler {
   static late final AnimationController _controller;
   static bool _controllerSet = false;
 
-  static const String _featureCollectionSourceId = 'tracking-features-source';
-  static const String _userFeatureSourceId = 'user-feature-source';
-  static const String _personFeatureSourceId = 'person-feature-source';
-  static const String _routeLayerId = 'route-layer';
-  static const String _personLayerId = 'person-layer';
-  static const String _userLayerId = 'user-layer';
+  static String get _routesSourceId => 'routes-source';
+  static String get _waypointsSourceId => 'waypoints-source';
 
-  final GeoJSONFeature userGeoFeature = GeoJSONFeature(null);
-  final GeoJSONFeature personGeoFeature = GeoJSONFeature(null);
-  final GeoJSONFeature routeGeoFeature = GeoJSONFeature(null);
+  static String get _routeLayerId => 'route-layer';
+  static String get _waypointLayerId => 'waypoint-layer';
 
-  bool _userLayerExists = false;
-  bool _personLayerExists = false;
-  bool _routeLayerExists = false;
+  final Map<String, GeoJSONFeature> _routesMap = {};
+  List<String> get routeIds => _routesMap.keys.toList();
+  final Map<String, GeoJSONFeature> _waypointsMap = {};
+  List<String> get waypointIds => _waypointsMap.keys.toList();
+  final Map<String, TraversalPair> _traversalPairMap = {};
+  final Map<String, VoidCallback> _traversalListeners =
+      {}; // Track listeners for cleanup
 
-  GeoJSONLineString get plannedRoute =>
-      mode.route!.geometry as GeoJSONLineString;
-
-  GeoJSONPoint? get userGeoPoint => userGeoFeature.geometry != null
-      ? GeoJSONPoint.fromMap(userGeoFeature.geometry!.toMap())
-      : null;
-  GeoJSONPoint? get personGeoPoint => personGeoFeature.geometry != null
-      ? GeoJSONPoint.fromMap(personGeoFeature.geometry!.toMap())
-      : null;
-
-  GeoJSONFeature get activeSourceFeature =>
-      mode.source == RouteTraversalSource.person
-      ? personGeoFeature
-      : userGeoFeature;
-  GeoJSONPoint? get activeSourceLoc => activeSourceFeature.geometry != null
-      ? GeoJSONPoint.fromMap(activeSourceFeature.geometry!.toMap())
-      : null;
-  GeoJSONFeatureCollection get featureCollection => GeoJSONFeatureCollection([
-    if (activeSourceLoc != null) activeSourceFeature,
-    routeGeoFeature,
-  ]);
-
-  ValueNotifier<LocationUpdate?>? _personNotifier;
-  ValueNotifier<LocationUpdate?> get activeNotifier =>
-      mode.source == RouteTraversalSource.person
-      ? _personNotifier!
-      : GeolocatorUtils.positionValueNotifier;
-
-  VoidCallback? _activeNotifierListener;
-  VoidCallback? _userLocationListener;
-  VoidCallback? _personLocationListener;
-
-  final List<LocationUpdate> _locUpdateQueue = [];
-  final List<LocationUpdate> _personLocUpdateQueue = [];
-  bool updatingPersonLoc = false;
-  final List<LocationUpdate> _userLocUpdateQueue = [];
-  bool updatingUserLoc = false;
-
-  bool _isAnimating = false;
-  bool _isProcessing = false;
-  LineString _routeTraversed = LineString(coordinates: []);
-  LineString get routeTraversed => _routeTraversed;
+  GeoJSONFeatureCollection get _routesFeatureCollection =>
+      GeoJSONFeatureCollection([..._routesMap.values]);
+  GeoJSONFeatureCollection get _waypointsFeatureCollection =>
+      GeoJSONFeatureCollection([..._waypointsMap.values]);
 
   final ManagerLogger _logger = ManagerLogger('RideTrackingModeClass');
 
-  void setAnimController(AnimationController animController) {
+  void _setAnimController(AnimationController animController) {
     if (!_controllerSet) {
       _controller = animController;
       _controllerSet = true;
@@ -87,355 +49,249 @@ class TrackingModeClass implements ModeHandler {
     AnimationController animController,
   ) async {
     TrackingModeClass cls = TrackingModeClass(mode, map);
-    cls.setAnimController(animController);
-
-    await map.style.addSource(
-      GeoJsonSource(id: _featureCollectionSourceId, lineMetrics: true),
-    );
-    await map.style.addSource(GeoJsonSource(id: _userFeatureSourceId));
-    await map.style.addSource(GeoJsonSource(id: _personFeatureSourceId));
+    cls._setAnimController(animController);
+    await cls._setupSource();
+    if (mode.initialRoutes != null) {
+      for (var rt in mode.initialRoutes!.entries) {
+        await cls.addRoute(rt.value, identifier: rt.key);
+      }
+    }
     await GeolocatorUtils.startLocationUpdates();
-    await cls._addRouteLayer();
-    await cls.setRouteTrackingMode(mode.source);
     return cls;
   }
 
-  Future<void> startTracking() async {
-    assert(
-      !(mode.source == RouteTraversalSource.person && _personNotifier == null),
-      'you must first add person to tracking mode',
-    );
-    _activeNotifierListener = _addToUpdateQueue;
-    activeNotifier.addListener(_activeNotifierListener!);
-    _logger.info("Now tracking ride route");
-  }
-
-  Future<void> setRouteTrackingMode(RouteTraversalSource source) async {
-    _locUpdateQueue.clear();
-
-    if (_activeNotifierListener != null) {
-      activeNotifier.removeListener(_activeNotifierListener!);
-    }
-
-    mode = mode.copyWith(source: source);
-    switch (source) {
-      case RouteTraversalSource.user:
-        _locUpdateQueue.addAll(_userLocUpdateQueue);
-        _stopUserTracking(force: true);
-        // User becomes active, so ensure person continues independent tracking
-        if (_personNotifier != null && _personLocationListener == null) {
-          _personLocationListener = _updatePersonLocation;
-          _personNotifier!.addListener(_personLocationListener!);
-        }
-        _logger.info("Route Traversal Source is User");
-        if (!_userLayerExists) await _addUserLayer();
-        await _map.style.setStyleLayerProperties(
-          _userLayerId,
-          jsonEncode({'source': _featureCollectionSourceId, 'icon-size': 0.23}),
-        );
-      case RouteTraversalSource.person:
-        _locUpdateQueue.addAll(_personLocUpdateQueue);
-        await stopPersonTracking(force: true);
-        // Person becomes active, so ensure user continues independent tracking
-        if (_userLocationListener == null) {
-          _userLocationListener = _updateUserLocation;
-          GeolocatorUtils.positionValueNotifier.addListener(
-            _userLocationListener!,
-          );
-        }
-        if (!_personLayerExists) await _addPersonLayer();
-        await _map.style.setStyleLayerProperties(
-          _personLayerId,
-          jsonEncode({'source': _featureCollectionSourceId, 'icon-size': 0.46}),
-        );
-    }
-
-    if (activeSourceLoc != null) _updateGeojson(activeSourceLoc!);
-
-    await _map.style.setStyleSourceProperty(
-      _featureCollectionSourceId,
-      'data',
-      featureCollection.toMap(),
-    );
-    if (_activeNotifierListener != null) {
-      activeNotifier.addListener(_activeNotifierListener!);
-    }
-    final currentCamera = await _map.getCameraState();
-    await _map.setCamera(
-      CameraOptions(
-        center: activeSourceLoc?.toMbPoint() ?? currentCamera.center,
-        zoom: currentCamera.zoom + 0.01,
-      ),
-    );
-  }
-
-  void _addToUpdateQueue() async {
-    final update = activeNotifier.value;
-    if (update == null) return;
-    _locUpdateQueue.add(update);
-    _routeTraversed = LineString(
-      coordinates: [
-        ...routeTraversed.coordinates,
-        Position.fromJson(update.location.coordinates),
-      ],
-    );
-    if (!_isProcessing) {
-      _processQueue();
-    }
-  }
-
-  void _processQueue() async {
-    if (_isProcessing) return;
-    _isProcessing = true;
+  Future<void> _setupSource() async {
     try {
-      while (_locUpdateQueue.isNotEmpty) {
-        final current = _locUpdateQueue.removeAt(0);
-        _isAnimating = false;
-        await _animateLocationUpdate(current);
-        await moveMapCamTo(_map, current.location, duration: 200);
-      }
+      await _map.style.addStyleImage(
+        'def-image',
+        0.5,
+        MbxImage(
+          width: MapAssets.personLoc.width,
+          height: MapAssets.personLoc.height,
+          data: MapAssets.personLoc.asset,
+        ),
+        false,
+        [],
+        [],
+        null,
+      );
+      await _map.style.addSource(
+        GeoJsonSource(id: _routesSourceId, lineMetrics: true),
+      );
+      await _map.style.addSource(GeoJsonSource(id: _waypointsSourceId));
     } catch (e) {
-      _logger.severe("Error processing location queue: $e");
-    } finally {
-      _isProcessing = false;
+      _logger.severe("Error while setting up sources: $e");
     }
   }
 
-  Future<void> _animateLocationUpdate(LocationUpdate update) async {
+  static int _routesAddCount = 0;
+  Future<void> addRoute(
+    GeoJSONFeature route, {
+    String? identifier,
+    bool setActive = false,
+  }) async {
     try {
-      if (_isAnimating) return;
+      identifier ??= "route-$_routesAddCount";
+      route.properties ??= {};
+      route.properties!['active'] = setActive;
+      route.properties!['route-id'] = identifier;
+      _routesMap.putIfAbsent(identifier, () {
+        _routesAddCount++;
+        return route;
+      });
 
-      _isAnimating = true;
-      final tween = PointTween(
-        begin: activeSourceLoc?.toMbPoint() ?? update.location.toMbPoint(),
-        end: update.location.toMbPoint(),
-      );
+      await _updateRoute();
 
-      final animation = tween.animate(
-        CurvedAnimation(parent: _controller, curve: Curves.linear),
-      );
-      // int frameCount = 0;
-      void listener() {
-        // if (frameCount++ % 3 != 0) return;
-        _updateGeojson(animation.value.toGeojsonPoint());
-        Future.delayed(const Duration(milliseconds: 16), () async {
-          await _map.style.setStyleSourceProperty(
-            _featureCollectionSourceId,
-            'data',
-            featureCollection.toMap(),
-          );
-        });
-      }
-
-      animation.addListener(listener);
-
-      try {
-        await _controller.forward(from: 0);
-      } finally {
-        animation.removeListener(listener);
-      }
-    } catch (e) {
-      _updateGeojson(update.location);
-      await _map.style.setStyleSourceProperty(
-        _featureCollectionSourceId,
-        'data',
-        featureCollection.toMap(),
-      );
-    }
-  }
-
-  void _updateGeojson(GeoJSONPoint point) {
-    final geom = routeGeoFeature.geometry as GeoJSONLineString;
-    activeSourceFeature.geometry = point;
-    final newCoordinates = updateRouteGeojson(point, geom.coordinates);
-    if (newCoordinates != null) geom.coordinates = newCoordinates;
-    routeGeoFeature.geometry = geom;
-  }
-
-  Future<void> _addRouteLayer() async {
-    try {
-      routeGeoFeature.geometry = plannedRoute;
-      routeGeoFeature.properties != null
-          ? routeGeoFeature.properties!['type'] = 'route'
-          : routeGeoFeature.properties = {'type': 'route'};
       await _map.style.addLayer(
         LineLayer(
-          id: _routeLayerId,
-          sourceId: _featureCollectionSourceId,
+          id: _routeLayerId + identifier,
+          sourceId: _routesSourceId,
           filter: [
             "==",
-            ["get", "type"],
-            "route",
+            ["get", "route-id"],
+            identifier,
           ],
         ),
       );
-      await _map.style.setStyleLayerProperties(
-        _routeLayerId,
-        json.encode(routeLayerProps),
+
+      final styling =
+          route.properties?['styling'] as Map<String, dynamic>? ??
+          routeLayerProps;
+      await applyLayerStyling(
+        styling: styling,
+        layerId: _routeLayerId + identifier,
       );
-      await _map.style.setStyleSourceProperty(
-        _featureCollectionSourceId,
-        'data',
-        featureCollection.toMap(),
-      );
-      _routeLayerExists = true;
-      _logger.info("Route layer added successfully");
     } catch (e) {
-      _logger.warning("Error adding planned route: $e");
+      _logger.warning("Error adding route: $e");
       rethrow;
     }
   }
 
-  Future<void> _addPersonLayer({GeoJSONPoint? point}) async {
-    if (_personLayerExists) return;
-    personGeoFeature.geometry = point;
-    personGeoFeature.properties != null
-        ? personGeoFeature.properties!['type'] = 'person'
-        : personGeoFeature.properties = {'type': 'person'};
-    await _map.style.addStyleImage(
-      '${_personLayerId}_img',
-      1.0,
-      MbxImage(
-        width: MapAssets.personLoc.width,
-        height: MapAssets.personLoc.height,
-        data: MapAssets.personLoc.asset,
-      ),
-      false,
-      [],
-      [],
-      null,
+  static int _waypointsAddCount = 0;
+  Future<void> addWaypoint(GeoJSONFeature point, {String? identifier}) async {
+    try {
+      if (identifier == null) {
+        identifier = 'waypoint-$_waypointsAddCount';
+        _waypointsAddCount++;
+      }
+      point.properties ??= {};
+      point.properties!['waypoint-id'] = identifier;
+      _waypointsMap[identifier] = point;
+
+      await _updateWaypoints();
+
+      await _map.style.addLayer(
+        SymbolLayer(
+          id: _waypointLayerId + identifier,
+          sourceId: _waypointsSourceId,
+          filter: [
+            "==",
+            ["get", "waypoint-id"],
+            identifier,
+          ],
+        ),
+      );
+
+      final styling =
+          point.properties?['styling'] as Map<String, dynamic>? ??
+          symbolLayerProps('def-image');
+      await applyLayerStyling(
+        styling: styling,
+        layerId: _waypointLayerId + identifier,
+      );
+    } catch (e) {
+      _logger.severe("Error adding waypoint: $e");
+      rethrow;
+    }
+  }
+
+  static int _traversalSourceAddCount = 0;
+  Future<void> addTraversalSource(
+    ValueNotifier<LocationUpdate> traversalSource,
+    String routeId, {
+    String? identifier,
+    Map<String, dynamic>? sourceStyling,
+    Map<String, dynamic>? traversedRouteStyling,
+    Map<String, dynamic>? remainingRouteStyling,
+  }) async {
+    if (!_routesMap.containsKey(routeId)) {
+      throw ArgumentError('Route with ID "$routeId" not found');
+    }
+
+    identifier ??= 'traversal-$_traversalSourceAddCount';
+
+    final traversalPair = TraversalPair(
+      pairId: identifier,
+      traversalSource: traversalSource,
+      originalRoute: _routesMap[routeId]!,
     );
+    _traversalPairMap.putIfAbsent(identifier, () {
+      _traversalSourceAddCount++;
+      return traversalPair;
+    });
+
+    void listener() {
+      try {
+        updateTraversalPair(identifier!);
+      } catch (e) {
+        _logger.severe("Error updating traversal pair $identifier: $e");
+      }
+    }
+
+    traversalSource.addListener(listener);
+    _traversalListeners[identifier] = listener;
+
+    await _map.style.addSource(
+      GeoJsonSource(
+        id: identifier,
+        data: traversalPair.traversalFeatureCollection.toJSON(),
+      ),
+    );
+    await _addTraversalFeatureLayer(
+      identifier,
+      sourceStyling: sourceStyling,
+      traversedRouteStyling: traversedRouteStyling,
+      remainingRouteStyling: remainingRouteStyling,
+    );
+  }
+
+  Future<void> _addTraversalFeatureLayer(
+    String pairId, {
+    Map<String, dynamic>? sourceStyling,
+    Map<String, dynamic>? traversedRouteStyling,
+    Map<String, dynamic>? remainingRouteStyling,
+  }) async {
+    // Current position marker
     await _map.style.addLayer(
       SymbolLayer(
-        id: _personLayerId,
-        sourceId: _personFeatureSourceId,
+        id: '$pairId-point',
+        sourceId: pairId,
         filter: [
           "==",
-          ["get", "type"],
-          "person",
+          ["get", "traversal-source-id"],
+          '$pairId-source',
         ],
       ),
     );
-    await _map.style.setStyleLayerProperties(
-      _personLayerId,
-      jsonEncode(personLayerProps('${_personLayerId}_img')),
-    );
-    _personLayerExists = true;
-    _logger.info("Person layer added successfully");
-  }
-
-  Future<void> _addUserLayer() async {
-    if (_userLayerExists) return;
-    userGeoFeature.properties != null
-        ? userGeoFeature.properties!['type'] = 'user'
-        : userGeoFeature.properties = {'type': 'user'};
-
-    // Add user circle icon to the map style
-    await _map.style.addStyleImage(
-      '${_userLayerId}_img',
-      1.0,
-      MbxImage(
-        width: MapAssets.circle.width,
-        height: MapAssets.circle.height,
-        data: MapAssets.circle.asset,
-      ),
-      false,
-      [],
-      [],
-      null,
+    await applyLayerStyling(
+      styling: sourceStyling ?? symbolLayerProps('def-image'),
+      layerId: "$pairId-point",
     );
 
+    // Traversed route (completed path)
     await _map.style.addLayer(
-      SymbolLayer(
-        id: _userLayerId,
-        sourceId: _userFeatureSourceId,
+      LineLayer(
+        id: '$pairId-traversed',
+        sourceId: pairId,
         filter: [
           "==",
-          ["get", "type"],
-          "user",
+          ["get", "traversed-route-id"],
+          '$pairId-traversed',
         ],
       ),
     );
-    await _map.style.setStyleLayerProperties(
-      _userLayerId,
-      jsonEncode({
-        'icon-image': '${_userLayerId}_img',
-        'icon-size': 0.22,
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
-      }),
+    await applyLayerStyling(
+      styling: traversedRouteStyling ?? traversedRouteLayerProps,
+      layerId: "$pairId-traversed",
     );
-    _userLayerExists = true;
-    _logger.info("User layer added successfully");
+
+    // Remaining route (path ahead)
+    await _map.style.addLayer(
+      LineLayer(
+        id: '$pairId-remaining',
+        sourceId: pairId,
+        filter: [
+          "==",
+          ["get", "remaining-route-id"],
+          '$pairId-remaining',
+        ],
+      ),
+    );
+    await applyLayerStyling(
+      styling: remainingRouteStyling ?? routeLayerProps,
+      layerId: "$pairId-remaining",
+    );
   }
 
-  Future<void> addPersonToTracking(
-    ValueNotifier<LocationUpdate?> personNotifier,
-  ) async {
-    if (_personLocationListener != null) await stopPersonTracking();
-    if (!_personLayerExists) await _addPersonLayer();
-    _personNotifier = personNotifier;
-    _personLocationListener = _updatePersonLocation;
-    _personNotifier!.addListener(_personLocationListener!);
-    _logger.info("Person location tracking started");
-  }
-
-  /// Immediately stops tracking of the active source
-  Future<void> stopActiveSourceTracking() async {
-    // Remove the active listener to stop adding new updates to queue
-    if (_activeNotifierListener != null) {
-      activeNotifier.removeListener(_activeNotifierListener!);
-      _activeNotifierListener = null;
+  Future<void> applyLayerStyling({
+    required Map<String, dynamic> styling,
+    required String layerId,
+  }) async {
+    try {
+      await _map.style.setStyleLayerProperties(layerId, jsonEncode(styling));
+    } catch (e) {
+      _logger.severe("applyRouteStyle(): $e");
     }
-
-    // Clear the main location update queue to stop processing
-    _locUpdateQueue.clear();
-
-    // Stop tracking based on current active source
-    switch (mode.source) {
-      case RouteTraversalSource.user:
-        _stopUserTracking(force: true);
-        _logger.info("User location tracking stopped immediately");
-        break;
-      case RouteTraversalSource.person:
-        await stopPersonTracking(force: true);
-        _logger.info("Person location tracking stopped immediately");
-        break;
-    }
-
-    _logger.info("Active source tracking stopped");
   }
 
   /// Updates the route in real-time with new coordinates
-  Future<void> updateRoute(GeoJSONFeature newRouteGeoJson) async {
+  Future<void> _updateRoute() async {
     try {
-      await stopActiveSourceTracking();
-      mode = mode.copyWith(route: newRouteGeoJson);
-
-      routeGeoFeature.geometry = newRouteGeoJson.geometry as GeoJSONLineString;
-      routeGeoFeature.properties != null
-          ? routeGeoFeature.properties!['type'] = 'route'
-          : routeGeoFeature.properties = {'type': 'route'};
-
-      _routeTraversed = LineString(coordinates: []);
-
       await _map.style.setStyleSourceProperty(
-        _featureCollectionSourceId,
+        _routesSourceId,
         'data',
-        featureCollection.toMap(),
+        _routesFeatureCollection.toJSON(),
       );
-
-      final newRoute = newRouteGeoJson.geometry as GeoJSONLineString;
-      if (newRoute.coordinates.isNotEmpty) {
-        final firstPoint = newRoute.coordinates.first;
-        await _map.setCamera(
-          CameraOptions(
-            center: Point(coordinates: Position(firstPoint[0], firstPoint[1])),
-            zoom: 14.0,
-          ),
-        );
-      }
-
       _logger.info("Route updated successfully.");
     } catch (e) {
       _logger.severe("Error updating route: $e");
@@ -443,175 +299,117 @@ class TrackingModeClass implements ModeHandler {
     }
   }
 
-  void _stopUserTracking({bool force = false}) {
-    if (_userLocationListener != null) {
-      GeolocatorUtils.positionValueNotifier.removeListener(
-        _userLocationListener!,
+  Future<void> _updateWaypoints() async {
+    try {
+      await _map.style.setStyleSourceProperty(
+        _waypointsSourceId,
+        'data',
+        _waypointsFeatureCollection.toJSON(),
       );
-      _userLocationListener = null;
-      if (force) _userLocUpdateQueue.clear();
-    }
-  }
-
-  Future<void> stopPersonTracking({
-    bool removePersonLayer = false,
-    bool force = false,
-  }) async {
-    if (_personLocationListener != null) {
-      _personNotifier?.removeListener(_personLocationListener!);
-      _personLocationListener = null;
-      if (force) _personLocUpdateQueue.clear();
-      if (removePersonLayer) await _removePersonLayer();
-    }
-  }
-
-  Future<void> _updateUserLocation() async {
-    final update = GeolocatorUtils.update;
-    if (update == null) return;
-    _userLocUpdateQueue.add(update);
-    !updatingUserLoc ? _updateUserVisualization() : null;
-  }
-
-  Future<void> _updatePersonLocation() async {
-    final update = _personNotifier?.value;
-    if (update == null) return;
-    _personLocUpdateQueue.add(update);
-    (!updatingPersonLoc) ? _updatePersonVisualization() : null;
-  }
-
-  Future<void> _updateUserVisualization() async {
-    try {
-      updatingUserLoc = true;
-      while (_userLocUpdateQueue.isNotEmpty) {
-        final update = _userLocUpdateQueue.removeAt(0);
-        final tween = PointTween(
-          begin: userGeoPoint?.toMbPoint() ?? update.location.toMbPoint(),
-          end: update.location.toMbPoint(),
-        );
-        for (var i = 0; i < 80; i++) {
-          final lerp = tween.lerp(i / 80);
-          userGeoFeature.geometry = lerp.toGeojsonPoint();
-          await _map.style.setStyleSourceProperty(
-            _userFeatureSourceId,
-            'data',
-            userGeoFeature.toMap(),
-          );
-        }
-        await _map.style.setStyleSourceProperty(
-          _userFeatureSourceId,
-          'data',
-          userGeoFeature.toMap(),
-        );
-      }
-      updatingUserLoc = false;
+      _logger.info("Waypoints updated successfully.");
     } catch (e) {
-      _logger.warning("Error updating user visualization: $e");
+      _logger.severe("Error updating waypoints: $e");
+      rethrow;
     }
   }
 
-  Future<void> _updatePersonVisualization() async {
+  Future<void> updateTraversalPair(String pairId) async {
+    final pair = _traversalPairMap[pairId];
+    if (pair == null) return;
+
     try {
-      updatingPersonLoc = true;
-      while (_personLocUpdateQueue.isNotEmpty) {
-        final update = _personLocUpdateQueue.removeAt(0);
-        final tween = PointTween(
-          begin: personGeoPoint?.toMbPoint() ?? update.location.toMbPoint(),
-          end: update.location.toMbPoint(),
-        );
-        for (var i = 0; i < 80; i++) {
-          final lerp = tween.lerp(i / 80);
-          personGeoFeature.geometry = lerp.toGeojsonPoint();
-          await _map.style.setStyleSourceProperty(
-            _personFeatureSourceId,
-            'data',
-            personGeoFeature.toMap(),
-          );
-        }
-        await _map.style.setStyleSourceProperty(
-          _personFeatureSourceId,
-          'data',
-          personGeoFeature.toMap(),
-        );
-      }
-
-      updatingPersonLoc = false;
+      await _map.style.setStyleSourceProperty(
+        pairId,
+        'data',
+        pair.traversalFeatureCollection.toJSON(),
+      );
+      _logger.info("Traversal pair $pairId updated successfully.");
     } catch (e) {
-      _logger.warning("Error updating person visualization: $e");
+      _logger.severe("Error updating traversal pair $pairId: $e");
+      rethrow;
     }
   }
 
-  Future<void> _removePersonLayer() async {
-    if (!_personLayerExists) return;
+  Future<void> removeTraversalSource(String pairId) async {
+    final pair = _traversalPairMap[pairId];
+    final listener = _traversalListeners[pairId];
+
+    if (pair != null && listener != null) {
+      pair.traversalSource.removeListener(listener);
+      _traversalListeners.remove(pairId);
+    }
+
+    // Remove map layers
     try {
-      await _map.style.removeStyleLayer(_personLayerId);
-      await _map.style.removeStyleImage('${_personLayerId}_img');
-      _personLayerExists = false;
+      await removeLayer('$pairId-point');
+      await removeLayer('$pairId-traversed');
+      await removeLayer('$pairId-remaining');
+      await _removeSource(pairId);
+
+      _traversalPairMap.remove(pairId);
+      _logger.info("Traversal source $pairId removed successfully.");
     } catch (e) {
-      _logger.warning("Error removing person layer: $e");
+      _logger.severe("Error removing traversal source $pairId: $e");
+      rethrow;
     }
   }
 
-  Future<void> _removeSources({
-    bool featureSrc = false,
-    bool userSrc = false,
-    bool personSrc = false,
-  }) async {
-    if (featureSrc) {
-      if (await _map.style.styleSourceExists(_featureCollectionSourceId)) {
-        await _map.style.removeStyleSource(_featureCollectionSourceId);
-      }
-    }
-    if (personSrc) {
-      if (await _map.style.styleSourceExists(_personFeatureSourceId)) {
-        await _map.style.removeStyleSource(_personFeatureSourceId);
-      }
-    }
-    if (userSrc) {
-      if (await _map.style.styleSourceExists(_userFeatureSourceId)) {
-        await _map.style.removeStyleSource(_userFeatureSourceId);
-      }
+  Future<void> _removeSource(String sourceId) async {
+    try {
+      await _map.style.removeStyleSource(sourceId);
+    } catch (e) {
+      _logger.severe("Error removing source: $e");
     }
   }
 
-  Future<void> _removeLayers({
-    bool routeLayer = false,
-    bool userLayer = false,
-    bool personLayer = false,
-  }) async {
-    if (routeLayer && _routeLayerExists) {
-      await _map.style.removeStyleLayer(_routeLayerId);
+  Future<void> removeLayer(String layerId) async {
+    try {
+      await _map.style.removeStyleLayer(layerId);
+    } catch (e) {
+      _logger.severe("Error removing source: $e");
     }
-    if (userLayer && _userLayerExists) {
-      await _map.style.removeStyleLayer(_userLayerId);
+  }
+
+  Future<void> removeAllRoutes() async {
+    for (var id in routeIds) {
+      await removeLayer(id);
     }
-    if (personLayer && _personLayerExists) _removePersonLayer();
+  }
+
+  Future<void> removeAllWaypoints() async {
+    for (var id in waypointIds) {
+      await removeLayer(id);
+    }
+  }
+
+  Future<void> removeAllTraversalSources() async {
+    final pairIds = _traversalPairMap.keys.toList();
+    for (var pairId in pairIds) {
+      await removeTraversalSource(pairId);
+    }
+  }
+
+  Future<void> removeAllLayers() async {
+    try {
+      await removeAllRoutes();
+      await removeAllWaypoints();
+      await removeAllTraversalSources();
+    } catch (e) {
+      _logger.severe("removeAllLayers(): $e");
+    }
   }
 
   @override
   Future<void> dispose() async {
     _logger.info("Cleaning Tracking Mode Data");
-    await stopActiveSourceTracking();
     _map.setOnMapTapListener(null);
-    try {
-      _stopUserTracking();
-      await stopPersonTracking();
-      await _removeLayers(routeLayer: true, userLayer: true, personLayer: true);
-      await _removeSources(featureSrc: true, userSrc: true, personSrc: true);
-      if (_activeNotifierListener != null) {
-        activeNotifier.removeListener(_activeNotifierListener!);
-      }
-      _activeNotifierListener = null;
-    } catch (e) {
-      _logger.warning("Error removing feature collection layers/source: $e");
-    }
+
     _controller.reset();
 
-    _isAnimating = false;
-    _userLayerExists = false;
-    _personLayerExists = false;
-    updatingPersonLoc = false;
-    updatingUserLoc = false;
-    _personNotifier = null;
+    await removeAllTraversalSources();
+    await removeAllLayers();
+    await _removeSource(_routesSourceId);
+    await _removeSource(_waypointsSourceId);
 
     await _map.location.updateSettings(
       LocationComponentSettings(enabled: false),
