@@ -56,7 +56,6 @@ class TrackingModeClass implements ModeHandler {
         await cls.addRoute(rt.value, identifier: rt.key);
       }
     }
-    await GeolocatorUtils.startLocationUpdates();
     return cls;
   }
 
@@ -203,8 +202,9 @@ class TrackingModeClass implements ModeHandler {
 
     await _map.style.addSource(
       GeoJsonSource(
-        id: identifier,
+        id: traversalPair.pairId,
         data: traversalPair.traversalFeatureCollection.toJSON(),
+        lineMetrics: true,
       ),
     );
     await _addTraversalFeatureLayer(
@@ -323,7 +323,6 @@ class TrackingModeClass implements ModeHandler {
         'data',
         pair.traversalFeatureCollection.toJSON(),
       );
-      _logger.info("Traversal pair $pairId updated successfully.");
     } catch (e) {
       _logger.severe("Error updating traversal pair $pairId: $e");
       rethrow;
