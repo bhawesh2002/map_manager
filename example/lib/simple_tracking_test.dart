@@ -17,7 +17,6 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
   LocationSimulator? _simulator;
   bool _isSimulating = false;
   bool _isTrackingModeActive = false;
-  bool _hasUserTracking = false;
   bool _hasPersonTracking = false;
 
   // Wrapper to convert nullable to non-nullable
@@ -33,7 +32,7 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Simple Tracking Test'),
+        title: const Text('Person Tracking Test'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Column(
@@ -57,6 +56,30 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Instructions
+          Card(
+            color: Colors.blue[50],
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Instructions:',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          )),
+                  const SizedBox(height: 4),
+                  Text(
+                    '1. Activate Tracking Mode\n2. Start Simulation\n3. Start Person Tracking\n4. Watch real-time route progress!',
+                    style: TextStyle(color: Colors.blue[700], fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Status
           Card(
             child: Padding(
@@ -70,9 +93,11 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
                       'Tracking Mode: ${_isTrackingModeActive ? 'Active' : 'Inactive'}'),
                   Text('Simulation: ${_isSimulating ? 'Running' : 'Stopped'}'),
                   Text(
-                      'User Tracking: ${_hasUserTracking ? 'Active' : 'Inactive'}'),
-                  Text(
-                      'Person Tracking: ${_hasPersonTracking ? 'Active' : 'Inactive'}'),
+                      'Person Tracking: ${_hasPersonTracking ? 'Active - Real-time tracking!' : 'Inactive'}',
+                      style: TextStyle(
+                        color: _hasPersonTracking ? Colors.green[700] : null,
+                        fontWeight: _hasPersonTracking ? FontWeight.bold : null,
+                      )),
                 ],
               ),
             ),
@@ -100,15 +125,6 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-
-          // User Tracking
-          ElevatedButton(
-            onPressed: _isTrackingModeActive && !_hasUserTracking
-                ? _startUserTracking
-                : null,
-            child: const Text("Start User Tracking"),
           ),
           const SizedBox(height: 8),
 
@@ -140,7 +156,18 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
                 _isTrackingModeActive && _isSimulating && !_hasPersonTracking
                     ? _startPersonTracking
                     : null,
-            child: const Text("Start Person Tracking"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _hasPersonTracking ? Colors.green[600] : null,
+            ),
+            child: Text(
+              _hasPersonTracking
+                  ? "Person Tracking Active"
+                  : "Start Person Tracking",
+              style: TextStyle(
+                color: _hasPersonTracking ? Colors.white : null,
+                fontWeight: _hasPersonTracking ? FontWeight.bold : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -175,23 +202,7 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
 
     setState(() {
       _isTrackingModeActive = false;
-      _hasUserTracking = false;
       _hasPersonTracking = false;
-    });
-  }
-
-  Future<void> _startUserTracking() async {
-    if (_mapManager == null || !_isTrackingModeActive) return;
-
-    _mapManager!.whenTrackingMode((mode) async {
-      // Start tracking user location - we'll need to implement this
-      // For now, let's skip user tracking since the API needs adjustment
-      print(
-          "User tracking would start here - API needs adjustment for nullable ValueNotifier");
-    });
-
-    setState(() {
-      _hasUserTracking = true;
     });
   }
 
