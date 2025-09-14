@@ -18,6 +18,14 @@ Map<String, dynamic> routeLayerProps = {
   'line-z-offset': -1.0,
 };
 
+Map<String, dynamic> traversedRouteLayerProps = {
+  'line-color': '#9E9E9E', // Gray for completed path
+  'line-width': 3.0,
+  'line-opacity': 0.6,
+  'line-cap': 'round',
+  'line-join': 'round',
+};
+
 Map<String, dynamic> symbolLayerProps(String? imgId) => {
   if (imgId != null) 'iconImage': imgId,
   'iconOffset': [0.0, -22.0],
