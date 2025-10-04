@@ -24,9 +24,8 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    manager?.dispose();
     _animController.dispose();
-    mapboxMap?.dispose();
+    manager?.dispose();
     super.dispose();
   }
 
