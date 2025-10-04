@@ -28,6 +28,8 @@ abstract class ModeHandler {
   /// Parameters:
   /// - [operation]: The async operation to execute safely
   /// - [operationName]: Optional name for logging purposes
+  /// - [shouldDispose]: Whether to auto-dispose on PlatformException (default: true).
+  ///   Set to false when calling from dispose() to prevent circular calls.
   ///
   /// Returns:
   /// - The result of the operation if successful
@@ -39,10 +41,18 @@ abstract class ModeHandler {
   ///   () => mapboxMap.easeTo(...),
   ///   operationName: 'moveCamera',
   /// );
+  ///
+  /// // In dispose method:
+  /// await safeExecute(
+  ///   () => _map.style.removeStyleLayer(...),
+  ///   operationName: 'removeLayer',
+  ///   shouldDispose: false,
+  /// );
   /// ```
   Future<T?> safeExecute<T>(
     Future<T> Function() operation, {
     String? operationName,
+    bool shouldDispose = true,
   }) async {
     // Skip operation if already disposed
     if (isDisposed) {
@@ -61,7 +71,9 @@ abstract class ModeHandler {
       );
 
       // Auto-dispose on channel errors (map detached from view)
-      if (e.code == 'channel-error' || e.message?.contains('channel') == true) {
+      if (shouldDispose &&
+          (e.code == 'channel-error' ||
+              e.message?.contains('channel') == true)) {
         _safeOpLogger.info(
           'Detected detached map state. Triggering auto-disposal...',
         );
