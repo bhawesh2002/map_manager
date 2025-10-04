@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -335,7 +334,7 @@ class MapManagerMapbox extends ChangeNotifier {
     _animationController.dispose();
     try {
       _mapboxMap.dispose();
-    } on PlatformException {
+    } on Exception {
       _logger.info("MapboxMap already disposed");
     }
     _logger.info('MapManagerMapbox disposed successfully');
