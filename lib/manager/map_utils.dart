@@ -1,23 +1,42 @@
+import 'package:flutter/services.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
+final ManagerLogger _logger = ManagerLogger("map_utils");
 
 Future<void> moveMapCamTo(
   MapboxMap map,
   GeoJSONPoint point, {
   int? duration,
 }) async {
-  await map.flyTo(
-    CameraOptions(center: point.toMbPoint(), zoom: 16),
-    MapAnimationOptions(duration: duration ?? 500),
-  );
+  try {
+    await map.flyTo(
+      CameraOptions(center: point.toMbPoint(), zoom: 16),
+      MapAnimationOptions(duration: duration ?? 500),
+    );
+  } on PlatformException {
+    _logger.info("Map is not attached to any view");
+    rethrow;
+  } catch (e) {
+    _logger.severe(e);
+    rethrow;
+  }
 }
 
 Future<void> moveMapBy(MapboxMap map, double x, double y) async {
-  await map.moveBy(
-    ScreenCoordinate(x: x, y: y),
-    MapAnimationOptions(duration: 1),
-  );
+  try {
+    await map.moveBy(
+      ScreenCoordinate(x: x, y: y),
+      MapAnimationOptions(duration: 1),
+    );
+  } on PlatformException {
+    _logger.info("Map is not attached to any view");
+    rethrow;
+  } catch (e) {
+    _logger.severe(e);
+    rethrow;
+  }
 }
 
 /// Zooms the map camera to fit all provided points within the viewport.
@@ -90,6 +109,9 @@ Future<void> zoomToFitPoints(
       cameraOptions,
       MapAnimationOptions(duration: animationDuration),
     );
+  } on PlatformException {
+    _logger.info("Map is not attached to any view");
+    rethrow;
   } catch (e) {
     logger?.warning("Failed to zoom to bounds: $e");
   }
