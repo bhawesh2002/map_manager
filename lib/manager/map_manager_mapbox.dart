@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -304,5 +305,40 @@ class MapManagerMapbox extends ChangeNotifier {
     return Exception(
       'Cannot access ${T.toString()} handler. Current mode is ${_currentModeHandler.runtimeType}',
     );
+  }
+
+  bool _isDisposed = false;
+
+  /// Returns true if the manager has been disposed.
+  bool get isDisposed => _isDisposed;
+
+  /// Disposes the MapManager and all associated resources.
+  ///
+  /// This method should be called when the MapManager is no longer needed,
+  /// typically in the widget's dispose() method.
+  ///
+  /// Example usage:
+  /// ```dart
+  /// @override
+  /// void dispose() {
+  ///   mapManager.dispose();
+  ///   super.dispose();
+  /// }
+  /// ```
+  @override
+  Future<void> dispose() async {
+    if (_isDisposed) return;
+
+    _logger.info('Disposing MapManagerMapbox...');
+    _isDisposed = true;
+    await _cleanExistingModeData();
+    _animationController.dispose();
+    try {
+      _mapboxMap.dispose();
+    } on PlatformException {
+      _logger.info("MapboxMap already disposed");
+    }
+    super.dispose();
+    _logger.info('MapManagerMapbox disposed successfully');
   }
 }
