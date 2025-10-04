@@ -331,12 +331,6 @@ class MapManagerMapbox extends ChangeNotifier {
     _logger.info('Disposing MapManagerMapbox...');
     _isDisposed = true;
     await _cleanExistingModeData();
-    _animationController.dispose();
-    try {
-      _mapboxMap.dispose();
-    } on Exception {
-      _logger.info("MapboxMap already disposed");
-    }
     _logger.info('MapManagerMapbox disposed successfully');
   }
 }
