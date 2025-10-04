@@ -19,6 +19,18 @@ class LocationModeClass extends ModeHandler {
 
   final _featureCollection = GeoJSONFeatureCollection([]);
 
+  /// Notifier that triggers when a point is added to the map.
+  ///
+  /// Listeners will receive a Map with the point's identifier as key
+  /// and the GeoJSONPoint as value whenever a point is added.
+  ///
+  /// Example:
+  /// ```dart
+  /// locationMode.onPointAdded.addListener(() {
+  ///   final addedPoint = locationMode.onPointAdded.value;
+  ///   print('Point ${addedPoint.keys.first} added at ${addedPoint.values.first}');
+  /// });
+  /// ```
   final ValueNotifier<Map<String, GeoJSONPoint>?> onPointAdded = ValueNotifier(
     null,
   );
