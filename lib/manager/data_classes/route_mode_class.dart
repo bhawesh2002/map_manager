@@ -261,15 +261,16 @@ class RouteModeClass extends ModeHandler {
     bool setActive = false,
   }) async {
     try {
+      setActive = _addedRoutesMap.isEmpty ? true : setActive;
       final routeId = identifier ?? 'route-$addCount';
       identifier = routeId;
       route.properties ??= {};
-      route.properties!['active'] = setActive;
       route.properties!['route_id'] = routeId;
       _addedRoutesMap.putIfAbsent(routeId, () {
         addCount++;
         return route;
       });
+      setActiveRoute(identifier);
 
       await _updateRouteSource();
 
@@ -422,6 +423,11 @@ class RouteModeClass extends ModeHandler {
     double paddingPixels = 50.0,
     int animationDuration = 1000,
   }) async {
+    _logger.info("Is route null : ${route == null}");
+    _logger.info(
+      "Is active route null : ${activeRoute == null || activeRoute!.coordinates.isEmpty}",
+    );
+    _logger.info("Active route: ${activeRoute?.coordinates.length}");
     if (route == null &&
         (activeRoute == null || activeRoute!.coordinates.isEmpty)) {
       return;
