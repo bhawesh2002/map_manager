@@ -20,7 +20,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 /// * The MapboxMap instance is now encapsulated within the class
 /// * Methods no longer require passing the map as a parameter
 /// * Added reactive state tracking with [followingUserLoc] ValueNotifier
-class BasicModeClass implements ModeHandler {
+class BasicModeClass extends ModeHandler {
   /// The current map mode configuration.
   final BasicMapMode mode;
 
@@ -70,15 +70,21 @@ class BasicModeClass implements ModeHandler {
     bool enableBearing = true,
     PuckBearing puckBearing = PuckBearing.COURSE,
   }) async {
-    await _map.location.updateSettings(
-      LocationComponentSettings(
-        enabled: true,
-        puckBearingEnabled: enableBearing,
-        puckBearing: puckBearing,
-      ),
-    );
-    _map.setOnMapMoveListener(onMapMoveClbk);
-    _map.setOnMapLongTapListener(onMapLongTapClbk);
+    await safeExecute(() async {
+      await _map.location.updateSettings(
+        LocationComponentSettings(
+          enabled: true,
+          puckBearingEnabled: enableBearing,
+          puckBearing: puckBearing,
+        ),
+      );
+    }, operationName: 'enableLocationTracking');
+
+    safeExecuteSync(() {
+      _map.setOnMapMoveListener(onMapMoveClbk);
+      _map.setOnMapLongTapListener(onMapLongTapClbk);
+    }, operationName: 'setMapListeners');
+
     await followUserLocation();
   }
 
@@ -102,9 +108,16 @@ class BasicModeClass implements ModeHandler {
   ///
   /// Updates the Mapbox location component settings to hide the user's location.
   Future<void> disableLocTracking() async {
-    await _map.location.updateSettings(
-      LocationComponentSettings(enabled: false),
+    await safeExecute(
+      () async {
+        await _map.location.updateSettings(
+          LocationComponentSettings(enabled: false),
+        );
+      },
+      operationName: 'disableLocationTracking',
+      shouldDispose: false,
     );
+
     await stopFollowingUserLocation();
   }
 
@@ -203,9 +216,16 @@ class BasicModeClass implements ModeHandler {
   /// The map instance is already available as a class field, so no parameter is needed.
   @override
   Future<void> dispose() async {
+    if (isDisposed) return;
+    isDisposed = true;
+
     await disableLocTracking();
-    _map.setOnMapMoveListener(null);
-    _map.setOnMapLongTapListener(null);
+
+    safeExecuteSync(() {
+      _map.setOnMapMoveListener(null);
+      _map.setOnMapLongTapListener(null);
+    }, operationName: 'clearMapListeners');
+
     _mapMoveTimer?.cancel();
     _logger.info("Basic Mode data cleared");
   }

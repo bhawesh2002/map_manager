@@ -7,7 +7,7 @@ import 'package:map_manager/map_manager.dart';
 import 'package:map_manager/models/traversal_pair.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-class TrackingModeClass implements ModeHandler {
+class TrackingModeClass extends ModeHandler {
   TrackingMode mode;
   final MapboxMap _map;
   TrackingModeClass(this.mode, this._map);
@@ -60,7 +60,7 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _setupSource() async {
-    try {
+    await safeExecute(() async {
       await _map.style.addStyleImage(
         'def-image',
         0.5,
@@ -74,13 +74,17 @@ class TrackingModeClass implements ModeHandler {
         [],
         null,
       );
+    }, operationName: 'addTrackingImage');
+
+    await safeExecute(() async {
       await _map.style.addSource(
         GeoJsonSource(id: _routesSourceId, lineMetrics: true),
       );
+    }, operationName: 'addRoutesSource');
+
+    await safeExecute(() async {
       await _map.style.addSource(GeoJsonSource(id: _waypointsSourceId));
-    } catch (e) {
-      _logger.severe("Error while setting up sources: $e");
-    }
+    }, operationName: 'addWaypointsSource');
   }
 
   static int _routesAddCount = 0;
@@ -90,35 +94,37 @@ class TrackingModeClass implements ModeHandler {
     bool setActive = false,
   }) async {
     try {
-      identifier ??= "route-$_routesAddCount";
+      final routeId = identifier ?? "route-$_routesAddCount";
       route.properties ??= {};
       route.properties!['active'] = setActive;
-      route.properties!['route-id'] = identifier;
-      _routesMap.putIfAbsent(identifier, () {
+      route.properties!['route-id'] = routeId;
+      _routesMap.putIfAbsent(routeId, () {
         _routesAddCount++;
         return route;
       });
 
       await _updateRoute();
 
-      await _map.style.addLayer(
-        LineLayer(
-          id: _routeLayerId + identifier,
-          sourceId: _routesSourceId,
-          filter: [
-            "==",
-            ["get", "route-id"],
-            identifier,
-          ],
-        ),
-      );
+      await safeExecute(() async {
+        await _map.style.addLayer(
+          LineLayer(
+            id: _routeLayerId + routeId,
+            sourceId: _routesSourceId,
+            filter: [
+              "==",
+              ["get", "route-id"],
+              routeId,
+            ],
+          ),
+        );
+      }, operationName: 'addRouteLayer');
 
       final styling =
           route.properties?['styling'] as Map<String, dynamic>? ??
           routeLayerProps;
       await applyLayerStyling(
         styling: styling,
-        layerId: _routeLayerId + identifier,
+        layerId: _routeLayerId + routeId,
       );
     } catch (e) {
       _logger.warning("Error adding route: $e");
@@ -129,34 +135,36 @@ class TrackingModeClass implements ModeHandler {
   static int _waypointsAddCount = 0;
   Future<void> addWaypoint(GeoJSONFeature point, {String? identifier}) async {
     try {
+      final waypointId = identifier ?? 'waypoint-$_waypointsAddCount';
       if (identifier == null) {
-        identifier = 'waypoint-$_waypointsAddCount';
         _waypointsAddCount++;
       }
       point.properties ??= {};
-      point.properties!['waypoint-id'] = identifier;
-      _waypointsMap[identifier] = point;
+      point.properties!['waypoint-id'] = waypointId;
+      _waypointsMap[waypointId] = point;
 
       await _updateWaypoints();
 
-      await _map.style.addLayer(
-        SymbolLayer(
-          id: _waypointLayerId + identifier,
-          sourceId: _waypointsSourceId,
-          filter: [
-            "==",
-            ["get", "waypoint-id"],
-            identifier,
-          ],
-        ),
-      );
+      await safeExecute(() async {
+        await _map.style.addLayer(
+          SymbolLayer(
+            id: _waypointLayerId + waypointId,
+            sourceId: _waypointsSourceId,
+            filter: [
+              "==",
+              ["get", "waypoint-id"],
+              waypointId,
+            ],
+          ),
+        );
+      }, operationName: 'addWaypointLayer');
 
       final styling =
           point.properties?['styling'] as Map<String, dynamic>? ??
           symbolLayerProps('def-image');
       await applyLayerStyling(
         styling: styling,
-        layerId: _waypointLayerId + identifier,
+        layerId: _waypointLayerId + waypointId,
       );
     } catch (e) {
       _logger.severe("Error adding waypoint: $e");
@@ -200,13 +208,16 @@ class TrackingModeClass implements ModeHandler {
     traversalSource.addListener(listener);
     _traversalListeners[identifier] = listener;
 
-    await _map.style.addSource(
-      GeoJsonSource(
-        id: traversalPair.pairId,
-        data: traversalPair.traversalFeatureCollection.toJSON(),
-        lineMetrics: true,
-      ),
-    );
+    await safeExecute(() async {
+      await _map.style.addSource(
+        GeoJsonSource(
+          id: traversalPair.pairId,
+          data: traversalPair.traversalFeatureCollection.toJSON(),
+          lineMetrics: true,
+        ),
+      );
+    }, operationName: 'addTraversalSource');
+
     await _addTraversalFeatureLayer(
       identifier,
       sourceStyling: sourceStyling,
@@ -222,51 +233,60 @@ class TrackingModeClass implements ModeHandler {
     Map<String, dynamic>? remainingRouteStyling,
   }) async {
     // Current position marker
-    await _map.style.addLayer(
-      SymbolLayer(
-        id: '$pairId-point',
-        sourceId: pairId,
-        filter: [
-          "==",
-          ["get", "traversal-source-id"],
-          '$pairId-source',
-        ],
-      ),
-    );
+    await safeExecute(() async {
+      await _map.style.addLayer(
+        SymbolLayer(
+          id: '$pairId-point',
+          sourceId: pairId,
+          filter: [
+            "==",
+            ["get", "traversal-source-id"],
+            '$pairId-source',
+          ],
+        ),
+      );
+    }, operationName: 'addTraversalPointLayer');
+
     await applyLayerStyling(
       styling: sourceStyling ?? symbolLayerProps('def-image'),
       layerId: "$pairId-point",
     );
 
     // Traversed route (completed path)
-    await _map.style.addLayer(
-      LineLayer(
-        id: '$pairId-traversed',
-        sourceId: pairId,
-        filter: [
-          "==",
-          ["get", "traversed-route-id"],
-          '$pairId-traversed',
-        ],
-      ),
-    );
+    await safeExecute(() async {
+      await _map.style.addLayer(
+        LineLayer(
+          id: '$pairId-traversed',
+          sourceId: pairId,
+          filter: [
+            "==",
+            ["get", "traversed-route-id"],
+            '$pairId-traversed',
+          ],
+        ),
+      );
+    }, operationName: 'addTraversedRouteLayer');
+
     await applyLayerStyling(
       styling: traversedRouteStyling ?? traversedRouteLayerProps,
       layerId: "$pairId-traversed",
     );
 
     // Remaining route (path ahead)
-    await _map.style.addLayer(
-      LineLayer(
-        id: '$pairId-remaining',
-        sourceId: pairId,
-        filter: [
-          "==",
-          ["get", "remaining-route-id"],
-          '$pairId-remaining',
-        ],
-      ),
-    );
+    await safeExecute(() async {
+      await _map.style.addLayer(
+        LineLayer(
+          id: '$pairId-remaining',
+          sourceId: pairId,
+          filter: [
+            "==",
+            ["get", "remaining-route-id"],
+            '$pairId-remaining',
+          ],
+        ),
+      );
+    }, operationName: 'addRemainingRouteLayer');
+
     await applyLayerStyling(
       styling: remainingRouteStyling ?? routeLayerProps,
       layerId: "$pairId-remaining",
@@ -277,56 +297,45 @@ class TrackingModeClass implements ModeHandler {
     required Map<String, dynamic> styling,
     required String layerId,
   }) async {
-    try {
+    await safeExecute(() async {
       await _map.style.setStyleLayerProperties(layerId, jsonEncode(styling));
-    } catch (e) {
-      _logger.severe("applyRouteStyle(): $e");
-    }
+    }, operationName: 'applyLayerStyling_$layerId');
   }
 
   /// Updates the route in real-time with new coordinates
   Future<void> _updateRoute() async {
-    try {
+    await safeExecute(() async {
       await _map.style.setStyleSourceProperty(
         _routesSourceId,
         'data',
         _routesFeatureCollection.toJSON(),
       );
-      _logger.info("Route updated successfully.");
-    } catch (e) {
-      _logger.severe("Error updating route: $e");
-      rethrow;
-    }
+    }, operationName: 'updateRoute');
+    _logger.info("Route updated successfully.");
   }
 
   Future<void> _updateWaypoints() async {
-    try {
+    await safeExecute(() async {
       await _map.style.setStyleSourceProperty(
         _waypointsSourceId,
         'data',
         _waypointsFeatureCollection.toJSON(),
       );
-      _logger.info("Waypoints updated successfully.");
-    } catch (e) {
-      _logger.severe("Error updating waypoints: $e");
-      rethrow;
-    }
+    }, operationName: 'updateWaypoints');
+    _logger.info("Waypoints updated successfully.");
   }
 
   Future<void> updateTraversalPair(String pairId) async {
     final pair = _traversalPairMap[pairId];
     if (pair == null) return;
 
-    try {
+    await safeExecute(() async {
       await _map.style.setStyleSourceProperty(
         pairId,
         'data',
         pair.traversalFeatureCollection.toJSON(),
       );
-    } catch (e) {
-      _logger.severe("Error updating traversal pair $pairId: $e");
-      rethrow;
-    }
+    }, operationName: 'updateTraversalPair_$pairId');
   }
 
   Future<void> removeTraversalSource(String pairId) async {
@@ -354,19 +363,23 @@ class TrackingModeClass implements ModeHandler {
   }
 
   Future<void> _removeSource(String sourceId) async {
-    try {
-      await _map.style.removeStyleSource(sourceId);
-    } catch (e) {
-      _logger.severe("Error removing source: $e");
-    }
+    await safeExecute(
+      () async {
+        await _map.style.removeStyleSource(sourceId);
+      },
+      operationName: 'removeTrackingSource_$sourceId',
+      shouldDispose: false,
+    );
   }
 
   Future<void> removeLayer(String layerId) async {
-    try {
-      await _map.style.removeStyleLayer(layerId);
-    } catch (e) {
-      _logger.severe("Error removing source: $e");
-    }
+    await safeExecute(
+      () async {
+        await _map.style.removeStyleLayer(layerId);
+      },
+      operationName: 'removeTrackingLayer_$layerId',
+      shouldDispose: false,
+    );
   }
 
   Future<void> removeAllRoutes() async {
@@ -400,8 +413,14 @@ class TrackingModeClass implements ModeHandler {
 
   @override
   Future<void> dispose() async {
+    if (isDisposed) return;
+    isDisposed = true;
+
     _logger.info("Cleaning Tracking Mode Data");
-    _map.setOnMapTapListener(null);
+
+    safeExecuteSync(() {
+      _map.setOnMapTapListener(null);
+    }, operationName: 'clearMapTapListener');
 
     _controller.reset();
 
@@ -410,9 +429,16 @@ class TrackingModeClass implements ModeHandler {
     await _removeSource(_routesSourceId);
     await _removeSource(_waypointsSourceId);
 
-    await _map.location.updateSettings(
-      LocationComponentSettings(enabled: false),
+    await safeExecute(
+      () async {
+        await _map.location.updateSettings(
+          LocationComponentSettings(enabled: false),
+        );
+      },
+      operationName: 'disableLocationTracking',
+      shouldDispose: false,
     );
+
     _logger.info("Tracking Mode Data Cleared");
   }
 }

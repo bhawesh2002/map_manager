@@ -3,7 +3,7 @@ import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
-class LocationModeClass implements ModeHandler {
+class LocationModeClass extends ModeHandler {
   final LocSelMode mode;
   final MapboxMap _map;
   LocationModeClass(this.mode, this._map);
@@ -34,7 +34,11 @@ class LocationModeClass implements ModeHandler {
     LocationModeClass cls = LocationModeClass(mode, map);
     await cls._addDefaultImage();
     await cls._setupSource();
-    cls._map.setOnMapTapListener(cls._onMapTapCallback);
+
+    cls.safeExecuteSync(() {
+      cls._map.setOnMapTapListener(cls._onMapTapCallback);
+    }, operationName: 'setMapTapListener');
+
     await cls._addInitialPointAnnotations();
     return cls;
   }
@@ -47,20 +51,24 @@ class LocationModeClass implements ModeHandler {
   }
 
   Future<void> _setupSource() async {
-    await _map.style.addSource(
-      GeoJsonSource(id: _sourceId, data: _featureCollection.toJSON()),
-    );
+    await safeExecute(() async {
+      await _map.style.addSource(
+        GeoJsonSource(id: _sourceId, data: _featureCollection.toJSON()),
+      );
+    }, operationName: 'addLocationSource');
 
-    await _map.style.addLayer(
-      SymbolLayer(
-        id: _layerId,
-        sourceId: _sourceId,
-        iconImage: defImageId,
-        iconOffset: [0.0, -22.0],
-        iconAllowOverlap: true,
-        iconColor: 0xFF0DC8C8,
-      ),
-    );
+    await safeExecute(() async {
+      await _map.style.addLayer(
+        SymbolLayer(
+          id: _layerId,
+          sourceId: _sourceId,
+          iconImage: defImageId,
+          iconOffset: [0.0, -22.0],
+          iconAllowOverlap: true,
+          iconColor: 0xFF0DC8C8,
+        ),
+      );
+    }, operationName: 'addLocationLayer');
   }
 
   Future<void> _updateSource() async {
@@ -70,27 +78,31 @@ class LocationModeClass implements ModeHandler {
 
     final featureCollection = GeoJSONFeatureCollection(features);
 
-    await _map.style.setStyleSourceProperty(
-      _sourceId,
-      'data',
-      featureCollection.toJSON(),
-    );
+    await safeExecute(() async {
+      await _map.style.setStyleSourceProperty(
+        _sourceId,
+        'data',
+        featureCollection.toJSON(),
+      );
+    }, operationName: 'updateLocationSource');
   }
 
   Future<void> _addDefaultImage() async {
-    await _map.style.addStyleImage(
-      defImageId,
-      2.5,
-      MbxImage(
-        width: MapAssets.selectedLoc.width,
-        height: MapAssets.selectedLoc.height,
-        data: MapAssets.selectedLoc.asset,
-      ),
-      true, //sdf as true does not retains original png colors
-      [],
-      [],
-      null,
-    );
+    await safeExecute(() async {
+      await _map.style.addStyleImage(
+        defImageId,
+        2.5,
+        MbxImage(
+          width: MapAssets.selectedLoc.width,
+          height: MapAssets.selectedLoc.height,
+          data: MapAssets.selectedLoc.asset,
+        ),
+        true, //sdf as true does not retains original png colors
+        [],
+        [],
+        null,
+      );
+    }, operationName: 'addLocationImage');
   }
 
   Future<void> _addInitialPointAnnotations() async {
@@ -179,16 +191,31 @@ class LocationModeClass implements ModeHandler {
 
   @override
   Future<void> dispose() async {
+    if (isDisposed) return;
+    isDisposed = true;
+
     _logger.info("Cleaning Location Mode Data");
-    _map.setOnMapTapListener(null);
+
+    safeExecuteSync(() {
+      _map.setOnMapTapListener(null);
+    }, operationName: 'clearMapTapListener');
 
     // Remove layer and source
-    try {
-      await _map.style.removeStyleLayer(_layerId);
-      await _map.style.removeStyleSource(_sourceId);
-    } catch (e) {
-      _logger.warning("Error removing style elements: $e");
-    }
+    await safeExecute(
+      () async {
+        await _map.style.removeStyleLayer(_layerId);
+      },
+      operationName: 'removeLocationLayer',
+      shouldDispose: false,
+    );
+
+    await safeExecute(
+      () async {
+        await _map.style.removeStyleSource(_sourceId);
+      },
+      operationName: 'removeLocationSource',
+      shouldDispose: false,
+    );
 
     _selectedPointsMap.clear();
     _logger.info("Location Mode Data Cleared");

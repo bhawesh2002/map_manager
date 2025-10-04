@@ -93,7 +93,7 @@ enum RouteStyle {
 /// ### Error Handling Strategy
 /// All map operations are wrapped in try-catch blocks with specific error
 /// logging. This prevents crashes while providing debugging information.
-class RouteModeClass implements ModeHandler {
+class RouteModeClass extends ModeHandler {
   /// The route mode configuration containing the route data and options.
   final RouteMode _routeMode;
 
@@ -173,7 +173,10 @@ class RouteModeClass implements ModeHandler {
 
     // Set up tap listener to prevent issues with residual handlers
     // This prevents crashes from stale tap listeners when switching modes
-    cls._map.setOnMapTapListener((context) {});
+    cls.safeExecuteSync(() {
+      cls._map.setOnMapTapListener((context) {});
+    }, operationName: 'setMapTapListener');
+
     try {
       await cls._setupSource();
       if (cls._routeMode.predefinedRoutes != null) {
@@ -189,7 +192,7 @@ class RouteModeClass implements ModeHandler {
   }
 
   Future<void> _setupSource() async {
-    try {
+    await safeExecute(() async {
       await _map.style.addSource(
         GeoJsonSource(
           id: _routeSourceId,
@@ -197,9 +200,7 @@ class RouteModeClass implements ModeHandler {
           lineMetrics: true,
         ),
       );
-    } catch (e) {
-      _logger.severe("_setupSource(): $e");
-    }
+    }, operationName: 'addRouteSource');
   }
 
   static int addCount = 0;
@@ -260,30 +261,34 @@ class RouteModeClass implements ModeHandler {
     bool setActive = false,
   }) async {
     try {
-      identifier ??= 'route-$addCount';
+      final routeId = identifier ?? 'route-$addCount';
+      identifier = routeId;
       route.properties ??= {};
       route.properties!['active'] = setActive;
-      route.properties!['route_id'] = identifier;
-      _addedRoutesMap.putIfAbsent(identifier, () {
+      route.properties!['route_id'] = routeId;
+      _addedRoutesMap.putIfAbsent(routeId, () {
         addCount++;
         return route;
       });
 
       await _updateRouteSource();
 
-      await _map.style.addLayer(
-        LineLayer(
-          id: _routeLayerId + identifier,
-          sourceId: _routeSourceId,
-          filter: [
-            "==",
-            ["get", "route_id"],
-            identifier,
-          ],
-        ),
-      );
+      await safeExecute(() async {
+        await _map.style.addLayer(
+          LineLayer(
+            id: _routeLayerId + routeId,
+            sourceId: _routeSourceId,
+            filter: [
+              "==",
+              ["get", "route_id"],
+              routeId,
+            ],
+          ),
+        );
+      }, operationName: 'addRouteLayer');
+
       final styling = route.properties?['styling'] as Map<String, dynamic>?;
-      await applyRouteStyle(identifier, styling);
+      await applyRouteStyle(routeId, styling);
       await zoomToRoute();
     } catch (e) {
       _logger.warning("addLineString(): $e");
@@ -295,14 +300,12 @@ class RouteModeClass implements ModeHandler {
     String identifier,
     Map<String, dynamic>? styling,
   ) async {
-    try {
+    await safeExecute(() async {
       await _map.style.setStyleLayerProperties(
         _routeLayerId + identifier,
         jsonEncode(styling ?? routeLayerProps),
       );
-    } catch (e) {
-      _logger.severe("applyRouteStyle(): $e");
-    }
+    }, operationName: 'applyRouteStyle');
   }
 
   Future<void> setActiveRoute(String identifier) async {
@@ -318,15 +321,13 @@ class RouteModeClass implements ModeHandler {
   }
 
   Future<void> _updateRouteSource() async {
-    try {
+    await safeExecute(() async {
       await _map.style.setStyleSourceProperty(
         _routeSourceId,
         'data',
         _routeFeatureCollection.toJSON(),
       );
-    } catch (e) {
-      _logger.severe("_updateRouteSource(): $e");
-    }
+    }, operationName: 'updateRouteSource');
   }
 
   /// Removes the currently displayed route from the map.
@@ -347,13 +348,17 @@ class RouteModeClass implements ModeHandler {
   /// for complete cleanup including waypoints.
   Future<void> removeRoute(String identifier) async {
     if (addedRoutesId.contains(identifier)) {
-      try {
-        _addedRoutesMap.remove(identifier);
-        await _map.style.removeStyleLayer(_routeLayerId + identifier);
-        await _updateRouteSource();
-      } catch (e) {
-        _logger.warning("Error removing route layer/source: $e");
-      }
+      _addedRoutesMap.remove(identifier);
+
+      await safeExecute(
+        () async {
+          await _map.style.removeStyleLayer(_routeLayerId + identifier);
+        },
+        operationName: 'removeRouteLayer',
+        shouldDispose: false,
+      );
+
+      await _updateRouteSource();
     } else {
       throw Exception("Specified identifier was not found");
     }
@@ -374,7 +379,13 @@ class RouteModeClass implements ModeHandler {
   }
 
   Future<void> _removeSource() async {
-    await _map.style.removeStyleSource(_routeSourceId);
+    await safeExecute(
+      () async {
+        await _map.style.removeStyleSource(_routeSourceId);
+      },
+      operationName: 'removeRouteSource',
+      shouldDispose: false,
+    );
   }
 
   /// Zooms the map camera to fit the entire route within the viewport.
@@ -450,9 +461,14 @@ class RouteModeClass implements ModeHandler {
   /// mode to prevent memory leaks and map state conflicts.
   @override
   Future<void> dispose() async {
+    if (isDisposed) return;
+    isDisposed = true;
+
     _logger.info("Cleaning Route Mode Data");
 
-    _map.setOnMapTapListener(null);
+    safeExecuteSync(() {
+      _map.setOnMapTapListener(null);
+    }, operationName: 'clearMapTapListener');
 
     // Remove all route visualizations
     await removeAllRoutes();
