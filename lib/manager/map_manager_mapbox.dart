@@ -328,7 +328,7 @@ class MapManagerMapbox extends ChangeNotifier {
   @override
   Future<void> dispose() async {
     if (_isDisposed) return;
-
+    super.dispose();
     _logger.info('Disposing MapManagerMapbox...');
     _isDisposed = true;
     await _cleanExistingModeData();
@@ -338,7 +338,6 @@ class MapManagerMapbox extends ChangeNotifier {
     } on PlatformException {
       _logger.info("MapboxMap already disposed");
     }
-    super.dispose();
     _logger.info('MapManagerMapbox disposed successfully');
   }
 }

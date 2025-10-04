@@ -23,6 +23,12 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
   }
 
   @override
+  void dispose() {
+    manager?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MapWidget(
       onMapCreated: (controller) async {
