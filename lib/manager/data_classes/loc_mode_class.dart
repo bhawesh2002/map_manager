@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/manager/map_assets.dart';
 import 'package:map_manager/map_manager.dart';
@@ -17,6 +18,10 @@ class LocationModeClass extends ModeHandler {
   List<String> get pointIdentifiers => _selectedPointsMap.keys.toList();
 
   final _featureCollection = GeoJSONFeatureCollection([]);
+
+  final ValueNotifier<Map<String, GeoJSONPoint>?> onPointAdded = ValueNotifier(
+    null,
+  );
 
   static const String _sourceId = 'location-selection-source';
   static const String _layerId = 'location-selection-layer';
@@ -140,6 +145,9 @@ class LocationModeClass extends ModeHandler {
     _logger.info(
       "${_selectedPointsMap.length} ${_selectedPointsMap.keys.toList()}",
     );
+
+    onPointAdded.value = {id: point};
+
     await _updateSource();
 
     if (zoom) {
@@ -217,6 +225,7 @@ class LocationModeClass extends ModeHandler {
     );
 
     _selectedPointsMap.clear();
+    onPointAdded.dispose();
     _logger.info("Location Mode Data Cleared");
     isDisposed = true;
   }
