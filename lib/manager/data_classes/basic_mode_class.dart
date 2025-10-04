@@ -217,7 +217,6 @@ class BasicModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
-    isDisposed = true;
 
     await disableLocTracking();
 
@@ -228,5 +227,6 @@ class BasicModeClass extends ModeHandler {
 
     _mapMoveTimer?.cancel();
     _logger.info("Basic Mode data cleared");
+    isDisposed = true;
   }
 }

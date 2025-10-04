@@ -462,7 +462,6 @@ class RouteModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
-    isDisposed = true;
 
     _logger.info("Cleaning Route Mode Data");
 
@@ -475,5 +474,6 @@ class RouteModeClass extends ModeHandler {
     await _removeSource();
 
     _logger.info('Route Mode Data Cleared');
+    isDisposed = true;
   }
 }

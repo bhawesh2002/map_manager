@@ -192,7 +192,6 @@ class LocationModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
-    isDisposed = true;
 
     _logger.info("Cleaning Location Mode Data");
 
@@ -219,5 +218,6 @@ class LocationModeClass extends ModeHandler {
 
     _selectedPointsMap.clear();
     _logger.info("Location Mode Data Cleared");
+    isDisposed = true;
   }
 }

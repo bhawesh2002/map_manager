@@ -414,7 +414,6 @@ class TrackingModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
-    isDisposed = true;
 
     _logger.info("Cleaning Tracking Mode Data");
 
@@ -440,5 +439,6 @@ class TrackingModeClass extends ModeHandler {
     );
 
     _logger.info("Tracking Mode Data Cleared");
+    isDisposed = true;
   }
 }
