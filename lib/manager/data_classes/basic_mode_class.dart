@@ -221,8 +221,8 @@ class BasicModeClass extends ModeHandler {
     await disableLocTracking();
 
     safeExecuteSync(() {
-      _map.setOnMapMoveListener(null);
-      _map.setOnMapLongTapListener(null);
+      _map.setOnMapMoveListener((gesture) {});
+      _map.setOnMapLongTapListener((gesture) {});
     }, operationName: 'clearMapListeners');
 
     _mapMoveTimer?.cancel();
