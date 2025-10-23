@@ -126,6 +126,8 @@ class TrackingModeClass extends ModeHandler {
         styling: styling,
         layerId: _routeLayerId + routeId,
       );
+      final lineString = route.geometry as GeoJSONLineString;
+      await zoomToFitPoints(_map, lineString.points, logger: _logger);
     } catch (e) {
       _logger.warning("Error adding route: $e");
       rethrow;
