@@ -12,40 +12,65 @@ class SimpleTrackingTest extends StatefulWidget {
   State<SimpleTrackingTest> createState() => _SimpleTrackingTestState();
 }
 
-class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
+class _SimpleTrackingTestState extends State<SimpleTrackingTest>
+    with SingleTickerProviderStateMixin {
   MapManagerMapbox? _mapManager;
   LocationSimulator? _simulator;
   bool _isSimulating = false;
   bool _isTrackingModeActive = false;
   bool _hasPersonTracking = false;
+  GeoJSONPointTween? _locationTween;
 
-  // Wrapper to convert nullable to non-nullable
-  ValueNotifier<LocationUpdate>? _nonNullableLocationNotifier;
+  ValueNotifier<LocationUpdate>? _locUpdateNotifier;
+
+  late final AnimationController _animationController;
+
+  @override
+  void initState() {
+    _animationController = AnimationController(vsync: this);
+    _animationController.addListener(() {
+      if (_locationTween != null) {
+        _locUpdateNotifier?.value = LocationUpdate(
+          location:
+              GeoJSONFeature(_locationTween!.evaluate(_animationController)),
+          lastUpdated: DateTime.now(),
+        );
+      }
+    });
+    super.initState();
+  }
 
   @override
   void dispose() {
     _stopSimulation();
+    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Person Tracking Test'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: AppMap(
-              onMapCreated: (manager) {
-                _mapManager = manager;
-              },
+    return AnimatedBuilder(
+      builder: (context, child) {
+        return child!;
+      },
+      animation: _animationController,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Person Tracking Test'),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: AppMap(
+                onMapCreated: (manager) {
+                  _mapManager = manager;
+                },
+              ),
             ),
-          ),
-          _buildControls(),
-        ],
+            _buildControls(),
+          ],
+        ),
       ),
     );
   }
@@ -208,27 +233,35 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
 
   Future<void> _startSimulation() async {
     final route = LineString(coordinates: doubledRoutePositionList);
+    const updateInterval = Duration(seconds: 2);
     _simulator = LocationSimulator(
       route: route,
-      updateInterval: const Duration(seconds: 2),
+      updateInterval: updateInterval,
     );
-    _simulator!.start();
 
     // Create non-nullable wrapper
-    _nonNullableLocationNotifier = ValueNotifier<LocationUpdate>(
+    _locUpdateNotifier = ValueNotifier<LocationUpdate>(
       LocationUpdate(
-        location: GeoJSONFeature(GeoJSONPoint([0, 0])),
+        location: GeoJSONFeature(GeoJSONPoint(routeCoordinates.first)),
         lastUpdated: DateTime.now(),
       ),
     );
 
-    // Listen to nullable notifier and update non-nullable one
+    _animationController.duration = const Duration(milliseconds: 500);
+
     _simulator!.locationNotifier.addListener(() {
       final update = _simulator!.locationNotifier.value;
-      if (update != null) {
-        _nonNullableLocationNotifier!.value = update;
+      if (update != null && _locUpdateNotifier != null) {
+        _locationTween = GeoJSONPointTween(
+          begin: (_locUpdateNotifier!.value.location.geometry as GeoJSONPoint),
+          end: (update.location.geometry as GeoJSONPoint),
+        );
+        _animationController.reset();
+        _animationController.forward();
       }
     });
+
+    _simulator!.start();
 
     setState(() {
       _isSimulating = true;
@@ -238,7 +271,8 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
   void _stopSimulation() {
     _simulator?.stop();
     _simulator = null;
-    _nonNullableLocationNotifier = null;
+    _locUpdateNotifier = null;
+    _locationTween = null;
 
     setState(() {
       _isSimulating = false;
@@ -248,14 +282,14 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest> {
 
   Future<void> _startPersonTracking() async {
     if (_mapManager == null ||
-        _nonNullableLocationNotifier == null ||
+        _locUpdateNotifier == null ||
         !_isTrackingModeActive) {
       return;
     }
 
     _mapManager!.whenTrackingMode((mode) async {
       await mode.addTraversalSource(
-        _nonNullableLocationNotifier!,
+        _locUpdateNotifier!,
         'main-route',
         identifier: 'person-tracking',
       );
