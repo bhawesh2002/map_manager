@@ -194,6 +194,7 @@ class TrackingModeClass extends ModeHandler {
       traversalSource: traversalSource,
       originalRoute: _routesMap[routeId]!,
     );
+
     _traversalPairMap.putIfAbsent(identifier, () {
       _traversalSourceAddCount++;
       return traversalPair;
@@ -234,26 +235,6 @@ class TrackingModeClass extends ModeHandler {
     Map<String, dynamic>? traversedRouteStyling,
     Map<String, dynamic>? remainingRouteStyling,
   }) async {
-    // Current position marker
-    await safeExecute(() async {
-      await _map.style.addLayer(
-        SymbolLayer(
-          id: '$pairId-point',
-          sourceId: pairId,
-          filter: [
-            "==",
-            ["get", "traversal-source-id"],
-            '$pairId-source',
-          ],
-        ),
-      );
-    }, operationName: 'addTraversalPointLayer');
-
-    await applyLayerStyling(
-      styling: sourceStyling ?? symbolLayerProps('def-image'),
-      layerId: "$pairId-point",
-    );
-
     // Traversed route (completed path)
     await safeExecute(() async {
       await _map.style.addLayer(
@@ -292,6 +273,26 @@ class TrackingModeClass extends ModeHandler {
     await applyLayerStyling(
       styling: remainingRouteStyling ?? routeLayerProps,
       layerId: "$pairId-remaining",
+    );
+
+    // Current position marker
+    await safeExecute(() async {
+      await _map.style.addLayer(
+        CircleLayer(
+          id: '$pairId-point',
+          sourceId: pairId,
+          filter: [
+            "==",
+            ["get", "traversal-source-id"],
+            '$pairId-source',
+          ],
+        ),
+      );
+    }, operationName: 'addTraversalPointLayer');
+
+    await applyLayerStyling(
+      styling: sourceStyling ?? userLayerProps,
+      layerId: "$pairId-point",
     );
   }
 
