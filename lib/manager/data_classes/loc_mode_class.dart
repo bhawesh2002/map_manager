@@ -49,7 +49,6 @@ class LocationModeClass extends ModeHandler {
     MapboxMap map,
   ) async {
     LocationModeClass cls = LocationModeClass(mode, map);
-    await cls._addDefaultImage();
     await cls._setupSource();
 
     cls.safeExecuteSync(() {
@@ -68,6 +67,8 @@ class LocationModeClass extends ModeHandler {
   }
 
   Future<void> _setupSource() async {
+    await _addDefaultImage();
+
     await safeExecute(() async {
       await _map.style.addSource(
         GeoJsonSource(id: _sourceId, data: _featureCollection.toJSON()),
@@ -114,7 +115,7 @@ class LocationModeClass extends ModeHandler {
           height: MapAssets.selectedLoc.height,
           data: MapAssets.selectedLoc.asset,
         ),
-        true, //sdf as true does not retains original png colors
+        true,
         [],
         [],
         null,
