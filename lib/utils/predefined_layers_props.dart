@@ -20,8 +20,8 @@ Map<String, dynamic> routeLayerProps = {
 
 Map<String, dynamic> traversedRouteLayerProps = {
   'line-color': '#9E9E9E', // Gray for completed path
-  'line-width': 3.0,
-  'line-opacity': 0.6,
+  'line-width': 6.0,
+  'line-opacity': 0.9,
   'line-cap': 'round',
   'line-join': 'round',
 };
