@@ -28,7 +28,7 @@ export 'utils/location_simulator.dart';
 export 'models/mapbox_route.dart';
 
 // Export all files from lib/manager/tweens
-export 'manager/tweens/point_tween.dart';
+export 'manager/tweens/geojsonpoint_tween.dart';
 
 // Export all files from lib/models
 export 'models/mode_customization.dart';
