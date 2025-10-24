@@ -27,6 +27,5 @@ class LocationUpdate {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(point.coordinates[1], point.coordinates[0], lastUpdated);
+  int get hashCode => Object.hash(point.coordinates[1], point.coordinates[0]);
 }
