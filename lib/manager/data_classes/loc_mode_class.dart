@@ -237,6 +237,14 @@ class LocationModeClass extends ModeHandler {
       shouldDispose: false,
     );
 
+    await safeExecute(
+      () async {
+        await _map.style.removeStyleImage(defImageId);
+      },
+      operationName: "removeStyleImage",
+      shouldDispose: false,
+    );
+
     _selectedPointsMap.clear();
     onPointAdded.dispose();
     isDisposed = true;
