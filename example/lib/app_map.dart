@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -34,14 +35,18 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
     return MapWidget(
       onMapCreated: (controller) async {
         mapboxMap = controller;
-        await controller.scaleBar
-            .updateSettings(ScaleBarSettings(enabled: false));
-        await controller.compass
-            .updateSettings(CompassSettings(enabled: false));
-        await controller.logo
-            .updateSettings(LogoSettings(position: OrnamentPosition.TOP_RIGHT));
-        await controller.attribution.updateSettings(
-            AttributionSettings(position: OrnamentPosition.BOTTOM_LEFT));
+        try {
+          await controller.scaleBar
+              .updateSettings(ScaleBarSettings(enabled: false));
+          await controller.compass
+              .updateSettings(CompassSettings(enabled: false));
+          await controller.logo.updateSettings(
+              LogoSettings(position: OrnamentPosition.TOP_RIGHT));
+          await controller.attribution.updateSettings(
+              AttributionSettings(position: OrnamentPosition.BOTTOM_LEFT));
+        } on PlatformException catch (e) {
+          debugPrint("Platform exception in AppMap: $e");
+        }
 
         manager = await MapManagerMapbox.init(controller, _animController,
             mode: widget.initialMode);
