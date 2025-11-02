@@ -48,10 +48,11 @@ class TrackingModeClass extends ModeHandler {
     return cls;
   }
 
+  String get defWaypointImg => 'def-waypoint-image';
   Future<void> _setupSource() async {
     await safeExecute(() async {
       await _map.style.addStyleImage(
-        'def-image',
+        defWaypointImg,
         0.5,
         MbxImage(
           width: MapAssets.personLoc.width,
@@ -152,7 +153,7 @@ class TrackingModeClass extends ModeHandler {
 
       final styling =
           point.properties?['styling'] as Map<String, dynamic>? ??
-          symbolLayerProps('def-image');
+          symbolLayerProps(defWaypointImg);
       await applyLayerStyling(
         styling: styling,
         layerId: _waypointLayerId + waypointId,
@@ -376,13 +377,13 @@ class TrackingModeClass extends ModeHandler {
 
   Future<void> removeAllRoutes() async {
     for (var id in routeIds) {
-      await removeLayer(id);
+      await removeLayer(_routeLayerId + id);
     }
   }
 
   Future<void> removeAllWaypoints() async {
     for (var id in waypointIds) {
-      await removeLayer(id);
+      await removeLayer(_waypointLayerId + id);
     }
   }
 
@@ -413,18 +414,15 @@ class TrackingModeClass extends ModeHandler {
       _map.setOnMapTapListener((gesture) {});
     }, operationName: 'clearMapTapListener');
 
-    await removeAllTraversalSources();
     await removeAllLayers();
     await _removeSource(_routesSourceId);
     await _removeSource(_waypointsSourceId);
 
     await safeExecute(
       () async {
-        await _map.location.updateSettings(
-          LocationComponentSettings(enabled: false),
-        );
+        await _map.style.removeStyleImage(defWaypointImg);
       },
-      operationName: 'disableLocationTracking',
+      operationName: "removeStyleImage_$defWaypointImg",
       shouldDispose: false,
     );
 
