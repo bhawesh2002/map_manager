@@ -6,17 +6,15 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 class MapManagerMapbox extends ChangeNotifier {
   MapMode _mode;
   final MapboxMap _mapboxMap;
-  late final AnimationController _animationController;
-  MapManagerMapbox._(this._mapboxMap, this._mode, this._animationController);
+  MapManagerMapbox._(this._mapboxMap, this._mode);
 
   static Future<MapManagerMapbox> init(
-    MapboxMap mapboxMap,
-    AnimationController animController, {
+    MapboxMap mapboxMap, {
     MapMode? mode,
   }) async {
     await MapAssets.init();
     mode = mode ?? MapMode.basic();
-    final manager = MapManagerMapbox._(mapboxMap, mode, animController);
+    final manager = MapManagerMapbox._(mapboxMap, mode);
     await manager.changeMode(mode);
     return manager;
   }
@@ -92,7 +90,6 @@ class MapManagerMapbox extends ChangeNotifier {
     _currentModeHandler = await TrackingModeClass.initialize(
       tracking,
       _mapboxMap,
-      _animationController,
     );
     _logger.info('Mode changed to Tracking Mode');
   }
@@ -329,12 +326,11 @@ class MapManagerMapbox extends ChangeNotifier {
   @override
   Future<void> dispose() async {
     if (_isDisposing || _isDisposed) return;
-    _isDisposing = true;
     if (!isDisposing) {
+      _isDisposing = true;
       _logger.info('Disposing MapManagerMapbox...');
       super.dispose();
       await _cleanExistingModeData();
-      _mapboxMap.dispose();
       _logger.info('MapManagerMapbox disposed successfully');
       _isDisposed = true;
       _isDisposing = false;
