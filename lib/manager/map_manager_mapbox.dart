@@ -334,6 +334,7 @@ class MapManagerMapbox extends ChangeNotifier {
       _logger.info('Disposing MapManagerMapbox...');
       super.dispose();
       await _cleanExistingModeData();
+      _mapboxMap.dispose();
       _logger.info('MapManagerMapbox disposed successfully');
       _isDisposed = true;
       _isDisposing = false;
