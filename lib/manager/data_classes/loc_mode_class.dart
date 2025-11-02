@@ -94,13 +94,13 @@ class LocationModeClass extends ModeHandler {
       return GeoJSONFeature(entry.value, properties: {'id': entry.key});
     }).toList();
 
-    final featureCollection = GeoJSONFeatureCollection(features);
+    _featureCollection.features.addAll(features);
 
     await safeExecute(() async {
       await _map.style.setStyleSourceProperty(
         _sourceId,
         'data',
-        featureCollection.toJSON(),
+        _featureCollection.toJSON(),
       );
     }, operationName: 'updateLocationSource');
   }
@@ -217,7 +217,7 @@ class LocationModeClass extends ModeHandler {
     _logger.info("Cleaning Location Mode Data");
 
     safeExecuteSync(() {
-      _map.setOnMapTapListener(null);
+      _map.setOnMapTapListener((gesture) {});
     }, operationName: 'clearMapTapListener');
 
     // Remove layer and source
@@ -239,7 +239,7 @@ class LocationModeClass extends ModeHandler {
 
     _selectedPointsMap.clear();
     onPointAdded.dispose();
-    _logger.info("Location Mode Data Cleared");
     isDisposed = true;
+    _logger.info("Location Mode Data Cleared");
   }
 }

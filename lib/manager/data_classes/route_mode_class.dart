@@ -93,11 +93,10 @@ class RouteModeClass extends ModeHandler {
   }) async {
     try {
       setActive = _addedRoutesMap.isEmpty ? true : setActive;
-      final routeId = identifier ?? 'route-$addCount';
-      identifier = routeId;
+      identifier ??= 'route-$addCount';
       route.properties ??= {};
-      route.properties!['route_id'] = routeId;
-      _addedRoutesMap.putIfAbsent(routeId, () {
+      route.properties!['route_id'] = identifier;
+      _addedRoutesMap.putIfAbsent(identifier, () {
         addCount++;
         return route;
       });
@@ -108,19 +107,19 @@ class RouteModeClass extends ModeHandler {
       await safeExecute(() async {
         await _map.style.addLayer(
           LineLayer(
-            id: _routeLayerId + routeId,
+            id: _routeLayerId + identifier!,
             sourceId: _routeSourceId,
             filter: [
               "==",
               ["get", "route_id"],
-              routeId,
+              identifier,
             ],
           ),
         );
       }, operationName: 'addRouteLayer');
 
       final styling = route.properties?['styling'] as Map<String, dynamic>?;
-      await applyRouteStyle(routeId, styling);
+      await applyRouteStyle(identifier, styling);
       await zoomToRoute();
     } catch (e) {
       _logger.warning("addLineString(): $e");
@@ -231,8 +230,8 @@ class RouteModeClass extends ModeHandler {
 
     await removeAllRoutes();
     await _removeSource();
+    isDisposed = true;
 
     _logger.info('Route Mode Data Cleared');
-    isDisposed = true;
   }
 }
