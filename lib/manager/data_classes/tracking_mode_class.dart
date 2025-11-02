@@ -12,9 +12,6 @@ class TrackingModeClass extends ModeHandler {
   final MapboxMap _map;
   TrackingModeClass(this.mode, this._map);
 
-  static late final AnimationController _controller;
-  static bool _controllerSet = false;
-
   static String get _routesSourceId => 'routes-source';
   static String get _waypointsSourceId => 'waypoints-source';
 
@@ -36,20 +33,12 @@ class TrackingModeClass extends ModeHandler {
 
   final ManagerLogger _logger = ManagerLogger('RideTrackingModeClass');
 
-  void _setAnimController(AnimationController animController) {
-    if (!_controllerSet) {
-      _controller = animController;
-      _controllerSet = true;
-    }
-  }
-
   static Future<TrackingModeClass> initialize(
     TrackingMode mode,
     MapboxMap map,
     AnimationController animController,
   ) async {
     TrackingModeClass cls = TrackingModeClass(mode, map);
-    cls._setAnimController(animController);
     await cls._setupSource();
     if (mode.initialRoutes != null) {
       for (var rt in mode.initialRoutes!.entries) {
@@ -421,10 +410,8 @@ class TrackingModeClass extends ModeHandler {
     _logger.info("Cleaning Tracking Mode Data");
 
     safeExecuteSync(() {
-      _map.setOnMapTapListener(null);
+      _map.setOnMapTapListener((gesture) {});
     }, operationName: 'clearMapTapListener');
-
-    _controller.reset();
 
     await removeAllTraversalSources();
     await removeAllLayers();
