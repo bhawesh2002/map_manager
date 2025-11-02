@@ -307,9 +307,11 @@ class MapManagerMapbox extends ChangeNotifier {
   }
 
   bool _isDisposed = false;
+  bool _isDisposing = false;
 
   /// Returns true if the manager has been disposed.
   bool get isDisposed => _isDisposed;
+  bool get isDisposing => _isDisposing;
 
   /// Disposes the MapManager and all associated resources.
   ///
@@ -326,11 +328,15 @@ class MapManagerMapbox extends ChangeNotifier {
   /// ```
   @override
   Future<void> dispose() async {
-    if (_isDisposed) return;
-    _logger.info('Disposing MapManagerMapbox...');
-    super.dispose();
-    await _cleanExistingModeData();
-    _logger.info('MapManagerMapbox disposed successfully');
-    _isDisposed = true;
+    if (_isDisposing || _isDisposed) return;
+    _isDisposing = true;
+    if (!isDisposing) {
+      _logger.info('Disposing MapManagerMapbox...');
+      super.dispose();
+      await _cleanExistingModeData();
+      _logger.info('MapManagerMapbox disposed successfully');
+      _isDisposed = true;
+      _isDisposing = false;
+    }
   }
 }
