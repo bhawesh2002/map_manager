@@ -12,21 +12,14 @@ class AppMap extends StatefulWidget {
   State<AppMap> createState() => _AppMapState();
 }
 
-class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
+class _AppMapState extends State<AppMap> {
   MapManagerMapbox? manager;
   MapboxMap? mapboxMap;
-  late AnimationController _animController;
-  @override
-  void initState() {
-    _animController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 300));
-    super.initState();
-  }
 
   @override
   void dispose() {
-    _animController.dispose();
     manager?.dispose();
+    debugPrint("MapManager: Disposed App Map");
     super.dispose();
   }
 
@@ -48,8 +41,8 @@ class _AppMapState extends State<AppMap> with TickerProviderStateMixin {
           debugPrint("Platform exception in AppMap: $e");
         }
 
-        manager = await MapManagerMapbox.init(controller, _animController,
-            mode: widget.initialMode);
+        manager =
+            await MapManagerMapbox.init(controller, mode: widget.initialMode);
 
         if (widget.onMapCreated != null) {
           widget.onMapCreated!(manager!);

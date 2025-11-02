@@ -36,7 +36,6 @@ class TrackingModeClass extends ModeHandler {
   static Future<TrackingModeClass> initialize(
     TrackingMode mode,
     MapboxMap map,
-    AnimationController animController,
   ) async {
     TrackingModeClass cls = TrackingModeClass(mode, map);
     await cls._setupSource();
