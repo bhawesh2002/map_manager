@@ -170,6 +170,7 @@ class BasicModeClass extends ModeHandler {
       await geolocator.Geolocator.openAppSettings();
       followUserLocation();
     }
+    await geolocator.Geolocator.getLastKnownPosition();
     if (perm == geolocator.LocationPermission.whileInUse ||
         perm == geolocator.LocationPermission.always) {
       _locStreamSub ??= geolocator.Geolocator.getPositionStream().listen((
