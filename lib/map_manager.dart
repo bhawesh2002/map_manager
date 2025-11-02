@@ -30,9 +30,6 @@ export 'models/mapbox_route.dart';
 // Export all files from lib/manager/tweens
 export 'manager/tweens/geojsonpoint_tween.dart';
 
-// Export all files from lib/models
-export 'models/mode_customization.dart';
-
 // Export all files from lib/utils
 export 'utils/enums.dart';
 export 'utils/extensions.dart';
