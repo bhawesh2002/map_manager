@@ -224,7 +224,7 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest>
 
     // Stop everything first
     _stopSimulation();
-
+    await _mapManager?.changeMode(BasicMapMode());
     setState(() {
       _isTrackingModeActive = false;
       _hasPersonTracking = false;
