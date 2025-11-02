@@ -36,12 +36,12 @@ class BasicModeClass extends ModeHandler {
 
   /// Factory method to create and initialize a [BasicModeClass] instance.
   ///
-  /// This method sets up the map based on the provided [basicMode] configuration.
+  /// This method sets up the map based on the provided [mode] configuration.
   /// If [trackUserLoc] is true in the mode, it will enable location tracking.
   ///
   /// Parameters:
   /// - [map]: The MapboxMap instance to configure
-  /// - [basicMode]: The basic map mode configuration
+  /// - [mode]: The basic map mode configuration
   ///
   /// Returns a fully initialized [BasicModeClass] instance.
   static Future<BasicModeClass> initialize(
@@ -170,7 +170,11 @@ class BasicModeClass extends ModeHandler {
       await geolocator.Geolocator.openAppSettings();
       followUserLocation();
     }
-    await geolocator.Geolocator.getLastKnownPosition();
+    final lastKnown = await geolocator.Geolocator.getLastKnownPosition();
+    if (lastKnown != null) {
+      _lastKnownLoc = lastKnown.toLatLng().toGeojsonPoint();
+      await moveMapCamTo(_map, _lastKnownLoc!);
+    }
     if (perm == geolocator.LocationPermission.whileInUse ||
         perm == geolocator.LocationPermission.always) {
       _locStreamSub ??= geolocator.Geolocator.getPositionStream().listen((
@@ -179,7 +183,7 @@ class BasicModeClass extends ModeHandler {
         final point = position.toLatLng().toGeojsonPoint();
         _lastKnownLoc = point;
         followingUserLoc.value = true;
-        await moveMapCamTo(_map, point);
+        await moveMapCamTo(_map, _lastKnownLoc!);
       });
     } else {
       geolocator.Geolocator.requestPermission();
@@ -227,7 +231,8 @@ class BasicModeClass extends ModeHandler {
     }, operationName: 'clearMapListeners');
 
     _mapMoveTimer?.cancel();
-    _logger.info("Basic Mode data cleared");
+    _mapMoveTimer = null;
     isDisposed = true;
+    _logger.info("Basic Mode data cleared");
   }
 }
