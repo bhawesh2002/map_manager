@@ -27,10 +27,11 @@ Map<String, dynamic> traversedRouteLayerProps = {
 };
 
 Map<String, dynamic> symbolLayerProps(String? imgId) => {
-  if (imgId != null) 'iconImage': imgId,
-  'iconOffset': [0.0, -22.0],
-  'iconAllowOverlap': true,
-  'iconColor': "#0DC8C8",
+  if (imgId != null) 'icon-image': imgId,
+  'icon-offset': [0.0, -22.0],
+  'icon-size': 0.2,
+  'icon-allow-overlap': true,
+  'icon-color': "#0DC8C8",
 };
 
 Map<String, dynamic> userLayerProps = {
