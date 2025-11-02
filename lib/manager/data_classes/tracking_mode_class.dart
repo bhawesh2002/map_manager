@@ -45,6 +45,11 @@ class TrackingModeClass extends ModeHandler {
         await cls.addRoute(rt.value, identifier: rt.key);
       }
     }
+    if (mode.initialWaypoints != null) {
+      for (var wp in mode.initialWaypoints!.entries) {
+        await cls.addWaypoint(wp.value, identifier: wp.key);
+      }
+    }
     return cls;
   }
 
