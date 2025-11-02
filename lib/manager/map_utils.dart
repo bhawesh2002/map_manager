@@ -17,7 +17,6 @@ Future<void> moveMapCamTo(
     );
   } on PlatformException {
     _logger.info("Map is not attached to any view");
-    rethrow;
   } catch (e) {
     _logger.severe(e);
     rethrow;
@@ -32,7 +31,6 @@ Future<void> moveMapBy(MapboxMap map, double x, double y) async {
     );
   } on PlatformException {
     _logger.info("Map is not attached to any view");
-    rethrow;
   } catch (e) {
     _logger.severe(e);
     rethrow;
@@ -111,7 +109,6 @@ Future<void> zoomToFitPoints(
     );
   } on PlatformException {
     _logger.info("Map is not attached to any view");
-    rethrow;
   } catch (e) {
     logger?.warning("Failed to zoom to bounds: $e");
   }
