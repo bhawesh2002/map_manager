@@ -42,7 +42,10 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest>
 
   @override
   void dispose() {
-    _stopSimulation();
+    _simulator?.stop();
+    _simulator = null;
+
+    _isSimulating = false;
     _animationController.dispose();
     super.dispose();
   }
@@ -262,21 +265,17 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest>
     });
 
     _simulator!.start();
-
     setState(() {
       _isSimulating = true;
     });
   }
 
-  void _stopSimulation() {
-    _simulator?.stop();
-    _simulator = null;
-    _locUpdateNotifier = null;
-    _locationTween = null;
-
+  void _stopSimulation() async {
     setState(() {
+      _simulator?.stop();
+      _simulator = null;
+
       _isSimulating = false;
-      _hasPersonTracking = false;
     });
   }
 
