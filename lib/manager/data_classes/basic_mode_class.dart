@@ -222,17 +222,20 @@ class BasicModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
+    try {
+      await disableLocTracking();
 
-    await disableLocTracking();
+      safeExecuteSync(() {
+        _map.setOnMapMoveListener((gesture) {});
+        _map.setOnMapLongTapListener((gesture) {});
+      }, operationName: 'clearMapListeners');
 
-    safeExecuteSync(() {
-      _map.setOnMapMoveListener((gesture) {});
-      _map.setOnMapLongTapListener((gesture) {});
-    }, operationName: 'clearMapListeners');
-
-    _mapMoveTimer?.cancel();
-    _mapMoveTimer = null;
-    isDisposed = true;
-    _logger.info("Basic Mode data cleared");
+      _mapMoveTimer?.cancel();
+      _mapMoveTimer = null;
+      isDisposed = true;
+      _logger.info("Basic Mode data cleared");
+    } catch (e) {
+      _logger.severe("Error disposing basic mode class: $e");
+    }
   }
 }

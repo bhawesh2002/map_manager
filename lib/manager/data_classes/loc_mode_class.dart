@@ -213,41 +213,44 @@ class LocationModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
+    try {
+      _logger.info("Cleaning Location Mode Data");
 
-    _logger.info("Cleaning Location Mode Data");
+      safeExecuteSync(() {
+        _map.setOnMapTapListener((gesture) {});
+      }, operationName: 'clearMapTapListener');
 
-    safeExecuteSync(() {
-      _map.setOnMapTapListener((gesture) {});
-    }, operationName: 'clearMapTapListener');
+      // Remove layer and source
+      await safeExecute(
+        () async {
+          await _map.style.removeStyleLayer(_layerId);
+        },
+        operationName: 'removeLocationLayer',
+        shouldDispose: false,
+      );
 
-    // Remove layer and source
-    await safeExecute(
-      () async {
-        await _map.style.removeStyleLayer(_layerId);
-      },
-      operationName: 'removeLocationLayer',
-      shouldDispose: false,
-    );
+      await safeExecute(
+        () async {
+          await _map.style.removeStyleSource(_sourceId);
+        },
+        operationName: 'removeLocationSource',
+        shouldDispose: false,
+      );
 
-    await safeExecute(
-      () async {
-        await _map.style.removeStyleSource(_sourceId);
-      },
-      operationName: 'removeLocationSource',
-      shouldDispose: false,
-    );
+      await safeExecute(
+        () async {
+          await _map.style.removeStyleImage(defImageId);
+        },
+        operationName: "removeStyleImage",
+        shouldDispose: false,
+      );
 
-    await safeExecute(
-      () async {
-        await _map.style.removeStyleImage(defImageId);
-      },
-      operationName: "removeStyleImage",
-      shouldDispose: false,
-    );
-
-    _selectedPointsMap.clear();
-    onPointAdded.dispose();
-    isDisposed = true;
-    _logger.info("Location Mode Data Cleared");
+      _selectedPointsMap.clear();
+      onPointAdded.dispose();
+      isDisposed = true;
+      _logger.info("Location Mode Data Cleared");
+    } catch (e) {
+      _logger.severe("Error disposing route mode class: $e");
+    }
   }
 }

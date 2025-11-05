@@ -411,26 +411,29 @@ class TrackingModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
+    try {
+      _logger.info("Cleaning Tracking Mode Data");
 
-    _logger.info("Cleaning Tracking Mode Data");
+      safeExecuteSync(() {
+        _map.setOnMapTapListener((gesture) {});
+      }, operationName: 'clearMapTapListener');
 
-    safeExecuteSync(() {
-      _map.setOnMapTapListener((gesture) {});
-    }, operationName: 'clearMapTapListener');
+      await removeAllLayers();
+      await _removeSource(_routesSourceId);
+      await _removeSource(_waypointsSourceId);
 
-    await removeAllLayers();
-    await _removeSource(_routesSourceId);
-    await _removeSource(_waypointsSourceId);
+      await safeExecute(
+        () async {
+          await _map.style.removeStyleImage(defWaypointImg);
+        },
+        operationName: "removeStyleImage_$defWaypointImg",
+        shouldDispose: false,
+      );
 
-    await safeExecute(
-      () async {
-        await _map.style.removeStyleImage(defWaypointImg);
-      },
-      operationName: "removeStyleImage_$defWaypointImg",
-      shouldDispose: false,
-    );
-
-    _logger.info("Tracking Mode Data Cleared");
-    isDisposed = true;
+      isDisposed = true;
+      _logger.info("Tracking Mode Data Cleared");
+    } catch (e) {
+      _logger.severe("Error disposing TrackingModeClass: $e");
+    }
   }
 }

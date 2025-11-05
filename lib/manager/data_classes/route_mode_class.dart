@@ -221,17 +221,20 @@ class RouteModeClass extends ModeHandler {
   @override
   Future<void> dispose() async {
     if (isDisposed) return;
+    try {
+      _logger.info("Cleaning Route Mode Data");
 
-    _logger.info("Cleaning Route Mode Data");
+      safeExecuteSync(() {
+        _map.setOnMapTapListener(null);
+      }, operationName: 'clearMapTapListener');
 
-    safeExecuteSync(() {
-      _map.setOnMapTapListener(null);
-    }, operationName: 'clearMapTapListener');
+      await removeAllRoutes();
+      await _removeSource();
+      isDisposed = true;
 
-    await removeAllRoutes();
-    await _removeSource();
-    isDisposed = true;
-
-    _logger.info('Route Mode Data Cleared');
+      _logger.info('Route Mode Data Cleared');
+    } catch (e) {
+      _logger.severe("Error disposing RouteModeClass: $e");
+    }
   }
 }
