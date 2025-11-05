@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:geojson_vi/geojson_vi.dart';
 import 'package:map_manager/map_manager.dart';
 import 'package:map_manager_mapbox_example/app_map.dart';
+import 'package:map_manager_mapbox_example/route_mode_test.dart';
 import 'package:map_manager_mapbox_example/simple_tracking_test.dart';
 
 class MapTestingPage extends StatefulWidget {
@@ -28,34 +28,7 @@ class _MapTestingPageState extends State<MapTestingPage> {
   final _mapModesMap = <Map<String, dynamic>>[
     {'name': 'Basic Mode', 'config': BasicMapMode(trackUserLoc: true)},
     {'name': "Location Selection", 'config': LocSelMode(maxSelections: 4)},
-    {
-      'name': "Route Mode",
-      'config': RouteMode(predefinedRoutes: {
-        'predefined': GeoJSONFeature(
-            properties: {
-              "styling": {
-                "line-color": "#FF5722",
-                "line-width": 6.0,
-                "line-opacity": 0.9,
-                "line-cap": "round",
-                "line-join": "round",
-                "line-dasharray": [5.0, 3.0]
-              }
-            },
-            GeoJSONLineString([
-              [-122.420679, 37.772537],
-              [-122.420247, 37.773245],
-              [-122.419198, 37.773662],
-              [-122.418640, 37.774097],
-              [-122.417961, 37.774357],
-              [-122.417297, 37.774674],
-              [-122.416289, 37.775180],
-              [-122.415389, 37.775596],
-              [-122.414331, 37.776005],
-              [-122.413467, 37.776335]
-            ]))
-      })
-    },
+    {'name': "Route Mode", 'config': "move"},
     {'name': "Tracking Mode", 'config': 'move'}
   ];
   @override
@@ -95,10 +68,15 @@ class _MapTestingPageState extends State<MapTestingPage> {
                           final isSelected = preset['name'] == _currentModeType;
                           return GestureDetector(
                             onTap: () {
-                              if (preset['name'] == "Tracking Mode") {
-                                Navigator.of(context).push(MaterialPageRoute(
+                              if (preset['config'] == "move") {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
                                     builder: (context) =>
-                                        const SimpleTrackingTest()));
+                                        preset['name'] == "Route Mode"
+                                            ? RouteModeTest()
+                                            : const SimpleTrackingTest(),
+                                  ),
+                                );
                                 return;
                               } else {
                                 setState(() {
