@@ -68,6 +68,9 @@ class _SimpleTrackingTestState extends State<SimpleTrackingTest>
               child: AppMap(
                 onMapCreated: (manager) {
                   _mapManager = manager;
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    await _activateTrackingMode();
+                  });
                 },
               ),
             ),
